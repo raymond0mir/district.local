@@ -25,11 +25,13 @@ done — see `verified-claims.md` and the git log for what changed. Still open:
   the wrong "Key Admins isn't protected" interpretation, honestly hedged as unconfirmed at the
   time, now corrected with a citation). `dc01-unexpected-shutdown` was already self-updating and
   needed nothing.
-- **G — reconcile the stale plugin copy of the skill.** The app's plugin copy (under
-  `~/Library/Application Support/Claude/local-agent-mode-sessions/skills-plugin/.../skills/tech-compass/SKILL.md`)
-  still predates the 2026-09-01 streamline. Invoking `/tech-compass` outside this repo loads the
-  old version. Either re-import from the repo or remove it; the repo copy
-  (`.claude/skills/tech-compass/SKILL.md`) is canonical per its own header.
+- ~~**G — reconcile the stale plugin copy of the skill.**~~ **DONE.** The plugin copy's
+  `SKILL.md` content now matches the repo's byte-for-byte. **One residual not fixed**: a
+  separate, harness-managed `manifest.json` alongside it (outside this repo, indexes skills
+  across many sessions, not something to hand-edit) still caches the *old* one-line description
+  text as of this writing. That only affects a skill-listing index, not the instructions actually
+  loaded when the skill runs — but if `/tech-compass`'s description still looks stale in a future
+  session's skill listing, that's why; it should self-correct whenever the harness next re-scans.
 - **H — a known-exposures page**, built only from captured facts, doubling as the next exercise
   queue. Candidates as of today: `svc-entraconnect`'s password expiry (below), AD Recycle Bin not
   enabled, the five GPOs applying to DC01 (not all fully read), `districtsafetyphoto.com`
