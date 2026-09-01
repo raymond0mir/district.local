@@ -1,0 +1,8 @@
+Command: qm guest exec 102 --timeout 30 -- powershell.exe -Command "Test-NetConnection -ComputerName 1.1.1.1 -Port 443 | Select-Object ComputerName,TcpTestSucceeded | ConvertTo-Json"
+Output:
+timeout reached, returning pid
+{
+   "pid" : 3648
+}
+
+Same non-completion shape as vm102-dns-port53-hang.txt -- guest-agent exec timeout expired before the command finished, process left running, not killed.

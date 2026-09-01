@@ -1,0 +1,5 @@
+{
+   "exitcode" : 0,
+   "exited" : 1,
+   "out-data" : "[\r\n    {\r\n        \"Name\":  \"John Smith\",\r\n        \"SamAccountName\":  \"jsmith\",\r\n        \"objectClass\":  \"user\"\r\n    },\r\n    {\r\n        \"Name\":  \"System Admin\",\r\n        \"SamAccountName\":  \"sysadmin\",\r\n        \"objectClass\":  \"user\"\r\n    }\r\n]\r\n"
+}

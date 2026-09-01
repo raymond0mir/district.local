@@ -1,0 +1,13 @@
+Commands: pve-firewall status ; cat /etc/pve/firewall/cluster.fw ; cat /etc/pve/firewall/102.fw ; cat /etc/pve/firewall/100.fw
+Run from: Proxmox host shell. Raw terminal scrollback, pasted by Raymond.
+
+root@proxmox:~# pve-firewall status
+Status: disabled/running
+root@proxmox:~# cat /etc/pve/firewall/cluster.fw 2>/dev/null || echo "no cluster-wide ruleset file"
+no cluster-wide ruleset file
+root@proxmox:~# cat /etc/pve/firewall/102.fw 2>/dev/null || echo "no per-VM ruleset file for 102"
+no per-VM ruleset file for 102
+root@proxmox:~# cat /etc/pve/firewall/100.fw 2>/dev/null || echo "no per-VM ruleset file for 100"
+no per-VM ruleset file for 100
+
+RESULT: Hypothesis disproven. Proxmox's firewall subsystem is disabled entirely (Status: disabled), no cluster-wide policy exists, and neither VM 100 nor VM 102 has a per-VM ruleset file. The `firewall=1` flag present on both VMs' net0 config is inert -- there is no enforcement happening regardless of that flag's presence. This was checked directly because that flag was copied mechanically from DC01's config into VM 102's create command without verifying whether Proxmox's firewall subsystem was even active; ruled out by evidence rather than left as an assumption either way.

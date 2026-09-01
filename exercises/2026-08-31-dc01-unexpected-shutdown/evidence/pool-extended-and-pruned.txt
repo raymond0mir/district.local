@@ -1,0 +1,56 @@
+Commands, in order, all Proxmox host shell, all pasted verbatim by Raymond:
+
+--- vgs (verification before acting) ---
+  VG  #PV #LV #SN Attr   VSize   VFree
+  pve   1  31   0 wz--n- 237.47g 16.00g
+
+Confirms the 16.00 GiB VG-level free space figure from this exercise's original Open Questions ("Whether the pool's 16.00 GiB of VG-level free space would have been enough to extend the thin pool as an alternative to pruning was never tested") was still accurate, unchanged by VM 102's creation -- consistent with thin-provisioned volumes allocating from inside an existing pool, not from VG free space directly.
+
+--- lvextend -L +14G pve/data ---
+  Size of logical volume pve/data_tdata changed from <141.23 GiB (36154 extents) to <155.23 GiB (39738 extents).
+  WARNING: Sum of all thin volume sizes (<590.97 GiB) exceeds the size of thin pool pve/data and the size of whole volume group (237.47 GiB).
+  WARNING: You have not turned on protection against thin pools running out of space.
+  WARNING: Set activation/thin_pool_autoextend_threshold below 100 to trigger automatic extension of thin pools before they get full.
+  Logical volume pve/data successfully resized.
+
+Left 2 GiB of VG free space in reserve deliberately, rather than consuming all 16 GiB -- headroom for the pool's own metadata volume if it ever needs to grow.
+
+--- qm delsnapshot 100 pre-sysadmin-admin-removal-20260831 ---
+  Logical volume "snap_vm-100-disk-1_pre-sysadmin-admin-removal-20260831" successfully removed.
+  Logical volume "snap_vm-100-disk-0_pre-sysadmin-admin-removal-20260831" successfully removed.
+
+--- qm delsnapshot 101 a829 ---
+  Logical volume "vm-101-state-a829" successfully removed.
+  Logical volume "snap_vm-101-disk-1_a829" successfully removed.
+  Logical volume "snap_vm-101-disk-0_a829" successfully removed.
+  Logical volume "snap_vm-101-disk-2_a829" successfully removed.
+
+--- qm delsnapshot 104 postdiodeisolated ---
+  Logical volume "vm-104-state-postdiodeisolated" successfully removed.
+  Logical volume "snap_vm-104-disk-0_postdiodeisolated" successfully removed.
+
+--- qm delsnapshot 104 stable ---
+  Logical volume "vm-104-state-stable" successfully removed.
+  Logical volume "snap_vm-104-disk-0_stable" successfully removed.
+
+--- qm delsnapshot 104 stableconfiged ---
+  Logical volume "vm-104-state-stableconfiged" successfully removed.
+  Logical volume "snap_vm-104-disk-0_stableconfiged" successfully removed.
+
+Each delsnapshot call's own output was individually captured this time, applying the lesson recorded in this exercise's own "What I'd do differently" the first time this happened ("capture each qm delsnapshot call's own output next time, even when a before/after lvs diff is going to prove the aggregate result anyway").
+
+--- qm listsnapshot 100; qm listsnapshot 101; qm listsnapshot 104 ---
+`-> clean-install               2025-09-29 17:44:23     Fully patched + drivers, ready to clone
+ `-> current                                            You are here!
+`-> win11-ootb                  2025-09-30 15:54:34     no-description
+ `-> current                                            You are here!
+`-> current                                             You are here!
+
+VM 100: one snapshot remains (clean-install). VM 101: one snapshot remains (win11-ootb). VM 104: zero snapshots remain -- flagged explicitly before this was run, not discovered after the fact. pfSense now has no rollback point at all.
+
+--- lvs -a -o+lv_name,data_percent,metadata_percent,lv_size (final state) ---
+  data   pve twi-aotz-- <155.23g   73.00  3.59
+
+RESULT: Data% dropped from 86.48% to 73.00%, combining the pool extension (+14G) and five snapshot deletions. Better than the ~79% estimate from extending alone -- pruning freed roughly 8-9 GiB of actual thin-pool consumption on top of the extension's effect (rough math: 86.48% of 141.23 GiB =~122.16 GiB used before either action; 73.00% of 155.23 GiB =~113.32 GiB used after both). Both this exercise's flagged untested alternative (pool extension) and its recommended-but-deferred prune targets (VM 101/104 snapshots, explicitly named in the original Open Questions as "in scope for space if pool pressure becomes a problem again") are now resolved.
+
+Note: the final lvs paste was truncated by the terminal at the vm-105-disk-0 row (no Data%/Meta%/LSize values shown for that line) -- not filled in or assumed, just noted as an incomplete capture rather than silently completed.

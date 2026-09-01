@@ -1,0 +1,5 @@
+{
+   "exitcode" : 0,
+   "exited" : 1,
+   "out-data" : "[\r\n    {\r\n        \"Name\":  \"Domain Admins\",\r\n        \"SamAccountName\":  \"Domain Admins\",\r\n        \"objectClass\":  \"group\"\r\n    },\r\n    {\r\n        \"Name\":  \"Enterprise Admins\",\r\n        \"SamAccountName\":  \"Enterprise Admins\",\r\n        \"objectClass\":  \"group\"\r\n    },\r\n    {\r\n        \"Name\":  \"Administrator\",\r\n        \"SamAccountName\":  \"Administrator\",\r\n        \"objectClass\":  \"user\"\r\n    }\r\n]\r\n"
+}

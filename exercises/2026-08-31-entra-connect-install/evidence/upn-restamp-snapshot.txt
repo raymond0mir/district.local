@@ -1,0 +1,25 @@
+Commands: qm listsnapshot 100 ; qm snapshot 100 pre-upn-restamp-20260831 --description "..." ; qm listsnapshot 100
+Run from: Proxmox host shell. Raw terminal scrollback, pasted by Raymond. Host-side, no guest-agent envelope.
+
+--- qm listsnapshot 100 (before) ---
+`-> clean-install               2025-09-29 17:44:23     Fully patched + drivers, ready to clone
+ `-> current                                            You are here!
+
+--- qm snapshot 100 pre-upn-restamp-20260831 ---
+snapshotting 'drive-scsi0' (local-lvm:vm-100-disk-1)
+  WARNING: You have not turned on protection against thin pools running out of space.
+  WARNING: Set activation/thin_pool_autoextend_threshold below 100 to trigger automatic extension of thin pools before they get full.
+  Logical volume "snap_vm-100-disk-1_pre-upn-restamp-20260831" created.
+  WARNING: Sum of all thin volume sizes (445.00 GiB) exceeds the size of thin pool pve/data and the size of whole volume group (237.47 GiB).
+snapshotting 'drive-efidisk0' (local-lvm:vm-100-disk-0)
+  WARNING: You have not turned on protection against thin pools running out of space.
+  WARNING: Set activation/thin_pool_autoextend_threshold below 100 to trigger automatic extension of thin pools before they get full.
+  Logical volume "snap_vm-100-disk-0_pre-upn-restamp-20260831" created.
+  WARNING: Sum of all thin volume sizes (<445.01 GiB) exceeds the size of thin pool pve/data and the size of whole volume group (237.47 GiB).
+
+--- qm listsnapshot 100 (after) ---
+`-> clean-install               2025-09-29 17:44:23     Fully patched + drivers, ready to clone
+ `-> pre-upn-restamp-20260831   2026-08-31 17:25:34     Before adding raytakosharkygmail.onmicrosoft.com UPN suffix and re-stamping 9 user accounts
+  `-> current                                           You are here!
+
+RESULT: Snapshot created and confirmed registered, correctly positioned right before "current". The 445 GiB overcommit warning reflects the pool's extended size (155.23 GiB) as the new denominator -- expected LVM-thin behavior, not a new problem; Data% (the figure that actually matters) was last confirmed at 73.00% before this action, comfortably under threshold.

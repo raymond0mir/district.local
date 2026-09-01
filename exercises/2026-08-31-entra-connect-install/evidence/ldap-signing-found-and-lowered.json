@@ -1,0 +1,27 @@
+Command 1 (finding): qm guest exec 100 --timeout 30 -- powershell.exe -Command "Get-ItemProperty 'HKLM:\SYSTEM\CurrentControlSet\Services\NTDS\Parameters' -Name LDAPServerIntegrity | Select-Object LDAPServerIntegrity | ConvertTo-Json"
+{
+   "exitcode" : 0,
+   "exited" : 1,
+   "out-data" : "{\r\n    \"ldapserverintegrity\":  2\r\n}\r\n"
+}
+
+Command 2 (change): qm guest exec 100 --timeout 30 -- powershell.exe -Command "Set-ItemProperty 'HKLM:\SYSTEM\CurrentControlSet\Services\NTDS\Parameters' -Name LDAPServerIntegrity -Value 1"
+{
+   "exitcode" : 0,
+   "exited" : 1
+}
+
+Command 3 (verification): qm guest exec 100 --timeout 30 -- powershell.exe -Command "Get-ItemProperty 'HKLM:\SYSTEM\CurrentControlSet\Services\NTDS\Parameters' -Name LDAPServerIntegrity | Select-Object LDAPServerIntegrity | ConvertTo-Json"
+{
+   "exitcode" : 0,
+   "exited" : 1,
+   "out-data" : "{\r\n    \"ldapserverintegrity\":  1\r\n}\r\n"
+}
+
+CONTEXT: This lead came from the inherited BloodHound write-up (~/Downloads/district-lab-bloodhound-writeup.md), which documented that this same DC rejects unsigned LDAP binds due to LDAPServerIntegrity=2, and that the value reverts 1 -> 2 on every DC reboot independent of GPO. That document is INHERITED and unverified under this project's capture contract, so the value was confirmed directly on DC01 rather than trusted -- and it did read 2.
+
+CONFIRMED INTENTIONAL, not accidental: VM 100 carries a snapshot named `win2022servLOCK` described as "Microsoft's Official Security Baseline for DCs" (see the constrained-admin-path exercise's vm100-pre-removal-snapshot.txt). LDAP signing enforcement is part of that deliberate hardening posture, not drift.
+
+OUTCOME: Lowering to 1 (signing offered, not required) DID NOT resolve the Entra Connect wizard error. The hypothesis was plausible, directly evidenced, and wrong -- or at least insufficient. The security posture reduction bought nothing, which is the central reason the close-out recommends reverting it to 2.
+
+NOT TESTED: whether the documented reboot-reversion behavior (1 -> 2 on restart) still holds. DC01 has not been rebooted since this change.

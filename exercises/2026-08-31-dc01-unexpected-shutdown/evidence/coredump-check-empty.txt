@@ -1,0 +1,2 @@
+root@proxmox:~# coredumpctl list --since "-3 hours" 2>/dev/null; ls -la /var/crash/ 2>/dev/null
+root@proxmox:~#

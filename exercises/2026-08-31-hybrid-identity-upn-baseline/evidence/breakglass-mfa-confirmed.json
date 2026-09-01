@@ -1,0 +1,19 @@
+{
+    "@odata.context": "https://graph.microsoft.com/v1.0/$metadata#users('de938dc8-feb7-4140-9a01-8e32649b8fd6')/authentication/methods",
+    "value": [
+        {
+            "@odata.type": "#microsoft.graph.passwordAuthenticationMethod",
+            "id": "28c10230-6103-485e-b985-444c60001490",
+            "password": null,
+            "createdDateTime": "2026-08-31T23:11:57Z"
+        },
+        {
+            "@odata.type": "#microsoft.graph.microsoftAuthenticatorAuthenticationMethod",
+            "id": "a2a29348-dc0b-4ab9-b6c9-65d7f3ae46fe",
+            "displayName": "iPhone",
+            "deviceTag": "SoftwareTokenActivated",
+            "phoneAppVersion": "6.8.53",
+            "createdDateTime": null
+        }
+    ]
+}

@@ -1,0 +1,13 @@
+{
+    "@odata.context": "https://graph.microsoft.com/v1.0/$metadata#directoryObjects",
+    "value": [
+        {
+            "@odata.type": "#microsoft.graph.directoryRole",
+            "id": "38d63b66-2238-4a84-bc42-2ad7d1d33418",
+            "deletedDateTime": null,
+            "description": null,
+            "displayName": null,
+            "roleTemplateId": "62e90394-69f5-4237-9190-012177145e10"
+        }
+    ]
+}

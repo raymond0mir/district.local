@@ -1,0 +1,30 @@
+Commands: qm status 100 ; lvs -a -o+lv_name,data_percent,metadata_percent,lv_size ; journalctl --since "-30 minutes" --no-pager | grep -iE "vm 100|:100:|qmeventd|terminat|split_lock|oom|out of memory"
+Run from: Proxmox host shell (root@proxmox). Raw terminal scrollback, pasted by Raymond. Surfaced as a side note while diagnosing VM 102 connectivity in the entra-connect-install exercise -- filed here because it is substantively a continuation of this exercise's own unresolved root-cause question, not a new topic.
+
+--- qm status 100 (at time of discovery) ---
+status: running    <- already restarted by Raymond before this was investigated; the crash itself predates this reading.
+
+--- lvs (load-bearing row) ---
+data   pve twi-aotz-- <141.23g   86.48  3.91   <- ABOVE the skill's own 85% stop-threshold, established directly because of this exercise's first occurrence.
+
+--- journalctl --since "-30 minutes" (filtered) ---
+Aug 31 16:49:55 proxmox kernel: x86/split lock detection: #AC: CPU 1/KVM/34745 took a split_lock trap at address: 0xfffff80741a0878f
+Aug 31 16:52:42 proxmox qmeventd[827]: read: Connection reset by peer
+Aug 31 16:52:42 proxmox qmeventd[38628]: Starting cleanup for 100
+Aug 31 16:52:42 proxmox qmeventd[38628]: Finished cleanup for 100
+Aug 31 17:04:24 proxmox kernel: x86/split lock detection: #AC: CPU 0/KVM/34744 took a split_lock trap at address: 0xfffff8043b111564
+Aug 31 17:12:48 proxmox pvedaemon[41983]: start VM 100: UPID:proxmox:0000A3FF:002F7505:6A961880:qmstart:100:root@pam:
+Aug 31 17:12:48 proxmox pvedaemon[38057]: <root@pam> starting task UPID:proxmox:0000A3FF:002F7505:6A961880:qmstart:100:root@pam:
+Aug 31 17:12:49 proxmox pvedaemon[41983]: VM 100 started with PID 41996.
+Aug 31 17:12:49 proxmox pvedaemon[38057]: <root@pam> end task UPID:proxmox:0000A3FF:002F7505:6A961880:qmstart:100:root@pam: OK
+Aug 31 17:12:54 proxmox kernel: x86/split lock detection: #AC: CPU 0/KVM/42062 took a split_lock trap at address: 0xfffff8041ccdfdff
+
+FINDINGS:
+
+1. Crash signature is identical to the original occurrence in this exercise: qmeventd detecting a QMP socket reset ("Connection reset by peer") followed immediately by cleanup, not a clean shutdown handshake. Crash at 16:52:42; Raymond noticed and restarted at 17:12:48, roughly 20 minutes of downtime.
+
+2. Split-lock traps (three in this window) match the already-established non-fatal pattern from the first occurrence -- host policy warns rather than kills on user-space/guest split locks. Not treated as new evidence of a different mechanism; consistent with the earlier ruling-out.
+
+3. The thin pool was measured at 86.48% AFTER the crash and after continued VM 102 install activity -- this is NOT a reading taken at the moment of the 16:52:42 crash itself. No continuous monitoring was in place, so the precise Data% at the crash instant is unknown. Stating this plainly rather than asserting a tighter correlation than the evidence actually supports: this is a second occurrence of the same crash signature, happening during a window when the pool was climbing (VM 102's Windows Server install was writing real data throughout roughly this same period), but "climbing pool, later crash" is not the same claim as "pool was over threshold at the exact crash moment."
+
+4. Process gap, named directly: the preflight check before VM 102 was created passed (78.63%, comfortably under threshold). No re-check was performed once VM 102's OS install actually started writing significant data. A preflight is a point-in-time gate, not a standing guarantee -- a large concurrent install is exactly the kind of activity that can push a passing pool over the line before the next planned checkpoint. This gap is on the record.

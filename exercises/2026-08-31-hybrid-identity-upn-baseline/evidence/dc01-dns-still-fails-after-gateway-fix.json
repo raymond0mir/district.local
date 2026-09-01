@@ -1,0 +1,5 @@
+{
+   "err-data" : "Resolve-DnsName : login.microsoftonline.com : DNS server failure\r\nAt line:1 char:1\r\n+ Resolve-DnsName -Name login.microsoftonline.com -Type A | Select-Obje ...\r\n+ ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~\r\n    + CategoryInfo          : ResourceUnavailable: (login.microsoftonline.com:String) [Resolve-DnsName], Win32Exceptio \r\n   n\r\n    + FullyQualifiedErrorId : RCODE_SERVER_FAILURE,Microsoft.DnsClient.Commands.ResolveDnsName\r\n \r\n",
+   "exitcode" : 1,
+   "exited" : 1
+}

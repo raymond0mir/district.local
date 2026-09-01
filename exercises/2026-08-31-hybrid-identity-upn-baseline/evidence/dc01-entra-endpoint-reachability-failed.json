@@ -1,0 +1,5 @@
+{
+   "exitcode" : 0,
+   "exited" : 1,
+   "out-data" : "WARNING: Name resolution of login.microsoftonline.com failed\n{\r\n    \"ComputerName\":  \"login.microsoftonline.com\",\r\n    \"RemoteAddress\":  null,\r\n    \"TcpTestSucceeded\":  false,\r\n    \"PingSucceeded\":  false\r\n}\r\n"
+}

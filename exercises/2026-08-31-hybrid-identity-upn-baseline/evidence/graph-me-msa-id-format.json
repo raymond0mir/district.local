@@ -1,0 +1,14 @@
+{
+    "@odata.context": "https://graph.microsoft.com/v1.0/$metadata#users/$entity",
+    "userPrincipalName": "raytakosharky@gmail.com",
+    "id": "27701766a4468e98",
+    "displayName": "R M",
+    "surname": "M",
+    "givenName": "R",
+    "preferredLanguage": "en-US",
+    "mail": "raytakosharky@gmail.com",
+    "mobilePhone": null,
+    "jobTitle": null,
+    "officeLocation": null,
+    "businessPhones": []
+}

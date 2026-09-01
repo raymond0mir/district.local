@@ -1,0 +1,41 @@
+root@proxmox:~# journalctl --since "-3 hours" -p warning --no-pager | tail -100
+Aug 31 08:34:30 proxmox kernel: pnp 00:05: disabling [mem 0xc0000000-0xcfffffff] because it overlaps 0000:00:02.0 BAR 9 [mem 0x00000000-0xdfffffff 64bit pref]
+Aug 31 08:34:30 proxmox kernel: resource: resource sanity check: requesting [mem 0x00000000fedc0000-0x00000000fedcdfff], which spans more than pnp 00:05 [mem 0xfedc0000-0xfedc7fff]
+Aug 31 08:34:30 proxmox kernel: caller uncore_get_box_mmio_addr+0xe3/0x150 mapping multiple BARs
+Aug 31 08:34:30 proxmox kernel: hpet_acpi_add: no address or irqs in _CRS
+Aug 31 08:34:30 proxmox kernel: i8042: Warning: Keylock active
+Aug 31 08:34:30 proxmox kernel: device-mapper: core: CONFIG_IMA_DISABLE_HTABLE is disabled. Duplicate IMA measurements will not be recorded in the IMA log.
+Aug 31 08:34:30 proxmox kernel: ENERGY_PERF_BIAS: Set to 'normal', was 'performance'
+Aug 31 08:34:30 proxmox kernel: wmi_bus wmi_bus-PNP0C14:02: [Firmware Bug]: WQBC data block query control method not found
+Aug 31 08:34:30 proxmox kernel: pci 10000:e0:1d.0: Primary bus is hard wired to 0
+Aug 31 08:34:30 proxmox kernel: pci 10000:e0:1d.0: Primary bus is hard wired to 0
+Aug 31 08:34:30 proxmox kernel: pcieport 10000:e0:1d.0: can't derive routing for PCI INT A
+Aug 31 08:34:30 proxmox kernel: pcieport 10000:e0:1d.0: PCI INT A: no GSI
+Aug 31 08:34:30 proxmox kernel: ahci 10000:e0:17.0: can't derive routing for PCI INT A
+Aug 31 08:34:30 proxmox kernel: ahci 10000:e0:17.0: PCI INT A: no GSI
+Aug 31 08:34:30 proxmox kernel: pcieport 10000:e0:1d.0: can't derive routing for PCI INT A
+Aug 31 08:34:30 proxmox kernel: nvme 10000:e1:00.0: PCI INT A: no GSI
+Aug 31 08:34:30 proxmox kernel: spl: loading out-of-tree module taints kernel.
+Aug 31 08:34:30 proxmox systemd-journald[410]: File /var/log/journal/38ba5d5d1cf8463aa8368cdbc8887f3e/system.journal corrupted or uncleanly shut down, renaming and replacing.
+Aug 31 08:34:30 proxmox kernel: zfs: module license 'CDDL' taints kernel.
+Aug 31 08:34:30 proxmox kernel: Disabling lock debugging due to kernel taint
+Aug 31 08:34:30 proxmox kernel: zfs: module license taints kernel.
+Aug 31 08:34:30 proxmox (udev-worker)[489]: lo: Invalid network interface name, ignoring:
+Aug 31 08:34:30 proxmox lvm[527]: PV /dev/nvme0n1p3 online, VG pve is complete.
+Aug 31 08:34:30 proxmox lvm[527]: VG pve finished
+Aug 31 08:34:31 proxmox kernel: platform regulatory.0: Direct firmware load for regulatory.db failed with error -2
+Aug 31 08:34:31 proxmox kernel: spi-nor spi0.0: supply vcc not found, using dummy regulator
+Aug 31 08:34:32 proxmox blkmapd[801]: open pipe file /run/rpc_pipefs/nfs/blocklayout failed: No such file or directory
+Aug 31 08:34:32 proxmox kernel: nvme nvme0: using unchecked data buffer
+Aug 31 08:34:33 proxmox kernel: Bluetooth: hci0: HCI LE Coded PHY feature bit is set, but its usage is not supported.
+Aug 31 08:34:34 proxmox postfix/postfix-script[1112]: warning: /var/spool/postfix/etc/localtime and /etc/localtime differ
+Aug 31 08:34:40 proxmox dmeventd[425]: WARNING: Thin pool pve-data-tpool data is now 96.39% full.
+Aug 31 08:34:41 proxmox chronyd[889]: Leap second list /usr/share/zoneinfo/leap-seconds.list needs update
+Aug 31 08:34:45 proxmox pvestatd[1161]: auth key pair too old, rotating..
+Aug 31 08:37:42 proxmox pvedaemon[1191]: readline() on closed filehandle $smaps_fh at /usr/share/perl5/PVE/QemuServer.pm line 2433.
+Aug 31 08:57:13 proxmox kernel: x86/split lock detection: #AC: CPU 0/KVM/1968 took a split_lock trap at address: 0xfffff804726dfdff
+Aug 31 09:11:34 proxmox dmeventd[425]: WARNING: Thin pool pve-data-tpool data is now 96.45% full.
+Aug 31 09:30:56 proxmox pveproxy[10708]: got inotify poll request in wrong process - disabling inotify
+Aug 31 09:42:26 proxmox qm[12677]: VM 100 already running
+Aug 31 09:42:26 proxmox qm[12672]: <root@pam> end task UPID:proxmox:00003185:00063971:6A95AEF2:qmstart:100:root@pam: VM 100 already running
+root@proxmox:~#

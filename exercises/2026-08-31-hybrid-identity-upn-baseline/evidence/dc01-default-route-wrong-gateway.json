@@ -1,0 +1,5 @@
+{
+   "exitcode" : 0,
+   "exited" : 1,
+   "out-data" : "{\r\n    \"DestinationPrefix\":  \"0.0.0.0/0\",\r\n    \"NextHop\":  \"192.168.1.1\",\r\n    \"InterfaceAlias\":  \"Ethernet\",\r\n    \"RouteMetric\":  256\r\n}\r\n"
+}

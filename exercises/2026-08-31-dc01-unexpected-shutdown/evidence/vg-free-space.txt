@@ -1,0 +1,4 @@
+root@proxmox:~# vgs
+  VG  #PV #LV #SN Attr   VSize   VFree
+  pve   1  43   0 wz--n- 237.47g 16.00g
+root@proxmox:~#

@@ -1,0 +1,5 @@
+{
+   "exitcode" : 0,
+   "exited" : 1,
+   "out-data" : "{\r\n    \"Name\":  \"district\",\r\n    \"DNSRoot\":  \"district.local\",\r\n    \"NetBIOSName\":  \"DISTRICT\",\r\n    \"DomainMode\":  7,\r\n    \"PDCEmulator\":  \"DC01.district.local\"\r\n}\r\n"
+}

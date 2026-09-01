@@ -1,0 +1,5 @@
+{
+   "exitcode" : 0,
+   "exited" : 1,
+   "out-data" : "{\r\n    \"Name\":  \"Administrator\",\r\n    \"SamAccountName\":  \"Administrator\",\r\n    \"objectClass\":  \"user\"\r\n}\r\n"
+}

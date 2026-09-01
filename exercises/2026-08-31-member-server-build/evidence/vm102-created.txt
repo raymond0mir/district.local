@@ -1,0 +1,24 @@
+Command: qm create 102 --name entraconnect01 --memory 3072 --cores 2 --sockets 1 --cpu host --machine q35 --bios ovmf --efidisk0 local-lvm:1,efitype=4m,pre-enrolled-keys=1 --scsihw virtio-scsi-single --scsi0 local-lvm:60,iothread=1 --ide2 local:iso/SERVER_EVAL_x64FRE_en-us.iso,media=cdrom --ide3 local:iso/virtio-win.iso,media=cdrom --net0 virtio,bridge=vmbr1,firewall=1 --ostype win11 --boot 'order=ide2;scsi0;net0' --agent enabled=1
+Run from: Proxmox host shell (root@proxmox). Raw terminal scrollback, pasted by Raymond.
+
+  Rounding up size to full physical extent 4.00 MiB
+  WARNING: You have not turned on protection against thin pools running out of space.
+  WARNING: Set activation/thin_pool_autoextend_threshold below 100 to trigger automatic extension of thin pools before they get full.
+  Logical volume "vm-102-disk-0" created.
+  WARNING: Sum of all thin volume sizes (<530.97 GiB) exceeds the size of thin pool pve/data and the size of whole volume group (237.47 GiB).
+  Logical volume pve/vm-102-disk-0 changed.
+transferred 0.0 B of 528.0 KiB (0.00%)
+transferred 528.0 KiB of 528.0 KiB (100.00%)
+transferred 528.0 KiB of 528.0 KiB (100.00%)
+efidisk0: successfully created disk 'local-lvm:vm-102-disk-0,efitype=4m,pre-enrolled-keys=1,size=4M'
+  WARNING: You have not turned on protection against thin pools running out of space.
+  WARNING: Set activation/thin_pool_autoextend_threshold below 100 to trigger automatic extension of thin pools before they get full.
+  Logical volume "vm-102-disk-1" created.
+  WARNING: Sum of all thin volume sizes (<590.97 GiB) exceeds the size of thin pool pve/data and the size of whole volume group (237.47 GiB).
+  Logical volume pve/vm-102-disk-1 changed.
+scsi0: successfully created disk 'local-lvm:vm-102-disk-1,iothread=1,size=60G'
+pinning machine type to 'pc-q35-10.0' for Windows guest OS
+
+RESULT: VM 102 (entraconnect01) created successfully, both disks (efidisk0 4M, scsi0 60G) provisioned without error. Machine type auto-pinned to pc-q35-10.0 -- expected Proxmox behavior for a Windows-typed guest (ostype=win11), locking the machine ABI so a future host/QEMU upgrade doesn't silently change it under the VM.
+
+Thin-pool overcommit note: allocated virtual disk total climbed to <590.97 GiB against the 237.47 GiB pool with this VM's disks added, up from the post-prune baseline in the unexpected-shutdown exercise. Real usage (Data%) was 78.63% at the last preflight, still under the skill's 85% stop-threshold -- this is the allocated/virtual figure, not actual consumption, but tracked here per this project's running practice of logging it whenever it appears rather than treating it as routine LVM boilerplate.

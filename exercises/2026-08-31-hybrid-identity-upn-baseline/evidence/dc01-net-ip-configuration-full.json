@@ -1,0 +1,5 @@
+{
+   "exitcode" : 0,
+   "exited" : 1,
+   "out-data" : "{\r\n    \"InterfaceAlias\":  \"Ethernet\",\r\n    \"IPv4Address\":  [\r\n                        {\r\n                            \"IPv4Address\":  \"10.0.0.10\",\r\n                            \"PrefixLength\":  24,\r\n                            \"InterfaceAlias\":  \"Ethernet\",\r\n                            \"IPAddress\":  \"10.0.0.10\"\r\n                        }\r\n                    ],\r\n    \"IPv4DefaultGateway\":  [\r\n                               {\r\n                                   \"DestinationPrefix\":  \"0.0.0.0/0\",\r\n                                   \"InterfaceAlias\":  \"Ethernet\",\r\n                                   \"InterfaceMetric\":  15,\r\n                                   \"NextHop\":  \"192.168.1.1\",\r\n                                   \"RouteMetric\":  256\r\n                               }\r\n                           ]\r\n}\r\n"
+}

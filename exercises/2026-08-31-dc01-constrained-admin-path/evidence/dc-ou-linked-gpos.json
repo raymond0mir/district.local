@@ -1,0 +1,5 @@
+{
+   "exitcode" : 0,
+   "exited" : 1,
+   "out-data" : "[\r\n    {\r\n        \"DisplayName\":  \"Default Domain Controllers Policy\",\r\n        \"GpoId\":  \"6ac1786c-016f-11d2-945f-00c04fb984f9\",\r\n        \"Enabled\":  true,\r\n        \"Enforced\":  false,\r\n        \"Order\":  1\r\n    },\r\n    {\r\n        \"DisplayName\":  \"DC - Secure LDAP\",\r\n        \"GpoId\":  \"ff616993-b76d-4b9b-b314-2ad143fb37c3\",\r\n        \"Enabled\":  true,\r\n        \"Enforced\":  false,\r\n        \"Order\":  2\r\n    }\r\n]\r\n"
+}

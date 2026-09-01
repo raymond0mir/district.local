@@ -1,0 +1,11 @@
+Command 1: qm agent 102 ping
+Output: (empty -- no output is success for this subcommand)
+
+Command 2: qm guest exec 102 --timeout 30 -- cmd.exe /c hostname
+{
+   "exitcode" : 0,
+   "exited" : 1,
+   "out-data" : "ENTRACONNECT01\r\n"
+}
+
+RESULT: QEMU Guest Agent fully functional on VM 102 (entraconnect01) via qm guest exec, the same capture path used against DC01 (VM 100) throughout this project. This VM no longer requires console screen-sharing for command-level work -- only the two commands above are genuine terminal-captured evidence for VM 102; everything before this point in the build (OS install, driver loads, domain join) was observed via Proxmox console screenshots, not captured command output, since no guest-agent channel existed until this step. That distinction is preserved in report.md rather than presented as uniformly "captured."

@@ -1,0 +1,44 @@
+Command: qm listsnapshot 100
+Then: qm snapshot 100 pre-sysadmin-admin-removal-20260831 --description "Before Remove-ADGroupMember Administrators sysadmin, exercise 2026-08-31-dc01-constrained-admin-path"
+Run from: Proxmox host shell (root@proxmox), not via qm guest exec -- this is host-side, not a guest-agent JSON capture, so there is no exitcode/exited/out-data/err-data envelope. Raw terminal scrollback, pasted by Raymond.
+
+Note: the pasted block also contains bash errors ("-bash: $: command not found", "syntax error near unexpected token `)'") caused by shell-metacharacters in the numbered instructions and inline comments Claude gave alongside the two actual commands -- those lines were never valid commands, they were prose copy-pasted along with the commands. The two real commands (qm listsnapshot 100, and the qm snapshot creation) executed and produced the output below regardless.
+
+--- qm listsnapshot 100 output ---
+`-> clean-install               2025-09-29 17:44:23     Fully patched + drivers, ready to clone
+`-> postinstall-config         2025-09-30 14:27:33     no-description
+Wide character in printf at /usr/share/perl5/PVE/GuestHelpers.pm line 175.
+`-> win2022servLOCK           2025-10-08 16:46:13     Microsoft's Official Security Baseline for DCs
+ `-> ipconfig                 2026-06-15 15:00:35     no-description
+  `-> a826                    2026-08-26 11:29:24     no-description
+   `-> audit-fixed-20260829   2026-08-29 09:03:08     no-description
+    `-> current                                       You are here!
+
+--- qm snapshot 100 pre-sysadmin-admin-removal-20260831 output ---
+snapshotting 'drive-scsi0' (local-lvm:vm-100-disk-1)
+  WARNING: You have not turned on protection against thin pools running out of space.
+  WARNING: Set activation/thin_pool_autoextend_threshold below 100 to trigger automatic extension of thin pools before they get full.
+  Logical volume "snap_vm-100-disk-1_pre-sysadmin-admin-removal-20260831" created.
+  WARNING: Sum of all thin volume sizes (864.93 GiB) exceeds the size of thin pool pve/data and the size of whole volume group (237.47 GiB).
+snapshotting 'drive-efidisk0' (local-lvm:vm-100-disk-0)
+  WARNING: You have not turned on protection against thin pools running out of space.
+  WARNING: Set activation/thin_pool_autoextend_threshold below 100 to trigger automatic extension of thin pools before they get full.
+  Logical volume "snap_vm-100-disk-0_pre-sysadmin-admin-removal-20260831" created.
+  WARNING: Sum of all thin volume sizes (<864.94 GiB) exceeds the size of thin pool pve/data and the size of whole volume group (237.47 GiB).
+
+No explicit success/failure line or exit code was captured for the snapshot command itself -- "Logical volume ... created" for both disks (drive-scsi0 and drive-efidisk0) is the evidence the snapshot exists, not a machine-reported exit code. Confirmed instead by re-running `qm listsnapshot 100` (below) and checking the new snapshot actually registered rather than trusting the LV-creation lines alone.
+
+--- qm listsnapshot 100 re-check, after snapshot creation ---
+`-> clean-install               2025-09-29 17:44:23     Fully patched + drivers, ready to clone
+ `-> postinstall-config         2025-09-30 14:27:33     no-description
+Wide character in printf at /usr/share/perl5/PVE/GuestHelpers.pm line 175.
+  `-> win2022servLOCK           2025-10-08 16:46:13     Microsoft's Official Security Baseline for DCs
+   `-> ipconfig                 2026-06-15 15:00:35     no-description
+    `-> a826                    2026-08-26 11:29:24     no-description
+     `-> audit-fixed-20260829   2026-08-29 09:03:08     no-description
+      `-> pre-sysadmin-admin-removal-20260831 2026-08-31 09:11:22     Before Remove-ADGroupMember Administrators sysadmin, exercise 2026-08-31-dc01-constrained-admin-path
+       `-> current                                      You are here!
+
+Confirmed: the snapshot is registered, correctly positioned right before "current", with the description matching what was passed in.
+
+Note on clock: this listing's timestamp (2026-08-31 09:11:22) is the Proxmox host's local time. Every other timestamp in this exercise's evidence log is UTC (recorded ~16:12 UTC for this same snapshot). That's consistent with a UTC-7 host clock (Pacific, currently PDT) -- not a discrepancy, but flagging it so a later reader doesn't assume the two logs disagree about when this happened.

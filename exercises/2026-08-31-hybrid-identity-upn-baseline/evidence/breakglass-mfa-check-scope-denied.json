@@ -1,0 +1,12 @@
+{
+    "error": {
+        "code": "accessDenied",
+        "message": "Request Authorization failed",
+        "innerError": {
+            "message": "Request Authorization failed",
+            "date": "2026-08-31T23:24:49",
+            "request-id": "58d1ce99-6b20-436b-88e0-61b718bb9a2c",
+            "client-request-id": "7096e39e-b38a-3610-5492-5a0bdd4ca0f3"
+        }
+    }
+}

@@ -1,0 +1,14 @@
+Command 1: qm guest exec 100 --timeout 30 -- powershell.exe -Command "Set-ADForest -Identity district.local -UPNSuffixes @{Add='raytakosharkygmail.onmicrosoft.com'}"
+{
+   "exitcode" : 0,
+   "exited" : 1
+}
+
+Command 2: qm guest exec 100 --timeout 30 -- powershell.exe -Command "Get-ADForest | Select-Object UPNSuffixes | ConvertTo-Json"
+{
+   "exitcode" : 0,
+   "exited" : 1,
+   "out-data" : "{\r\n    \"UPNSuffixes\":  [\r\n                        \"raytakosharkygmail.onmicrosoft.com\"\r\n                    ]\r\n}\r\n"
+}
+
+RESULT: Forest UPN suffix successfully added and confirmed. UPNSuffixes was empty (see forest-upn-suffixes-baseline.json in the hybrid-identity-upn-baseline exercise) and now contains raytakosharkygmail.onmicrosoft.com.

@@ -1,0 +1,5 @@
+{
+   "exitcode" : 0,
+   "exited" : 1,
+   "out-data" : "{\r\n    \"ComputerName\":  \"login.microsoftonline.com\",\r\n    \"TcpTestSucceeded\":  true,\r\n    \"PingSucceeded\":  false\r\n}\r\n"
+}

@@ -1,0 +1,5 @@
+{
+   "exitcode" : 0,
+   "exited" : 1,
+   "out-data" : "[\r\n    {\r\n        \"Address\":  \"10.0.0.1\",\r\n        \"StatusCode\":  0,\r\n        \"ResponseTime\":  0\r\n    },\r\n    {\r\n        \"Address\":  \"10.0.0.1\",\r\n        \"StatusCode\":  0,\r\n        \"ResponseTime\":  0\r\n    }\r\n]\r\n"
+}

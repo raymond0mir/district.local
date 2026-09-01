@@ -1,0 +1,19 @@
+Command 1: qm guest exec 102 --timeout 30 -- powershell.exe -Command "nltest /dsgetdc:district.local"
+{
+   "exitcode" : 0,
+   "exited" : 1,
+   "out-data" : "           DC: \\\\DC01.district.local\r\n      Address: \\\\10.0.0.10\r\n     Dom Guid: 77e088f6-c935-47be-95df-5242384b2af6\r\n     Dom Name: district.local\r\n  Forest Name: district.local\r\n Dc Site Name: Default-First-Site-Name\r\nOur Site Name: Default-First-Site-Name\r\n        Flags: PDC GC DS LDAP KDC TIMESERV GTIMESERV WRITABLE DNS_DC DNS_DOMAIN DNS_FOREST CLOSE_SITE FULL_SECRET WS DS_8 DS_9 DS_10 KEYLIST\r\nThe command completed successfully\r\n"
+}
+
+Command 2: qm guest exec 102 --timeout 30 -- powershell.exe -Command "Resolve-DnsName -Name _ldap._tcp.dc._msdcs.district.local -Type SRV | ConvertTo-Json"
+{
+   "exitcode" : 0,
+   "exited" : 1,
+   "out-data" : "[\r\n    {\r\n        \"NameTarget\":  \"dc01.district.local\",\r\n        \"Priority\":  0,\r\n        \"Weight\":  100,\r\n        \"Port\":  389,\r\n        \"Name\":  \"_ldap._tcp.dc._msdcs.district.local\",\r\n        \"Type\":  33,\r\n        \"TTL\":  600,\r\n        \"Target\":  \"dc01.district.local\"\r\n    },\r\n    {\r\n        \"IP4Address\":  \"10.0.0.10\",\r\n        \"Name\":  \"dc01.district.local\",\r\n        \"Type\":  1,\r\n        \"TTL\":  3600,\r\n        \"IPAddress\":  \"10.0.0.10\"\r\n    }\r\n]\r\n"
+}
+
+RESULT: Domain-controller discovery from VM 102 is fully functional. nltest resolves DC01 with the complete expected capability flag set (PDC GC DS LDAP KDC WRITABLE). The _ldap._tcp.dc._msdcs SRV record resolves correctly to dc01.district.local:389.
+
+This closed a real gap in prior testing: earlier checks had only proven a plain A-record lookup of district.local worked. AD-aware installers use SRV-based DC locator, a different mechanism entirely -- and domain join can succeed via a more tolerant discovery path than an installer's validation uses, so "the domain join worked" was never proof this would. Tested rather than assumed; both came back clean, ruling out DNS/discovery as the cause of the Entra Connect wizard failure.
+
+Filing note: the SRV response was trimmed of repeated per-record serialization boilerplate (CharacterSet, Section, DataLength, QueryType) for legibility. All values shown are unedited.

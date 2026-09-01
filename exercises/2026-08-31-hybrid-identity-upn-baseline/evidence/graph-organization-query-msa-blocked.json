@@ -1,0 +1,11 @@
+{
+    "error": {
+        "code": "BadRequest",
+        "message": "This API is not supported for MSA accounts (no addressUrl for Microsoft.DirectoryServices,False).",
+        "innerError": {
+            "date": "2026-08-31T22:59:18",
+            "request-id": "0ce95179-2cd4-4230-8731-c01240d0b8ed",
+            "client-request-id": "42f10751-f0a4-bd0c-ea3d-7087250f02b0"
+        }
+    }
+}

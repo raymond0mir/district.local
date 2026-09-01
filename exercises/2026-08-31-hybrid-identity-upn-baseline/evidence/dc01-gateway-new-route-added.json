@@ -1,0 +1,5 @@
+{
+   "exitcode" : 0,
+   "exited" : 1,
+   "out-data" : "\r\nifIndex DestinationPrefix                              NextHop                                  RouteMetric ifMetric Policy Store \r\n------- -----------------                              -------                                  ----------- -------- ------------ \r\n10      0.0.0.0/0                                      10.0.0.1                                         256 15       Active\r\n10      0.0.0.0/0                                      10.0.0.1                                         256          Persistent\r\n\r\n\r\n"
+}

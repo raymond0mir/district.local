@@ -1,0 +1,23 @@
+Commands: ls -la /var/lib/vz/template/iso/ ; qm list
+Run from: Proxmox host shell (root@proxmox). Raw terminal scrollback, pasted by Raymond.
+
+--- ls -la /var/lib/vz/template/iso/ ---
+-rw-r--r-- 1 root root 4728471552 Mar 19 22:20 kali-linux-2026.1-installer-amd64.iso
+-rw-r--r-- 1 root root   11634688 Aug 27 11:54 lab2.iso
+-rw-r--r-- 1 root root     921600 Aug 27 10:32 lab.iso
+-rw-r--r-- 1 root root 1059239936 Jun 12 11:21 netgate-installer-v1.2-RELEASE-amd64.iso
+-rw-r--r-- 1 root root 5044094976 Sep 29  2025 SERVER_EVAL_x64FRE_en-us.iso
+-rw-r--r-- 1 root root  789645312 Sep 29  2025 virtio-win-0.1.285.iso
+-rw-r--r-- 1 root root  789645312 Sep 11  2025 virtio-win.iso
+-rw-r--r-- 1 root root 7736125440 Sep 30  2025 Win11_25H2_English_x64.iso
+
+RESULT: Windows Server 2022 evaluation ISO (SERVER_EVAL_x64FRE_en-us.iso, ~4.7GB) and a VirtIO driver ISO (virtio-win.iso, ~753MB) are both already present on the host -- no download needed for this build. Both dated 2025-09-29/2025-09-11, i.e. from the same window as DC01's own original build.
+
+--- qm list ---
+      VMID NAME                 STATUS     MEM(MB)    BOOTDISK(GB) PID
+       100 winserver2022        running    10000             60.00 27910
+       101 win11-client01       stopped    4096              64.00 0
+       104 pfsense-fw           running    2048              20.00 17647
+       105 kali-red             stopped    4096              40.00 0
+
+RESULT: VMIDs 100, 101, 104, 105 in use. 102 and 103 free. 102 selected for the new member server per Raymond's confirmation.

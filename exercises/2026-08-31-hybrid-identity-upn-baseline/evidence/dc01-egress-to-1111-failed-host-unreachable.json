@@ -1,0 +1,5 @@
+{
+   "exitcode" : 0,
+   "exited" : 1,
+   "out-data" : "WARNING: TCP connect to (1.1.1.1 : 443) failed\nWARNING: Ping to 1.1.1.1 failed with status: DestinationHostUnreachable\n{\r\n    \"ComputerName\":  \"1.1.1.1\",\r\n    \"RemoteAddress\":  {\r\n                          \"Address\":  16843009,\r\n                          \"AddressFamily\":  2,\r\n                          \"ScopeId\":  null,\r\n                          \"IsIPv6Multicast\":  false,\r\n                          \"IsIPv6LinkLocal\":  false,\r\n                          \"IsIPv6SiteLocal\":  false,\r\n                          \"IsIPv6Teredo\":  false,\r\n                          \"IsIPv4MappedToIPv6\":  false\r\n                      },\r\n    \"TcpTestSucceeded\":  false,\r\n    \"PingSucceeded\":  false\r\n}\r\n"
+}

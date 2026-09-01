@@ -1,0 +1,28 @@
+root@proxmox:~# journalctl --since "-3 hours" --no-pager | grep -iE "vm 100|:100:|qmeventd|terminat|signal 1968"
+Aug 31 08:34:32 proxmox systemd[1]: Starting qmeventd.service - PVE Qemu Event Daemon...
+Aug 31 08:34:32 proxmox systemd[1]: Started qmeventd.service - PVE Qemu Event Daemon.
+Aug 31 08:37:42 proxmox pvedaemon[1192]: <root@pam> starting task UPID:proxmox:00000752:00004C49:6A959FC6:qmstart:100:root@pam:
+Aug 31 08:37:42 proxmox pvedaemon[1874]: start VM 100: UPID:proxmox:00000752:00004C49:6A959FC6:qmstart:100:root@pam:
+Aug 31 08:37:43 proxmox pvedaemon[1874]: VM 100 started with PID 1905.
+Aug 31 08:37:43 proxmox pvedaemon[1192]: <root@pam> end task UPID:proxmox:00000752:00004C49:6A959FC6:qmstart:100:root@pam: OK
+Aug 31 08:55:22 proxmox pvedaemon[4907]: starting vnc proxy UPID:proxmox:0000132B:0001EA7B:6A95A3EA:vncproxy:100:root@pam:
+Aug 31 08:55:22 proxmox pvedaemon[1190]: <root@pam> starting task UPID:proxmox:0000132B:0001EA7B:6A95A3EA:vncproxy:100:root@pam:
+Aug 31 08:56:57 proxmox pvedaemon[1190]: <root@pam> end task UPID:proxmox:0000132B:0001EA7B:6A95A3EA:vncproxy:100:root@pam: OK
+Aug 31 09:11:22 proxmox qm[7526]: <root@pam> starting task UPID:proxmox:00001D67:00036174:6A95A7AA:qmsnapshot:100:root@pam:
+Aug 31 09:11:22 proxmox qm[7527]: <root@pam> snapshot VM 100: pre-sysadmin-admin-removal-20260831
+Aug 31 09:11:25 proxmox qm[7526]: <root@pam> end task UPID:proxmox:00001D67:00036174:6A95A7AA:qmsnapshot:100:root@pam: OK
+Aug 31 09:30:51 proxmox pvefw-logger[680]: received terminate request (signal)
+Aug 31 09:38:11 proxmox qmeventd[827]: read: Connection reset by peer
+Aug 31 09:38:11 proxmox qmeventd[11866]: Starting cleanup for 100
+Aug 31 09:38:11 proxmox qmeventd[11866]: Finished cleanup for 100
+Aug 31 09:38:56 proxmox pvedaemon[1191]: <root@pam> starting task UPID:proxmox:00002EDF:0005E767:6A95AE20:qmstart:100:root@pam:
+Aug 31 09:38:56 proxmox pvedaemon[11999]: start VM 100: UPID:proxmox:00002EDF:0005E767:6A95AE20:qmstart:100:root@pam:
+Aug 31 09:38:56 proxmox pvedaemon[11999]: VM 100 started with PID 12012.
+Aug 31 09:38:56 proxmox pvedaemon[1191]: <root@pam> end task UPID:proxmox:00002EDF:0005E767:6A95AE20:qmstart:100:root@pam: OK
+Aug 31 09:38:57 proxmox pvedaemon[12088]: starting vnc proxy UPID:proxmox:00002F38:0005E7E4:6A95AE21:vncproxy:100:root@pam:
+Aug 31 09:38:57 proxmox pvedaemon[1191]: <root@pam> starting task UPID:proxmox:00002F38:0005E7E4:6A95AE21:vncproxy:100:root@pam:
+Aug 31 09:42:26 proxmox qm[12677]: start VM 100: UPID:proxmox:00003185:00063971:6A95AEF2:qmstart:100:root@pam:
+Aug 31 09:42:26 proxmox qm[12672]: <root@pam> starting task UPID:proxmox:00003185:00063971:6A95AEF2:qmstart:100:root@pam:
+Aug 31 09:42:26 proxmox qm[12677]: VM 100 already running
+Aug 31 09:42:26 proxmox qm[12672]: <root@pam> end task UPID:proxmox:00003185:00063971:6A95AEF2:qmstart:100:root@pam: VM 100 already running
+root@proxmox:~#

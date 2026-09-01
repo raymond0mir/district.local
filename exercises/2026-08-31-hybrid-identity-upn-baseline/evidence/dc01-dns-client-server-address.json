@@ -1,0 +1,5 @@
+{
+   "exitcode" : 0,
+   "exited" : 1,
+   "out-data" : "[\r\n    {\r\n        \"InterfaceAlias\":  \"Ethernet\",\r\n        \"ServerAddresses\":  [\r\n                                \"10.0.0.10\"\r\n                            ]\r\n    },\r\n    {\r\n        \"InterfaceAlias\":  \"Loopback Pseudo-Interface 1\",\r\n        \"ServerAddresses\":  [\r\n\r\n                            ]\r\n    }\r\n]\r\n"
+}

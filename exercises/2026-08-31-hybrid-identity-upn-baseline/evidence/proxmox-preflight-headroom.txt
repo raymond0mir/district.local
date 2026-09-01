@@ -1,0 +1,25 @@
+Command: qm status 100; lvs -a -o+lv_name,data_percent,metadata_percent,lv_size; free -h
+Run from: Proxmox host shell (root@proxmox), host-side -- no guest-agent JSON envelope. Raw terminal scrollback, pasted by Raymond.
+Purpose: the standing pre-flight step from the tech-compass skill, added after the 2026-08-31 DC01 crash exercise. Run BEFORE any exercise that touches DC01.
+
+--- qm status 100 ---
+status: running
+
+--- lvs -a -o+lv_name,data_percent,metadata_percent,lv_size (abridged to the load-bearing rows; full output pasted in session) ---
+  LV                                                     VG  Attr       LSize    Pool Origin                        Data%  Meta%
+  data                                                   pve twi-aotz-- <141.23g                                    77.49  3.63
+  snap_vm-100-disk-0_clean-install                       pve Vri---tz-k    4.00m data vm-100-disk-0
+  snap_vm-100-disk-0_pre-sysadmin-admin-removal-20260831 pve Vri---tz-k    4.00m data vm-100-disk-0
+  snap_vm-100-disk-1_clean-install                       pve Vri---tz-k   60.00g data vm-100-disk-1
+  snap_vm-100-disk-1_pre-sysadmin-admin-removal-20260831 pve Vri---tz-k   60.00g data vm-100-disk-1
+  vm-100-disk-0                                          pve Vwi-aotz--    4.00m data                               14.06
+  vm-100-disk-1                                          pve Vwi-aotz--   60.00g data                               42.72
+
+--- free -h ---
+               total        used        free      shared  buff/cache   available
+Mem:            15Gi       5.1Gi       9.8Gi        49Mi       438Mi       9.9Gi
+Swap:          8.0Gi          0B       8.0Gi
+
+RESULT: pre-flight PASSES. Thin pool at 77.49% Data%, well under the skill's 85% stop-threshold (and down from the 96.49% that preceded the crash, holding steady after the snapshot prune). Host has 9.9Gi available memory against VM 100's 10000 MiB configuration -- tighter than it looks, since VM 100 is already running and consuming part of the 5.1Gi used. VM 100 confirmed running before any guest-exec command was issued.
+
+VM 100 still carries exactly the two snapshots retained in the prune exercise (clean-install, pre-sysadmin-admin-removal-20260831) -- no new snapshots have accumulated since.

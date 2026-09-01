@@ -1,0 +1,5 @@
+{
+   "exitcode" : 0,
+   "exited" : 1,
+   "out-data" : "{\r\n    \"IPAddress\":  \"1.1.1.1 8.8.8.8\",\r\n    \"ReorderedIPAddress\":  \"1.1.1.1 8.8.8.8\",\r\n    \"EnableReordering\":  true,\r\n    \"Timeout\":  3,\r\n    \"UseRootHint\":  true\r\n}\r\n"
+}

@@ -1,0 +1,19 @@
+Commands (run as one guest exec, both results in a single out-data payload):
+  Disable-ADAccount -Identity Administrator
+  Set-ItemProperty 'HKLM:\SYSTEM\CurrentControlSet\Services\NTDS\Parameters' -Name LDAPServerIntegrity -Value 2
+
+Verification: qm guest exec 100 --timeout 30 -- powershell.exe -Command "Get-ADUser -Identity Administrator -Properties Enabled | Select-Object SamAccountName,Enabled | ConvertTo-Json; Get-ItemProperty 'HKLM:\SYSTEM\CurrentControlSet\Services\NTDS\Parameters' -Name LDAPServerIntegrity | Select-Object LDAPServerIntegrity | ConvertTo-Json"
+
+{
+   "exitcode" : 0,
+   "exited" : 1,
+   "out-data" : "{\r\n    \"SamAccountName\":  \"Administrator\",\r\n    \"Enabled\":  false\r\n}\r\n{\r\n    \"ldapserverintegrity\":  2\r\n}\r\n"
+}
+
+RESULT: Both security state changes made during this exercise are reverted and confirmed.
+
+1. `Administrator` is `Enabled: false` -- back to its pre-session state (confirmed disabled in the IAM exercise's all-users-memberof-enumeration.json before any of today's work). This also neutralizes the operational risk of the in-session-disclosed password, since a disabled account cannot authenticate with it.
+
+2. `LDAPServerIntegrity` is back to `2` (signing required) -- the deliberate hardened value from the `win2022servLOCK` "Microsoft Official Security Baseline for DCs" posture, restored after the hypothesis that motivated lowering it was proven insufficient.
+
+RESIDUAL, not fully resolved: the disclosed password value is still what is set on the Administrator account. It is not rotated -- it is rendered non-usable by the account being disabled. If Administrator is ever re-enabled for any reason, the password must be rotated first, ideally via an interactive `Set-ADAccountPassword -Identity Administrator -Reset` (no -NewPassword argument) run from DC01's console so the secret never touches a command line. Carried forward in the report's Open Questions.

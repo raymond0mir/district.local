@@ -1,0 +1,43 @@
+root@proxmox:~# journalctl --since "09:37:30" --until "09:39:00" --no-pager
+Aug 31 09:37:58 proxmox pvedaemon[1192]: <root@pam> successful auth for user 'root@pam'
+Aug 31 09:38:11 proxmox kernel: tap100i0: left allmulticast mode
+Aug 31 09:38:11 proxmox kernel: fwbr100i0: port 2(tap100i0) entered disabled state
+Aug 31 09:38:11 proxmox kernel: fwbr100i0: port 1(fwln100i0) entered disabled state
+Aug 31 09:38:11 proxmox kernel: vmbr1: port 2(fwpr100p0) entered disabled state
+Aug 31 09:38:11 proxmox kernel: fwln100i0 (unregistering): left allmulticast mode
+Aug 31 09:38:11 proxmox kernel: fwln100i0 (unregistering): left promiscuous mode
+Aug 31 09:38:11 proxmox kernel: fwbr100i0: port 1(fwln100i0) entered disabled state
+Aug 31 09:38:11 proxmox kernel: fwpr100p0 (unregistering): left allmulticast mode
+Aug 31 09:38:11 proxmox kernel: fwpr100p0 (unregistering): left promiscuous mode
+Aug 31 09:38:11 proxmox kernel: vmbr1: port 2(fwpr100p0) entered disabled state
+Aug 31 09:38:11 proxmox qmeventd[827]: read: Connection reset by peer
+Aug 31 09:38:11 proxmox systemd[1]: 100.scope: Deactivated successfully.
+Aug 31 09:38:11 proxmox systemd[1]: 100.scope: Consumed 3min 39.271s CPU time, 9.8G memory peak.
+Aug 31 09:38:11 proxmox qmeventd[11866]: Starting cleanup for 100
+Aug 31 09:38:11 proxmox qmeventd[11866]: Finished cleanup for 100
+Aug 31 09:38:56 proxmox pvedaemon[1191]: <root@pam> starting task UPID:proxmox:00002EDF:0005E767:6A95AE20:qmstart:100:root@pam:
+Aug 31 09:38:56 proxmox pvedaemon[11999]: start VM 100: UPID:proxmox:00002EDF:0005E767:6A95AE20:qmstart:100:root@pam:
+Aug 31 09:38:56 proxmox systemd[1]: Started 100.scope.
+Aug 31 09:38:56 proxmox kernel: tap100i0: entered promiscuous mode
+Aug 31 09:38:56 proxmox kernel: vmbr1: port 2(fwpr100p0) entered blocking state
+Aug 31 09:38:56 proxmox kernel: vmbr1: port 2(fwpr100p0) entered disabled state
+Aug 31 09:38:56 proxmox kernel: fwpr100p0: entered allmulticast mode
+Aug 31 09:38:56 proxmox kernel: fwpr100p0: entered promiscuous mode
+Aug 31 09:38:56 proxmox kernel: vmbr1: port 2(fwpr100p0) entered blocking state
+Aug 31 09:38:56 proxmox kernel: vmbr1: port 2(fwpr100p0) entered forwarding state
+Aug 31 09:38:56 proxmox kernel: fwbr100i0: port 1(fwln100i0) entered blocking state
+Aug 31 09:38:56 proxmox kernel: fwbr100i0: port 1(fwln100i0) entered disabled state
+Aug 31 09:38:56 proxmox kernel: fwln100i0: entered allmulticast mode
+Aug 31 09:38:56 proxmox kernel: fwln100i0: entered promiscuous mode
+Aug 31 09:38:56 proxmox kernel: fwbr100i0: port 1(fwln100i0) entered blocking state
+Aug 31 09:38:56 proxmox kernel: fwbr100i0: port 1(fwln100i0) entered forwarding state
+Aug 31 09:38:56 proxmox kernel: fwbr100i0: port 2(tap100i0) entered blocking state
+Aug 31 09:38:56 proxmox kernel: fwbr100i0: port 2(tap100i0) entered disabled state
+Aug 31 09:38:56 proxmox kernel: tap100i0: entered allmulticast mode
+Aug 31 09:38:56 proxmox kernel: fwbr100i0: port 2(tap100i0) entered blocking state
+Aug 31 09:38:56 proxmox kernel: fwbr100i0: port 2(tap100i0) entered forwarding state
+Aug 31 09:38:56 proxmox pvedaemon[11999]: VM 100 started with PID 12012.
+Aug 31 09:38:56 proxmox pvedaemon[1191]: <root@pam> end task UPID:proxmox:00002EDF:0005E767:6A95AE20:qmstart:100:root@pam: OK
+Aug 31 09:38:57 proxmox pvedaemon[12088]: starting vnc proxy UPID:proxmox:00002F38:0005E7E4:6A95AE21:vncproxy:100:root@pam:
+Aug 31 09:38:57 proxmox pvedaemon[1191]: <root@pam> starting task UPID:proxmox:00002F38:0005E7E4:6A95AE21:vncproxy:100:root@pam:
+root@proxmox:~#

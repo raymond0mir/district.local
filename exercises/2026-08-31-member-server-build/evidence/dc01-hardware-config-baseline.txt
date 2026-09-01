@@ -1,0 +1,26 @@
+Command: qm config 100
+Run from: Proxmox host shell (root@proxmox). Raw terminal scrollback, pasted by Raymond. Captured as the hardware-config template to mirror for the new member server (SCSI controller, machine type, BIOS/UEFI), not to duplicate every value.
+
+agent: enabled=1
+bios: ovmf
+boot: order=ide2;scsi0;net0
+cores: 2
+cpu: host
+efidisk0: local-lvm:vm-100-disk-0,efitype=4m,pre-enrolled-keys=1,size=4M
+ide2: local:iso/lab.iso,media=cdrom,size=900K
+localtime: 0
+machine: q35
+memory: 10000
+meta: creation-qemu=10.0.2,ctime=1759192209
+name: winserver2022
+net0: virtio=BC:24:11:14:12:57,bridge=vmbr1,firewall=1
+numa: 0
+ostype: l26
+parent: pre-sysadmin-admin-removal-20260831
+scsi0: local-lvm:vm-100-disk-1,iothread=1,size=60G
+scsihw: virtio-scsi-single
+smbios1: uuid=dd1c71e2-2570-4361-9c2b-7f06077da8b1
+sockets: 1
+vmgenid: a860b331-ca66-4e08-9903-71be51a93e63
+
+FINDING, not fixed here: ostype is l26 (Proxmox's code for a Linux 2.6+ kernel guest) on a Windows Server 2022 VM. This is the exact config-mismatch-produces-symptoms-far-from-its-cause pattern the tech-compass skill's own documentation names as a known example on this DC. Left as-is on VM 100 -- out of scope for this build -- but not propagated to the new VM's config, which uses ostype=win11 instead. Whether to correct VM 100's ostype retroactively is a separate, later decision.

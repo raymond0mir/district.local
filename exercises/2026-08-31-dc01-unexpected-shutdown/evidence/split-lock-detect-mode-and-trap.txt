@@ -1,0 +1,4 @@
+root@proxmox:~# cat /proc/cmdline | grep -o 'split_lock_detect[^ ]*'; journalctl --since "-3 hours" --no-pager | grep -iE "1968|split_lock"
+Aug 31 08:34:30 proxmox kernel: x86/split lock detection: #AC: crashing the kernel on kernel split_locks and warning on user-space split_locks
+Aug 31 08:57:13 proxmox kernel: x86/split lock detection: #AC: CPU 0/KVM/1968 took a split_lock trap at address: 0xfffff804726dfdff
+root@proxmox:~#

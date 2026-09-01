@@ -1,0 +1,5 @@
+{
+   "err-data" : "At line:1 char:78\r\n+ ... DGroupMember -Identity 'Administrators' -Members 'sysadmin' -Confirm:\r\n+                                                                          ~\r\nParameter -Confirm: requires an argument.\r\n    + CategoryInfo          : ParserError: (:) [], ParentContainsErrorRecordException\r\n    + FullyQualifiedErrorId : ParameterRequiresArgument\r\n \r\n",
+   "exitcode" : 1,
+   "exited" : 1
+}

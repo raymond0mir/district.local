@@ -1,0 +1,8 @@
+Command: qm guest exec 102 --timeout 30 -- powershell.exe -Command "Test-NetConnection -ComputerName 10.0.0.10 -Port 53 | Select-Object ComputerName,TcpTestSucceeded | ConvertTo-Json"
+Output:
+timeout reached, returning pid
+{
+   "pid" : 1412
+}
+
+Note: this is not a completed result. The guest agent's own exec-status polling gave up after the requested 30-second timeout and returned the still-running process's PID rather than a completed exitcode/out-data envelope. The underlying PowerShell process was not killed. Distinguished here from a genuine "command completed but failed" result -- this command never finished within the observation window.

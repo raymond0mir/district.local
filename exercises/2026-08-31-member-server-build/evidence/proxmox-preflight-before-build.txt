@@ -1,0 +1,19 @@
+Command: qm status 100; lvs -a -o+lv_name,data_percent,metadata_percent,lv_size; free -h
+Run from: Proxmox host shell (root@proxmox), host-side, no guest-agent envelope. Raw terminal scrollback, pasted by Raymond.
+
+--- qm status 100 ---
+status: running
+
+--- lvs (load-bearing rows) ---
+  data                                                   pve twi-aotz-- <141.23g                                    78.63  3.68
+  (unchanged snapshot inventory since the last preflight: clean-install, pre-sysadmin-admin-removal-20260831 on VM 100 only)
+
+--- free -h ---
+               total        used        free      shared  buff/cache   available
+Mem:            15Gi        11Gi       3.7Gi        52Mi       382Mi       3.8Gi
+Swap:          8.0Gi          0B       8.0Gi
+
+RESULT: thin pool at 78.63%, up slightly from 77.49%/77.49% in the prior two preflights, still well under the 85% stop-threshold -- PASSES on disk.
+MEMORY IS TIGHT: only 3.7Gi free / 3.8Gi available, because VM 100 (10000 MiB configured) and VM 104 (2048 MiB configured) are both running, consuming 12GB of the host's 15GB total. This is meaningfully tighter than the 9.9Gi available reading from the hybrid-identity-upn-baseline exercise's own preflight -- both VMs were already running then too, so the difference is buff/cache and other host-side consumption, not a new VM having started.
+
+DECISION: rather than allocate the new member server at Microsoft's documented 4GB minimum for Entra Connect (which would consume nearly all remaining headroom), it is being built with 3072 MiB RAM -- below spec, a deliberate lab-scale tradeoff, not an oversight. Alternative considered and declined for now: right-sizing VM 100's 10000 MiB allocation down (it is generously oversized for a 13-user domain), which would free enough room to build the new server at full spec, but requires a second planned restart of DC01 today. Revisit if 3GB proves insufficient in practice.

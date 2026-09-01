@@ -1,0 +1,5 @@
+{
+   "err-data" : "Get-LocalGroupMember : Group Administrators was not found.\r\nAt line:1 char:1\r\n+ Get-LocalGroupMember -Group 'Administrators' | Select-Object Name,Obj ...\r\n+ ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~\r\n    + CategoryInfo          : ObjectNotFound: (Administrators:String) [Get-LocalGroupMember], GroupNotFoundException\r\n    + FullyQualifiedErrorId : GroupNotFound,Microsoft.PowerShell.Commands.GetLocalGroupMemberCommand\r\n \r\n",
+   "exitcode" : 1,
+   "exited" : 1
+}

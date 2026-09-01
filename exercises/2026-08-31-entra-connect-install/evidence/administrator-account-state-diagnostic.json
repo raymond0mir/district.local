@@ -1,0 +1,20 @@
+Command: qm guest exec 100 --timeout 30 -- powershell.exe -Command "Get-ADUser -Identity Administrator -Properties Enabled,LockedOut,PasswordLastSet,PasswordExpired | Select-Object SamAccountName,Enabled,LockedOut,PasswordLastSet,PasswordExpired | ConvertTo-Json"
+{
+   "exitcode" : 0,
+   "exited" : 1,
+   "out-data" : "{\r\n    \"SamAccountName\":  \"Administrator\",\r\n    \"Enabled\":  true,\r\n    \"LockedOut\":  false,\r\n    \"PasswordLastSet\":  \"\\/Date(1788223834922)\\/\",\r\n    \"PasswordExpired\":  false\r\n}\r\n"
+}
+
+TIMESTAMP DECODE: PasswordLastSet 1788223834922 ms = 2026-09-01T00:50:34Z = 2026-08-31 17:50:34 PDT. Converted with `date -u -r $((ms/1000))`, not estimated -- same discipline as the IAM exercise's whenCreated/LastLogonDate conversions.
+
+DIAGNOSTIC VALUE -- this ruled out the entire credential hypothesis line:
+
+The Entra Connect "AD forest account" dialog was submitted at approximately 17:54 PDT (per the console screenshot's clock) with username DISTRICT\Administrator. At that moment this account was:
+  - Enabled: true
+  - LockedOut: false
+  - PasswordExpired: false
+  - Password set 17:50:34, roughly four minutes earlier
+
+So the credentials supplied to the wizard were valid, the account was usable, and the wizard still returned "The domain specified in the credentials does not exist or cannot be contacted." Credentials were therefore NOT the cause of that error -- established by evidence rather than by further guessing.
+
+SECONDARY FINDING, security-relevant: PasswordLastSet reading 17:50:34 confirms only ONE password reset occurred, the first one. A second reset was requested (after the first one's value was inadvertently disclosed in-session, see report) but never ran. As of exercise close, the Administrator password remains the disclosed value. See the report's close-out section.

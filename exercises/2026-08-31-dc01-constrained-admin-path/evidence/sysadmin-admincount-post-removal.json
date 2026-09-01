@@ -1,0 +1,5 @@
+{
+   "exitcode" : 0,
+   "exited" : 1,
+   "out-data" : "{\r\n    \"Name\":  \"System Admin\",\r\n    \"SamAccountName\":  \"sysadmin\",\r\n    \"adminCount\":  1\r\n}\r\n"
+}

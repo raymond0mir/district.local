@@ -1,0 +1,6 @@
+root@proxmox:~# qm config 100 | grep -i mem; free -h
+memory: 10000
+               total        used        free      shared  buff/cache   available
+Mem:            15Gi        11Gi       3.7Gi        55Mi       442Mi       3.8Gi
+Swap:          8.0Gi          0B       8.0Gi
+root@proxmox:~#

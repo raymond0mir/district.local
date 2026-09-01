@@ -1,0 +1,5 @@
+{
+   "exitcode" : 0,
+   "exited" : 1,
+   "out-data" : "{\r\n    \"Name\":  \"System Admin\",\r\n    \"SamAccountName\":  \"sysadmin\",\r\n    \"adminCount\":  1,\r\n    \"MemberOf\":  [\r\n                     \"CN=SG_Share_Site1_RW,OU=Resources,OU=Security,OU=Groups,DC=district,DC=local\",\r\n                     \"CN=SG_admin_tier0_domain,OU=Admins,DC=district,DC=local\",\r\n                     \"CN=Administrators,CN=Builtin,DC=district,DC=local\"\r\n                 ]\r\n}\r\n"
+}

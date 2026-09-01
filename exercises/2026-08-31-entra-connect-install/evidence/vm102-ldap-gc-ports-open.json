@@ -1,0 +1,15 @@
+Command 1: qm guest exec 102 --timeout 30 -- powershell.exe -Command "Test-NetConnection -ComputerName dc01.district.local -Port 389 | Select-Object ComputerName,TcpTestSucceeded | ConvertTo-Json"
+{
+   "exitcode" : 0,
+   "exited" : 1,
+   "out-data" : "{\r\n    \"ComputerName\":  \"dc01.district.local\",\r\n    \"TcpTestSucceeded\":  true\r\n}\r\n"
+}
+
+Command 2: qm guest exec 102 --timeout 30 -- powershell.exe -Command "Test-NetConnection -ComputerName dc01.district.local -Port 3268 | Select-Object ComputerName,TcpTestSucceeded | ConvertTo-Json"
+{
+   "exitcode" : 0,
+   "exited" : 1,
+   "out-data" : "{\r\n    \"ComputerName\":  \"dc01.district.local\",\r\n    \"TcpTestSucceeded\":  true\r\n}\r\n"
+}
+
+RESULT: LDAP (389) and Global Catalog (3268) both reachable from VM 102 to DC01. Closed another previously-untested gap -- prior connectivity testing had covered DNS (53), general internet egress (443), and ICMP, but never the AD service ports an installer actually binds to.

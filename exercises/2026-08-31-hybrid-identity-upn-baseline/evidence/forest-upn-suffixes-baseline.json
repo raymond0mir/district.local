@@ -1,0 +1,5 @@
+{
+   "exitcode" : 0,
+   "exited" : 1,
+   "out-data" : "{\r\n    \"Name\":  \"district.local\",\r\n    \"ForestMode\":  7,\r\n    \"UPNSuffixes\":  [\r\n\r\n                    ],\r\n    \"DomainNamingMaster\":  \"DC01.district.local\",\r\n    \"SchemaMaster\":  \"DC01.district.local\"\r\n}\r\n"
+}

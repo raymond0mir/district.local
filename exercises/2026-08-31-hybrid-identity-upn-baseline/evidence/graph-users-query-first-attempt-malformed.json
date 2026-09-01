@@ -1,0 +1,16 @@
+{
+    "@odata.context": "https://graph.microsoft.com/v1.0/$metadata#users(displayName,userPrincipalName,onPremisesSyncEnabled,onPremisesImmutableId)",
+    "value": [
+        {
+            "error": {
+                "code": "InternalServerError",
+                "message": "Invalid response. Expected list response must have value property.",
+                "innerError": {
+                    "date": "2026-08-31T23:03:22",
+                    "request-id": "54f09da2-f055-4225-9a27-b7cf67cd51de",
+                    "client-request-id": "0df49cb3-5fdb-f433-2cb4-2014a587e826"
+                }
+            }
+        }
+    ]
+}
