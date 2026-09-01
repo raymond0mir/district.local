@@ -32,10 +32,11 @@ done — see `verified-claims.md` and the git log for what changed. Still open:
   text as of this writing. That only affects a skill-listing index, not the instructions actually
   loaded when the skill runs — but if `/tech-compass`'s description still looks stale in a future
   session's skill listing, that's why; it should self-correct whenever the harness next re-scans.
-- **H — a known-exposures page**, built only from captured facts, doubling as the next exercise
-  queue. Candidates as of today: `svc-entraconnect`'s password expiry (below), AD Recycle Bin not
-  enabled, the five GPOs applying to DC01 (not all fully read), `districtsafetyphoto.com`
-  verification (below).
+- ~~**H — a known-exposures page**~~ **DONE.** Written to `EXPOSURES.md` at repo root, every
+  line cited to `verified-claims.md` or a real evidence file. Caught one thing worth flagging:
+  the thin-pool overcommit figure (864.93 GiB / 237.47 GiB) from `constrained-admin-path` is
+  stale — the pool was extended and pruned since, but the overcommit *ratio* itself was never
+  rechecked after those changes, only `Data%` was. Noted as such rather than repeated as current.
 
 ## Entra Connect: still unresolved
 
