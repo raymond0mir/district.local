@@ -113,7 +113,10 @@ towards... whats my move?"* Recommendation given: the scheduled-task/batch-logon
 standing posture change, bounded and reversible exposure, defensible on scope rather than on
 being risk-free — plus writing up the `Secure Admin WS`/vendor-procedure conflict as a proposal
 for someone above him to decide, rather than quietly working around it. Raymond proceeded with
-that recommendation.
+that recommendation. **Corrected in "What broke, and why" below: this was the weaker of two real
+options.** Running the delegation from DC01's console instead would have needed no stored
+credential and no scheduled task at all, and there turned out to be no real vendor-procedure
+conflict to escalate.
 
 **6. Whether to reset `svc-entraconnect`'s forgotten password via `qm guest exec`**, flagged as a
 different disclosure pattern than every prior reset this session (this one has to persist as the
@@ -262,6 +265,28 @@ anything else, and only then disable `Administrator` again
 (`evidence/sysadmin-domain-admins-and-administrator-disabled.json`). The lesson is verify a
 break-glass path before removing the last one, not that removing sprawl was the mistake.
 
+**A Tier 0 credential landed on a Tier 1 host, and a cleaner option existed.** Phase 3 stored
+`DISTRICT\Administrator`'s password in a Task Scheduler credential store on VM 102, a member
+server, to run the delegation cmdlets under batch logon. Microsoft's enterprise access model —
+linked from the Entra Connect accounts-and-permissions page itself — says Tier 0 credentials
+don't touch lower-tier hosts. A better option existed and wasn't taken: run the delegation from
+DC01's console instead, which had just been restored by this point in the exercise, either by
+copying `AdSyncConfig.psm1` there or using `dsacls` directly. That would have needed no stored
+credential, no scheduled task, and no `ShouldProcess` diagnosis at all. This recommendation came
+from me at consultation point 5, and it was the weaker of the two real options — I should have
+named the console path as the stronger one and given Raymond the actual choice, not steered
+around the tiering rule this project otherwise holds to. Compounding it, that same scheduled
+task was left behind with a live stored credential after the exercise closed, undetected until a
+same-day follow-up check found it — see the addendum below.
+
+This also dissolves a proposal from an earlier draft of this report's Open questions: escalating
+`Secure Admin WS`'s conflict with "Microsoft's documented Entra Connect deployment procedure" as
+something needing a formal Tier 0 exclusion memo. There is no real conflict. The GPO denying
+Domain Admins interactive logon on member servers is correct tiering; the only actual defect was
+the missing Domain Controllers exclusion, already fixed. Running delegation from a Tier 0 host
+instead of stashing a Tier 0 credential on a Tier 1 one removes the pressure that made the
+GPO look like an obstacle in the first place.
+
 **A security setting doesn't revert just because the policy that set it stops applying.**
 User-rights assignments tattoo into local LSA policy. Filtering `Secure Admin WS` off DC01 via a
 Deny-Apply ACE was necessary and correctly targeted, but it only stops the setting from being
@@ -306,6 +331,20 @@ locally before the first commit of the day happened, triggered by a tangential "
 rather than as part of the exercise's own workflow. Not a data-loss risk given local git existed
 throughout, but worth building in as a habit going forward now that a remote exists.
 
+**Run scheduled-task PowerShell with `-NonInteractive`.** The delegation task's registration used
+`-NoProfile -ExecutionPolicy Bypass -File` but not `-NonInteractive`. With it, the `ShouldProcess`
+confirmation prompt that stalled the first delegation attempt would have failed loudly with an
+error the moment it tried to read from a console that didn't exist, instead of hanging silently
+for however long until someone thought to check.
+
+**Relink `Secure Admin WS` at the OUs it actually means to govern, instead of leaving the
+domain-root link with a Deny-Apply exception.** The fix applied this exercise works — filtering
+plus the `secedit` tattoo clear — but a GPO named for admin workstations, denying Domain Admins
+everywhere and excepted only for Domain Controllers, is a workaround wearing the shape of the
+intended design. The cleaner fix is linking it at the workstation and member-server OUs it's
+actually meant to cover and dropping the Deny ACE entirely, so DC01 and any future Tier 0 host
+are correctly out of scope by construction rather than by exception.
+
 ## Open questions
 
 - **`bhound`'s fate is resolved** — see the addendum below. It was disabled after its Key Admins
@@ -313,10 +352,18 @@ throughout, but worth building in as a habit going forward now that a remote exi
   question below it in an earlier draft of this list.
 - **The authoritative test for the "Not Added" UPN mystery is still untested**: whether a real
   synced account can actually sign in to Microsoft Entra ID with its on-premises credential.
-  Staging mode's positive signal (a correctly-computed UPN for `sysadmin`) is not proof.
+  Staging mode's positive signal (a correctly-computed UPN for `sysadmin`) is not proof, and it
+  may never be able to be: per Microsoft Learn's UserPrincipalName-population reference, when a
+  suffix isn't verified, Entra computes `<MailNickName>@<initial domain>`, and MailNickName
+  falls back to the on-prem UPN's own prefix when nothing else is set. For
+  `sysadmin@raytakosharkygmail.onmicrosoft.com` specifically, the verified and unverified
+  branches produce the identical value — the staging preview cannot tell them apart no matter
+  how many times it's checked. This makes the status likely cosmetic for this tenant right now,
+  and only load-bearing once a distinct custom verified domain (`districtsafetyphoto.com`) is
+  actually in play. The live sign-in test is still the only real proof either way.
 - **Root cause of the "Not Added" status itself is still unknown.** Two hypotheses were ruled
   out (stale cache, missing connectivity); one was proposed and disproven. No replacement
-  hypothesis exists yet.
+  hypothesis exists yet — likely cosmetic per the note above, but not confirmed as such.
 - **Whether the tattooed deny right on DC01 could re-tattoo on a future GPO refresh cycle** was
   never observed over time — only immediately after the fix, once.
 - **Origin of `Secure Admin WS`'s domain-root scope** — deliberate design choice or setup-time
