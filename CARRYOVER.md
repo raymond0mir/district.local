@@ -62,51 +62,34 @@ work except section A, which is captures Raymond runs.
    `gpresult /h C:\Windows\Temp\rsop.html` on DC01, then grep `SeInteractiveLogonRight` across
    the five applied GPOs' `GptTmpl.inf` in SYSVOL.
 
-### B. Fix the 09-01 report before it is committed (`exercises/2026-09-01-entra-connect-connector-account/report.md`, still untracked)
+### B. Fix the 09-01 report (`exercises/2026-09-01-entra-connect-connector-account/report.md`, committed as of `978ea2e`)
 
-1. **Reframe the `sysadmin` finding.** The report, this file, and a ledger row call the removal
-   of `sysadmin`'s direct `BUILTIN\Administrators` grant "the wrong read" because the grant was
-   "load-bearing." A grant being in use does not make it appropriate; that account holding a
-   direct DC Administrators grant is the sprawl pattern the series argues against. The real
-   lesson is sequencing: the lab reached zero working Tier 0 admin paths because `Administrator`
-   was disabled, a root-linked GPO denied Domain Admins everywhere, and the last path was
-   removed without a verified replacement. Rewrite the "What broke" paragraph and consultation
-   point 1 accordingly. Keep every captured fact verbatim.
-2. **Own the tiering mistake.** Phase 3 stored a Domain Admin password in Task Scheduler on
-   VM 102, a Tier 1 host. Microsoft's enterprise access model says Tier 0 credentials never
-   land there. The better option existed: run the delegation from DC01's console (copy
-   `AdSyncConfig.psm1`, or use `dsacls`). That recommendation came from Claude at consultation
-   point 5 and was the weaker option; say so. This also dissolves the proposed "Secure Admin WS
-   vs. vendor procedure" memo: the GPO denying Domain Admins on member servers is correct
-   tiering, and only the missing DC exclusion was a defect.
-3. **Add to "What I'd do differently":** relink `Secure Admin WS` at the workstation and
-   member-server OUs and remove the Deny-Apply ACE, which is a workaround; and run
-   scheduled-task PowerShell with `-NonInteractive` so a prompt fails loudly instead of hanging.
-4. **Move the uncaptured claim** ("disabled again at close") to Open questions unless A1 lands.
-5. **Split the report in two**: the GPO lockout and tattoo half, and the connector account and
-   wizard half. Its own last open question says so. Drop step 14 and consultation point 10
-   (GitHub setup); that goes in the README (D).
-6. **Note the UPN "Not Added" question is probably cosmetic for this tenant.** Per Microsoft
-   Learn's UserPrincipalName population page, an unverified suffix makes Entra compute
-   `<MailNickName>@<initial domain>`, and MailNickName falls back to the on-prem UPN prefix
-   when mailNickName, proxyAddresses, and mail are absent. For `sysadmin@raytakosharkygmail.onmicrosoft.com`
-   both branches produce the same value, so the staging preview cannot distinguish them. The
-   live sign-in test is still the only real check, and the question only matters once a custom
-   verified domain is involved.
+1. ~~**Reframe the `sysadmin` finding.**~~ **DONE.**
+2. ~~**Own the tiering mistake**~~, including correcting consultation point 5 and dissolving the
+   proposed Secure Admin WS memo. **DONE.**
+3. ~~**Add to "What I'd do differently"**: `-NonInteractive`, relink `Secure Admin WS`.~~ **DONE.**
+4. ~~**Move the uncaptured claim to Open questions**~~ — moot, A1 landed and the report was
+   corrected to state what actually happened instead. **DONE.**
+5. **Split the report in two: the GPO lockout/tattoo half, and the connector account/wizard
+   half.** Explicitly held, Raymond's call 2026-09-02 (or later same session) — needs real
+   narrative rework (separate "What I set out to do" framing, deciding how today's addendum
+   content divides between the two threads), not mechanical cut-and-paste. Still open, do this
+   as its own focused pass. Drop step 14 and consultation point 10 (GitHub setup) into the
+   README (D) when this happens.
+6. ~~**Note the UPN "Not Added" question is probably cosmetic for this tenant.**~~ **DONE.**
 
-### C. Ledger corrections (`verified-claims.md`), on the record, not quiet edits
+### C. Ledger corrections (`verified-claims.md`) — ALL DONE, 2026-09-01/02
 
-1. **`bhound` adminCount row.** It says Key Admins is "not on the classic AdminSDHolder-protected
-   list" and the value is "not explained." Microsoft Learn (Appendix C, Protected Accounts and
-   Groups) lists Key Admins and Enterprise Key Admins as protected. Keep the captured facts, fix
-   the interpretation, add a Retired row explaining the correction.
-2. **SDProp/adminCount rows.** "Does adminCount self-clear" has a documented answer: SDProp sets
-   it and never clears it. Replace the "textbook, not independently observed" hedge with a doc
-   citation.
-3. **`sysadmin` row's bolded clause** ("removed as sprawl ... was the only thing granting it
-   console logon") is a captured fact wearing an interpretation. Split them per B1.
-4. **Full pass on every row**: separate what the box printed from what was concluded, in each
-   row. Only interpretations were spot-checked on 2026-09-01.
+1. ~~**`bhound` adminCount row.**~~ **DONE.** Corrected on the record; Key Admins is protected.
+2. ~~**SDProp/adminCount rows.**~~ **DONE**, with a real citation (Microsoft's AskDS blog, "Five
+   common questions about AdminSdHolder and SDProp") confirming `adminCount` never self-clears —
+   by design, not just undocumented behavior nobody had verified.
+3. ~~**`sysadmin` row's bolded clause.**~~ **DONE**, split fact from interpretation.
+4. ~~**Full pass on every row.**~~ **DONE.** Read all 58 Confirmed and 13 Retired rows. Beyond
+   the three above, nothing else carries an unlabeled normative judgment riding inside a factual
+   claim. Two rows (Domain Admins tier0/`sysadmin` at line ~28, `Secure Admin WS` consequence at
+   line ~53) synthesize already-confirmed facts into a conclusion, but descriptively, not as
+   judgment calls dressed as findings — left as-is.
 
 ### D. README at repo root (does not exist)
 
