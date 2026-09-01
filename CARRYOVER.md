@@ -49,23 +49,23 @@ same scheduled-task mechanism — `LastTaskResult: 0`, transcript completed to `
 Delegation is DONE — BasicRead + MsDsConsistencyGuid + PasswordHashSync all confirmed applied
 by direct before/after ACL comparison in the transcript (svc-entraconnect gained
 `Replicating Directory Changes` + `Replicating Directory Changes All` at the domain root after
-PasswordHashSync specifically — see `evidence/delegation-complete.json`).
+PasswordHashSync specifically — see `exercises/2026-09-01-entra-connect-connector-account/evidence/delegation-complete.json`).
 
 `Set-ADSyncRestrictedPermissions` — DONE, verified against the live object (`AreAccessRulesProtected: True`,
 tight explicit ACL), not just the console line (which was ambiguous on its own — a single status
-line, no completion message, unlike the other three cmdlets). See `evidence/delegation-complete.json`.
+line, no completion message, unlike the other three cmdlets). See `exercises/2026-09-01-entra-connect-connector-account/evidence/delegation-complete.json`.
 
 **Wizard relaunch — DONE, cleared the exact step that blocked entra-connect-install.** Signed in
 with breakglass@raytakosharkygmail.onmicrosoft.com, added district.local via svc-entraconnect
-(password had to be reset — Raymond forgot it; see `evidence/wizard-cleared-connect-directories.txt`
-for the disclosure-pattern note on that one). See `evidence/vm102-not-domain-joined.json` and
+(password had to be reset — Raymond forgot it; see `exercises/2026-09-01-entra-connect-connector-account/evidence/wizard-cleared-connect-directories.txt`
+for the disclosure-pattern note on that one). See `exercises/2026-09-01-entra-connect-connector-account/evidence/vm102-not-domain-joined.json` and
 `wizard-cleared-connect-directories.txt` for the full chain.
 
 **Open, unresolved: `raytakosharkygmail.onmicrosoft.com` UPN suffix shows "Not Added"** in the
 wizard despite being confirmed `Available`/verified in the actual tenant portal. Ruled out: stale
 wizard cache (full relaunch, same result), missing Graph/login connectivity (all reachable). One
 hypothesis (a specific missing endpoint) was proposed by Claude and DISPROVEN — retracted on the
-record in `evidence/upn-suffix-not-added-unexplained.json`. Root cause still unknown. Raymond
+record in `exercises/2026-09-01-entra-connect-connector-account/evidence/upn-suffix-not-added-unexplained.json`. Root cause still unknown. Raymond
 proceeded via the wizard's own override checkbox, accepting the risk knowingly. **The real test
 is a live sign-in with a synced user's on-prem credential — do this once sync is out of staging.**
 
@@ -76,7 +76,7 @@ Confirmed the wizard is genuinely using svc-entraconnect (both `raytakosharkygma
 
 ## Next session, in order
 
-Staging preview checked — see `evidence/staging-preview-findings.txt` for full detail. Summary:
+Staging preview checked — see `exercises/2026-09-01-entra-connect-connector-account/evidence/staging-preview-findings.txt` for full detail. Summary:
 - **"System Admin" mystery from the session's opening minutes is closed**: it's sysadmin's
   AD display name, confirmed by opening its staged object properties. Not a separate account.
 - **sysadmin's computed UPN looks correct**: `sysadmin@raytakosharkygmail.onmicrosoft.com`,
