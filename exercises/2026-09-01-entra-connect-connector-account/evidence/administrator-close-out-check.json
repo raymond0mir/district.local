@@ -1,0 +1,46 @@
+Command: Get-Service ADWS | Select Status,StartType
+Host: DC01 (VM 100), via qm guest exec from Proxmox host
+Timestamp: 2026-09-01 (UTC, exact time not recorded)
+
+{
+   "exitcode" : 0,
+   "exited" : 1,
+   "out-data" : "\r\n Status StartType\r\n ------ ---------\r\nRunning Automatic\r\n\r\n\r\n"
+}
+
+Context: run to diagnose a prior Get-ADUser failure below, not to check Administrator directly.
+
+---
+
+Command: Get-ADUser Administrator -Properties Enabled,PasswordLastSet | Select Enabled,PasswordLastSet
+Host: DC01 (VM 100), via qm guest exec from Proxmox host
+Timestamp: 2026-09-01 (UTC, exact time not recorded)
+
+First attempt, before the ADWS check above:
+
+{
+   "err-data" : "Attempting to perform the InitializeDefaultDrives operation on the 'ActiveDirectory' provider failed.\r\nGet-ADUser : Server instance not found on the given port.\r\nAt line:1 char:1\r\n+ Get-ADUser Administrator -Properties Enabled,PasswordLastSet | Select ...\r\n+ ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~\r\n    + CategoryInfo          : InvalidArgument: (Administrator:ADUser) [Get-ADUser], ArgumentException\r\n    + FullyQualifiedErrorId : ActiveDirectoryCmdlet:System.ArgumentException,Microsoft.ActiveDirectory.Management.Comm \r\n   ands.GetADUser\r\n \r\n",
+   "exitcode" : 1,
+   "exited" : 1
+}
+
+Second attempt, immediately after confirming ADWS Running/Automatic, no other change made in between:
+
+{
+   "exitcode" : 0,
+   "exited" : 1,
+   "out-data" : "\r\nEnabled PasswordLastSet    \r\n------- ---------------    \r\n   True 9/1/2026 8:01:57 AM\r\n\r\n\r\n"
+}
+
+FINDING: Administrator is Enabled: True right now, same day as the exercise that closed with
+report.md stating "disabled again at close." PasswordLastSet (9/1/2026 8:01:57 AM) is consistent
+with the in-session bootstrap re-enable during Phase 1 troubleshooting, not with a later disable.
+No capture anywhere in this exercise's evidence shows a Disable-ADAccount call or an Enabled:False
+read. The report's close-out claim did not happen — it was Recalled, not Captured, and the
+capture now shows it to be false as of this check. This is a same-day contradiction, not drift
+over time.
+
+The first Get-ADUser failure ("Server instance not found on the given port") is consistent with
+ADWS needing a moment after being idle, matching the class of transient ADWS failure the skill
+already documents (see the Get-ADDomain / ADWS-still-initializing example) — not evidence of any
+deeper problem, and not investigated further since the immediate retry succeeded cleanly.

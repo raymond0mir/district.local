@@ -1,0 +1,55 @@
+Sequence run same day as the exercise, per Raymond's explicit decision on the DC01-lockout
+follow-up: give `sysadmin` a real Domain Admins path before disabling `Administrator` again,
+rather than leaving zero working admin paths on DC01 (the sequencing gap identified in the
+09-01 review of this exercise).
+
+Command: Add-ADGroupMember -Identity 'Domain Admins' -Members sysadmin
+Host: DC01 (VM 100), via qm guest exec from Proxmox host
+Timestamp: 2026-09-01 (UTC, exact time not recorded)
+
+{
+   "exitcode" : 0,
+   "exited" : 1
+}
+
+Command: Get-ADGroupMember 'Domain Admins' | Select Name,SamAccountName
+Host: DC01 (VM 100), via qm guest exec from Proxmox host
+Timestamp: 2026-09-01 (UTC, exact time not recorded)
+
+{
+   "exitcode" : 0,
+   "exited" : 1,
+   "out-data" : "\r\nName          SamAccountName\r\n----          --------------\r\nAdministrator Administrator \r\nSystem Admin  sysadmin      \r\n\r\n\r\n"
+}
+
+RECALLED, NOT CAPTURED: Raymond reported logging into DC01's console interactively as sysadmin
+("System Admin") and it worked. This is testimony, not qm guest exec output — no command output
+proves it directly. Treated as reliable given the channel (Raymond doing the login himself,
+immediately reporting success or failure), but labeled per the capture contract rather than
+folded into the Confirmed claim below as if it were machine-printed.
+
+Command: Disable-ADAccount -Identity Administrator
+Host: DC01 (VM 100), via qm guest exec from Proxmox host
+Timestamp: 2026-09-01 (UTC, exact time not recorded)
+
+{
+   "exitcode" : 0,
+   "exited" : 1
+}
+
+Command: Get-ADUser Administrator -Properties Enabled,PasswordLastSet | Select Enabled,PasswordLastSet
+Host: DC01 (VM 100), via qm guest exec from Proxmox host
+Timestamp: 2026-09-01 (UTC, exact time not recorded)
+
+{
+   "exitcode" : 0,
+   "exited" : 1,
+   "out-data" : "\r\nEnabled PasswordLastSet    \r\n------- ---------------    \r\n  False 9/1/2026 8:01:57 AM\r\n\r\n\r\n"
+}
+
+RESULT: Administrator is Enabled: False. PasswordLastSet unchanged from the 09-01 bootstrap
+re-enable — its password was never rotated before disabling. That password was typed into a
+Task Scheduler credential store on VM 102 earlier in the 09-01 exercise; that scheduled task
+(OneShotDelegation) was already unregistered, closing the immediate exposure, but the password
+itself remains unrotated and should not be trusted if this account is ever re-enabled without
+first rotating it.

@@ -1,0 +1,43 @@
+Remediates the shadow-credentials finding in key-admins-domain-root-rights.json, per Raymond's
+explicit decision: remove bhound from Key Admins and disable the account.
+
+Command: Remove-ADGroupMember -Identity "Key Admins" -Members bhound -Confirm:$false
+Host: DC01 (VM 100), via qm guest exec from Proxmox host
+Timestamp: 2026-09-01 (UTC, exact time not recorded)
+
+{
+   "exitcode" : 0,
+   "exited" : 1
+}
+
+-Confirm:$false added proactively, applying the ConfirmImpact lesson from this same exercise's
+AdSyncConfig stall: Remove-ADGroupMember prompts for confirmation by default under AD DS
+cmdlets' normal ConfirmImpact, and qm guest exec has no console for a prompt to reach. Worked
+clean on the first attempt as a result — no stall this time.
+
+Command: Disable-ADAccount -Identity bhound
+Host: DC01 (VM 100), via qm guest exec from Proxmox host
+Timestamp: 2026-09-01 (UTC, exact time not recorded)
+
+{
+   "exitcode" : 0,
+   "exited" : 1
+}
+
+Command: Get-ADUser bhound -Properties Enabled,MemberOf | Select Enabled,MemberOf
+Host: DC01 (VM 100), via qm guest exec from Proxmox host
+Timestamp: 2026-09-01 (UTC, exact time not recorded)
+
+{
+   "exitcode" : 0,
+   "exited" : 1,
+   "out-data" : "\r\nEnabled MemberOf\r\n------- --------\r\n  False {}      \r\n\r\n\r\n"
+}
+
+RESULT: bhound is Enabled: False, MemberOf: {} (empty — confirms the Key Admins removal landed,
+not just the group-remove command's exit code). The domain-wide msDS-KeyCredentialLink write
+path this account held is closed. This also resolves one of report.md's outstanding Open
+questions ("bhound's fate is still undecided") — decided and executed same day, disable chosen
+over UPN-fix or sync-exclusion, which also moots the earlier open question about whether
+bhound's Entra Connect export would fail on its computed bhound@district.local UPN, since the
+account will no longer sync as enabled.

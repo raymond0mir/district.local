@@ -1,0 +1,27 @@
+Requested per CARRYOVER.md section A item 3, to check whether Key Admins actually grants
+write rights over msDS-KeyCredentialLink in this domain (the shadow-credentials primitive), or
+whether that was just theoretical from Microsoft's documentation.
+
+Command: dsacls "DC=district,DC=local" | findstr /i "Key Admins"
+Host: DC01 (VM 100), via qm guest exec from Proxmox host
+Timestamp: 2026-09-01 (UTC, exact time not recorded)
+
+{
+   "exitcode" : 0,
+   "exited" : 1,
+   "out-data" : "Allow DISTRICT\\Domain Admins          SPECIAL ACCESS\r\nAllow DISTRICT\\Enterprise Admins      FULL CONTROL\r\nAllow DISTRICT\\Key Admins             SPECIAL ACCESS for msDS-KeyCredentialLink\r\nAllow DISTRICT\\Enterprise Key Admins  SPECIAL ACCESS for msDS-KeyCredentialLink\r\nAllow DISTRICT\\Enterprise Admins      FULL CONTROL\r\nAllow DISTRICT\\Key Admins             SPECIAL ACCESS for msDS-KeyCredentialLink\r\nAllow DISTRICT\\Enterprise Key Admins  SPECIAL ACCESS for msDS-KeyCredentialLink\r\n"
+}
+
+RESULT: Key Admins and Enterprise Key Admins both hold "SPECIAL ACCESS for msDS-KeyCredentialLink"
+at the domain root (DC=district,DC=local), granted twice each in the output above — consistent
+with this being the standard AdminSDHolder-templated ACE rather than something scoped narrowly.
+This is domain-wide write access to the shadow-credentials attribute: any member of Key Admins
+can add a key credential to any account in the domain, including Domain Admins, and authenticate
+as that account via PKINIT without ever knowing or changing its password.
+
+Per verified-claims.md, `bhound` (created 2026-06-17T07:03:56Z, matching a BloodHound capstone
+session) is a member of Key Admins and only Key Admins, is still `Enabled: true`, and logged on
+as recently as 2026-08-27 — over two months after the exercise it was a throwaway credential
+for. This makes bhound a live, standing shadow-credentials path onto any account in the domain,
+not a theoretical one. Not acted on here — this is a standing-privilege finding, referred to
+Raymond for a decision rather than remediated unilaterally.

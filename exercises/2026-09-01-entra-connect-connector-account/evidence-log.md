@@ -54,3 +54,13 @@ rather than pretending it happened first. Noting that ordering gap here rather t
 6. **[ ] Capture wizard outcome** — screenshot(s), informational not filed evidence
    per the prior exercise's convention, plus whatever `qm guest exec` can confirm
    afterward (sync scheduler service state, connector status).
+
+## Addendum — same-day follow-up capture
+
+Requested per `CARRYOVER.md` section A item 1, to check the report's claim that `Administrator`
+was "disabled again at close." First `Get-ADUser` attempt failed transiently (`Get-Service ADWS`
+confirmed Running/Automatic immediately after; retry succeeded clean — treated as the class of
+ADWS-not-ready blip the skill already documents, not investigated further). The retry showed
+`Administrator` still `Enabled: True`. The report's claim was wrong; corrected in `report.md` and
+`verified-claims.md` rather than silently edited. See
+`evidence/administrator-close-out-check.json` for both raw captures.

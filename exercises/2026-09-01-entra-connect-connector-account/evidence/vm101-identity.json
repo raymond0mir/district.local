@@ -1,0 +1,27 @@
+Requested per CARRYOVER.md section A item 6, to establish what VM 101 is. It had snapshots
+pruned during the 08-31 unexpected-shutdown exercise and was otherwise never documented.
+
+Command: qm config 101 | head
+Host: Proxmox host shell directly (not qm guest exec — this is host-level VM config, not
+  something run inside the guest)
+Timestamp: 2026-09-01 (UTC, exact time not recorded)
+
+agent: 1
+bios: ovmf
+boot: order=ide2;scsi0;net0;ide0
+cores: 2
+cpu: x86-64-v2-AES
+efidisk0: local-lvm:vm-101-disk-0,efitype=4m,pre-enrolled-keys=1,size=4M
+ide0: local:iso/virtio-win-0.1.285.iso,media=cdrom,size=771138K
+ide2: local:iso/virtio-win-0.1.285.iso,media=cdrom,size=771138K
+memory: 4096
+meta: creation-qemu=10.0.2,ctime=1759271366
+
+RECALLED, NOT CAPTURED: Raymond stated directly that VM 101 is his test admin station. That's
+testimony, not machine output — nothing in `qm config` or elsewhere names its purpose. Labeled
+per the capture contract rather than folded into the config facts below as if both were the same
+kind of evidence.
+
+CAPTURED facts: VM 101 exists, has the QEMU guest agent enabled (`agent: 1`), UEFI/OVMF boot,
+2 cores, 4096 MiB RAM, and was created 2025-09-30T22:29:26Z (`ctime=1759271366`, converted via
+`date -u -d @1759271366`).

@@ -12,27 +12,50 @@ work except section A, which is captures Raymond runs.
 
 ### A. Captures to request from Raymond (one command each, file each under a new exercise or as an addendum)
 
-1. **`Administrator` state on DC01.** The 09-01 report says it was "disabled again at close"
-   with no evidence file behind it. `qm guest exec 100 -- powershell.exe -Command "Get-ADUser
-   Administrator -Properties Enabled,PasswordLastSet | Select Enabled,PasswordLastSet"`. Also
-   settles whether the owed password rotation happened (its value was typed into Task
-   Scheduler on VM 102 on 09-01).
-2. **`ConfirmImpact` on the AdSyncConfig cmdlets**, on VM 102: `Select-String -Path 'C:\Program
-   Files\Microsoft Azure Active Directory Connect\AdSyncConfig\AdSyncConfig.psm1' -Pattern
-   'ConfirmImpact'`. The 09-01 stall diagnosis ("default `$ConfirmPreference` High triggers a
-   prompt") is only correct if these declare `ConfirmImpact='High'`; per Microsoft Learn, High
-   preference prompts only for High-impact commands. If it's Medium, the diagnosis is wrong and
-   the report's Phase 3 paragraph needs a retraction.
-3. **Key Admins rights on the domain root**, on DC01: `dsacls "DC=district,DC=local" | findstr /i
-   "Key Admins"`. `bhound` (throwaway BloodHound account, still enabled) sits in Key Admins.
-   This turns "possible shadow-credentials path" into a captured finding either way.
-4. **Domain max password age**, on DC01: `Get-ADDefaultDomainPasswordPolicy | Select
-   MaxPasswordAge`. `svc-entraconnect` was created with `PasswordNeverExpires: False`; this is
-   the date sync silently breaks unless a rotation runbook exists.
-5. **`OneShotDelegation` is gone**, on VM 102: `Get-ScheduledTask -TaskName OneShotDelegation`
-   should error. This file says it was unregistered; a fresh negative read belongs in the ledger.
-6. **VM 101's identity**, on the host: `qm config 101 | head`. It exists, had snapshots pruned,
-   and nothing records what it is.
+1. ~~**`Administrator` state on DC01.**~~ **FULLY DONE, same day.** Found `Enabled: True`,
+   contradicting the report's "disabled again at close" claim. Raymond chose to fix the
+   underlying gap rather than just re-disable: `sysadmin` added to Domain Admins, login proven
+   by an actual interactive console session (not inferred from group membership), then
+   `Administrator` disabled again with a real second path in place. Also forced a correction to
+   the `sysadmin`/`constrained-admin-path` reframing (see "Corrections this session forced on
+   earlier work" below) — the original "load-bearing, not excess" framing was itself wrong.
+   Evidence: `exercises/2026-09-01-entra-connect-connector-account/evidence/administrator-close-out-check.json`,
+   `.../evidence/sysadmin-domain-admins-and-administrator-disabled.json`. **Also fully closed:**
+   `Administrator`'s password (previously typed into Task Scheduler on VM 102) was rotated
+   without ever disclosing the new value to any channel — `.../evidence/administrator-password-rotated-no-disclosure.json`.
+   Nothing outstanding on this item.
+2. ~~**`ConfirmImpact` on the AdSyncConfig cmdlets.**~~ **DONE.** Every function in the module,
+   including all three called during delegation, declares `ConfirmImpact="high"`. The 09-01
+   report's stall diagnosis was correct, not just plausible — no correction needed. Evidence:
+   `exercises/2026-09-01-entra-connect-connector-account/evidence/adsyncconfig-confirmimpact-verified.json`.
+3. ~~**Key Admins rights on the domain root.**~~ **FULLY DONE.** Key Admins holds domain-wide
+   write rights over `msDS-KeyCredentialLink` (SPECIAL ACCESS, confirmed via `dsacls`) — a
+   structural fact about this domain, still true. `bhound`, the only member, was a live
+   shadow-credentials path; Raymond's decision was both remove from Key Admins and disable the
+   account, done and verified same day (`MemberOf: {}`, `Enabled: False`). Evidence:
+   `exercises/2026-09-01-entra-connect-connector-account/evidence/key-admins-domain-root-rights.json`,
+   `.../evidence/bhound-remediated.json`. Also resolves the report's open question about
+   `bhound`'s fate, and moots the "will its export fail" question since it won't sync as
+   enabled. Also corrected a wrong ledger interpretation this uncovered: Key Admins **is**
+   AdminSDHolder-protected per Microsoft Learn, so `bhound`'s `adminCount: 1` was never a
+   mystery.
+4. ~~**Domain max password age.**~~ **DONE.** 42 days. `svc-entraconnect`'s `PasswordLastSet`
+   (9/1/2026 7:54:57 AM, already captured) puts its expiry at approximately **2026-10-13** —
+   sync silently breaks around then unless rotated or exempted first. No action taken, just
+   dated. Also caught and fixed a stale ledger clause while updating this: the delegation that
+   later succeeded in this same exercise (`delegation-complete.json`) had never been added to
+   `verified-claims.md` — it is now. Evidence:
+   `exercises/2026-09-01-entra-connect-connector-account/evidence/svc-entraconnect-password-expiry.json`.
+5. ~~**`OneShotDelegation` is gone.**~~ **It was NOT — good catch by checking rather than
+   trusting this file.** A second instance existed, re-registered to retry delegation after the
+   `-Confirm:$false` fix, holding a live `DISTRICT\Administrator` credential
+   (`LogonType: Password`, `RunLevel: Highest`). The "Immediate, before anything else" item 1
+   below only covered the first, stalled instance. Found and removed same day, confirmed via a
+   genuine "not found" error. Evidence:
+   `exercises/2026-09-01-entra-connect-connector-account/evidence/oneshotdelegation-second-instance-removed.json`.
+6. ~~**VM 101's identity.**~~ **DONE.** Raymond's test admin station — his description, not a
+   `qm guest exec` capture (informational, not filed as evidence). `qm config 101` confirms it
+   exists with a guest agent, OVMF/UEFI, 2 cores, 4096 MiB RAM, created 2025-09-30.
 7. **Account Operators absence.** DC01's captured `SeInteractiveLogonRight` is 544/549/550/551
    and S-1-5-9. Microsoft's Default Domain Controllers Policy default also includes Account
    Operators (548). Something removed it and nobody has explained it; it is an inherited state.
@@ -125,8 +148,12 @@ Session paused mid-delegation. This file is the state handoff; `report.md` is no
 
 ## Immediate, before anything else
 
-1. ~~Unregister `OneShotDelegation`~~ — **DONE**, next session. `Stop-ScheduledTask` and
-   `Unregister-ScheduledTask` both confirmed exitcode 0. The stored Domain Admin credential is gone.
+1. ~~Unregister `OneShotDelegation`~~ — **DONE at the time**, for the first, stalled instance
+   only. **This claim was wrong as a statement about the task overall**: a second instance was
+   re-registered later the same exercise to retry delegation after the ShouldProcess fix, and
+   was never cleaned up after it succeeded — found and removed 2026-09-01, see section A item 5
+   above. Left here uncorrected as the historical record of what was believed at the time; the
+   current state is in section A.
 2. ~~Determine what the stalled task wrote~~ — **DONE, confirmed zero.** `dsacls` against the
    domain root returned no matches for `svc-entraconnect`. The stall happened before any ACE was
    written — delegation has not been done at all yet, from scratch.
@@ -229,11 +256,16 @@ Staging preview checked — see `exercises/2026-09-01-entra-connect-connector-ac
 - `verified-claims.md` row asserting VM102 was **domain-joined** was **false** — retired.
   It rested on a screenshot of Server Manager reading `Workgroup: DISTRICT.LOCAL`, which is
   Server Manager reporting the machine is *not* joined. Never captured via `qm guest exec`.
-- The `constrained-admin-path` exercise framed `sysadmin`'s direct `BUILTIN\Administrators`
-  membership as removable sprawl. `SeInteractiveLogonRight` on DC01 lists only 544/549/550/551
-  and S-1-5-9 — that grant was the *only* thing giving `sysadmin` console logon. It was
-  load-bearing, not excess. This is the strongest single finding of the session and should
-  anchor the report.
+- **Corrected same day, 2026-09-01, after the review flagged it**: the note above originally
+  read `constrained-admin-path`'s removal of `sysadmin`'s direct `BUILTIN\Administrators` grant
+  as a mistake, because removing it left `sysadmin` with no console path. That conflated "was in
+  use" with "was appropriate" — the removal targeted real sprawl and was correct. The actual
+  defect was sequencing: by this exercise, `Administrator` was disabled, `Secure Admin WS` denied
+  Domain Admins everywhere including DC01, and `sysadmin`'s path had been removed with no
+  verified replacement — three closures stacking into a full lockout. Fixed same day: `sysadmin`
+  added to Domain Admins, login proven interactively, then `Administrator` disabled again with a
+  real second path in place (`exercises/2026-09-01-entra-connect-connector-account/evidence/sysadmin-domain-admins-and-administrator-disabled.json`).
+  See the corrected "What broke" entry and addendum in that exercise's `report.md`.
 - The `entra-connect-install` exercise's unexplained wizard error ("domain cannot be contacted",
   five hypotheses, none conclusive) now has a strong candidate cause: the machine was never in
   the domain. Strong candidate, **not proven** — the wizard has not been re-run.

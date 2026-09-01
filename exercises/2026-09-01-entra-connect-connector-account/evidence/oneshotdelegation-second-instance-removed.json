@@ -1,0 +1,51 @@
+Requested per CARRYOVER.md section A item 5, to re-verify the earlier claim that
+OneShotDelegation had already been unregistered. It had not — a second instance existed,
+holding a live Domain Admin credential, contradicting CARRYOVER's own "DONE" note.
+
+Background: the earlier CARRYOVER note ("Unregister OneShotDelegation — DONE, next session")
+referred to the FIRST instance of this task, created and stalled before the ShouldProcess/
+ConfirmImpact fix was diagnosed. That first instance genuinely was unregistered. To retry
+delegation once -Confirm:$false was added, the task was re-registered ("re-ran via the same
+scheduled-task mechanism," per delegation-complete.json) — necessarily the same way, with a
+stored -User/-Password principal, since that's how the mechanism works. That second instance
+was never cleaned up after its successful run. This is exactly the gap CARRYOVER's own claim of
+completeness didn't catch.
+
+Command: Get-ScheduledTask -TaskName OneShotDelegation | Select -ExpandProperty Principal
+Host: entraconnect01 (VM 102), via qm guest exec from Proxmox host
+Timestamp: 2026-09-01 (UTC, exact time not recorded)
+
+{
+   "exitcode" : 0,
+   "exited" : 1,
+   "out-data" : "\r\n\r\nDisplayName         : \r\nGroupId             : \r\nId                  : Author\r\nLogonType           : Password\r\nRunLevel            : Highest\r\nUserId              : Administrator\r\nProcessTokenSidType : Default\r\nRequiredPrivilege   : \r\nPSComputerName      : \r\n\r\n\r\n\r\n"
+}
+
+Confirms: a live DISTRICT\Administrator credential (LogonType: Password, RunLevel: Highest) was
+stored in Task Scheduler on VM 102 at the time of this check — the exact class of exposure
+CARRYOVER's stored-credential concern was originally about.
+
+Command: Unregister-ScheduledTask -TaskName OneShotDelegation -Confirm:$false
+Host: entraconnect01 (VM 102), via qm guest exec from Proxmox host
+Timestamp: 2026-09-01 (UTC, exact time not recorded)
+
+{
+   "exitcode" : 0,
+   "exited" : 1
+}
+
+Command: Get-ScheduledTask -TaskName OneShotDelegation
+Host: entraconnect01 (VM 102), via qm guest exec from Proxmox host
+Timestamp: 2026-09-01 (UTC, exact time not recorded)
+
+{
+   "err-data" : "Get-ScheduledTask : No MSFT_ScheduledTask objects found with property 'TaskName' equal to 'OneShotDelegation'.  Verify \r\nthe value of the property and retry.\r\nAt line:1 char:1\r\n+ Get-ScheduledTask -TaskName OneShotDelegation\r\n+ ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~\r\n    + CategoryInfo          : ObjectNotFound: (OneShotDelegation:String) [Get-ScheduledTask], CimJobException\r\n    + FullyQualifiedErrorId : CmdletizationQuery_NotFound_TaskName,Get-ScheduledTask\r\n \r\n",
+   "exitcode" : 1,
+   "exited" : 1
+}
+
+RESULT: Task confirmed gone via a genuine "not found" error, not just the unregister command's
+exit code. Combined with the same-day Administrator password rotation
+(evidence/administrator-password-rotated-no-disclosure.json), the credential this task held is
+now doubly closed — the stored value is gone, and even if it had leaked, that password no
+longer authenticates.

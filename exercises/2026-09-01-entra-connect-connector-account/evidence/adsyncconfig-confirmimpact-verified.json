@@ -1,0 +1,24 @@
+Requested per CARRYOVER.md section A item 2, to verify the report's ShouldProcess stall
+diagnosis (default $ConfirmPreference "High" prompts only for cmdlets declaring ConfirmImpact
+"High" — per Microsoft Learn's about_Preference_Variables, most cmdlets default to "Medium" and
+would not have prompted). Without this check, the diagnosis was plausible but unconfirmed.
+
+Command: Select-String -Path 'C:\Program Files\Microsoft Azure Active Directory Connect\AdSyncConfig\AdSyncConfig.psm1' -Pattern 'ConfirmImpact'
+Host: entraconnect01 (VM 102), via qm guest exec from Proxmox host
+Timestamp: 2026-09-01 (UTC, exact time not recorded)
+
+{
+   "exitcode" : 0,
+   "exited" : 1,
+   "out-data" : "\r\nC:\\Program Files\\Microsoft Azure Active Directory Connect\\AdSyncConfig\\AdSyncConfig.psm1:84:    \r\n[CmdletBinding(SupportsShouldProcess=$true, ConfirmImpact=\"high\")]\r\nC:\\Program Files\\Microsoft Azure Active Directory Connect\\AdSyncConfig\\AdSyncConfig.psm1:241:    \r\n[CmdletBinding(SupportsShouldProcess=$true, ConfirmImpact=\"high\")]\r\nC:\\Program Files\\Microsoft Azure Active Directory Connect\\AdSyncConfig\\AdSyncConfig.psm1:335:    \r\n[CmdletBinding(SupportsShouldProcess=$true, ConfirmImpact=\"high\")]\r\nC:\\Program Files\\Microsoft Azure Active Directory Connect\\AdSyncConfig\\AdSyncConfig.psm1:480:    \r\n[CmdletBinding(SupportsShouldProcess=$true, ConfirmImpact=\"high\")]\r\nC:\\Program Files\\Microsoft Azure Active Directory Connect\\AdSyncConfig\\AdSyncConfig.psm1:614:    \r\n[CmdletBinding(SupportsShouldProcess=$true, ConfirmImpact=\"high\")]\r\nC:\\Program Files\\Microsoft Azure Active Directory Connect\\AdSyncConfig\\AdSyncConfig.psm1:735:    \r\n[CmdletBinding(SupportsShouldProcess=$true, ConfirmImpact=\"high\")]\r\nC:\\Program Files\\Microsoft Azure Active Directory Connect\\AdSyncConfig\\AdSyncConfig.psm1:857:    \r\n[CmdletBinding(SupportsShouldProcess=$true, ConfirmImpact=\"high\")]\r\nC:\\Program Files\\Microsoft Azure Active Directory Connect\\AdSyncConfig\\AdSyncConfig.psm1:986:    \r\n[CmdletBinding(SupportsShouldProcess=$true, ConfirmImpact=\"high\")]\r\nC:\\Program Files\\Microsoft Azure Active Directory Connect\\AdSyncConfig\\AdSyncConfig.psm1:1720:    \r\n[CmdletBinding(SupportsShouldProcess=$true, ConfirmImpact=\"high\")]\r\nC:\\Program Files\\Microsoft Azure Active Directory Connect\\AdSyncConfig\\AdSyncConfig.psm1:1832:    \r\n[CmdletBinding(SupportsShouldProcess=$true, ConfirmImpact=\"high\")]\r\n\r\n\r\n"
+}
+
+RESULT: Every function in the module declares ConfirmImpact="high", including the three
+actually called during delegation (Set-ADSyncBasicReadPermissions, ~line 84 or 241 area;
+Set-ADSyncMsDsConsistencyGuidPermissions; Set-ADSyncPasswordHashSyncPermissions, the one whose
+per-domain loop stalled, at or near line 1832 — matching the ~1863 line the report's original
+diagnosis cited from reading the file directly). This confirms the report's ShouldProcess stall
+diagnosis was correct, not merely plausible: with PowerShell's default $ConfirmPreference of
+"High", these specific cmdlets would trigger an interactive confirmation prompt, which a
+scheduled task with no attached console cannot answer — matching the observed symptom exactly.
+No correction needed to the report's Phase 3 paragraph.
