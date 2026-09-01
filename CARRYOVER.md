@@ -91,13 +91,14 @@ work except section A, which is captures Raymond runs.
    line ~53) synthesize already-confirmed facts into a conclusion, but descriptively, not as
    judgment calls dressed as findings — left as-is.
 
-### D. README at repo root (does not exist)
+### D. README at repo root — DONE, 2026-09-02
 
-A public portfolio repo currently shows `.claude`, `.obsidian`, `exercises`, and a ledger, with
-no explanation. Write a short README: what district.local is, who it's for, the capture contract
-in three sentences, how to read an exercise, where the ledger and CARRYOVER live, and the
-permission-sprawl through-line. Consider removing the committed `.obsidian/*.json` files
-(only `workspace.json` is ignored). Include the GitHub setup note removed in B5.
+Written: what district.local is, who it's for, the capture contract, how to read an exercise,
+where the ledger and CARRYOVER live, the permission-sprawl through-line, and a short note on the
+lab and how the repo is set up (folding in what would have been the GitHub-setup content from
+B5's dropped step 14 / consultation point 10). Also untracked the three committed `.obsidian/*.json`
+config files (empty/generic, no secrets, just clutter) and changed `.gitignore` from ignoring
+only `workspace.json` to the whole `.obsidian/` directory.
 
 ### E. Rewrite this file per the new skill
 
