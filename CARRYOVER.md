@@ -14,15 +14,17 @@ done — see `verified-claims.md` and the git log for what changed. Still open:
   framing for the GPO-lockout/tattoo half vs. the connector-account/wizard half, and deciding how
   today's addendum content divides between them), not mechanical cut-and-paste. Drop step 14 and
   consultation point 10 (GitHub setup) when this happens — that content now lives in `README.md`.
-- **F — prose pass on the six committed 08-31 reports.** Structure and evidence citations were
-  checked 2026-09-01; prose wasn't. For each: does it lead with the finding, is it a reasonable
-  length, does "What the box said" quote rather than summarize. Fold in the addendum below.
-- **`constrained-admin-path`'s report needs a short addendum.** Its central remediation (removing
-  `sysadmin`'s direct `BUILTIN\Administrators` grant) was correct, but the 09-01 exercise found
-  the *sequencing* around it — disabling every other admin path first — created a full lockout.
-  No addendum exists on that report yet; add one pointing to
-  `exercises/2026-09-01-entra-connect-connector-account/report.md`'s corrected "What broke"
-  section rather than re-litigating it there.
+- ~~**F — prose pass on the six committed 08-31 reports.**~~ **DONE.** Five of six were already
+  strong (good openings, quoted evidence, labeled interpretation) — `member-server-build`'s
+  missing "What the box said" is structural (no guest agent existed for most of that build,
+  already handled correctly), not a defect. `constrained-admin-path`'s addendum was written.
+  Found and fixed real staleness beyond the addendum: `entra-connect-install`,
+  `iam-access-sprawl-baseline`, and `hybrid-identity-upn-baseline` all had open questions that
+  the 09-01 exercise had since resolved (the wizard install, the connector account, `bhound`'s
+  fate, and — significantly — `iam-access-sprawl-baseline`'s Finding 3 was the actual origin of
+  the wrong "Key Admins isn't protected" interpretation, honestly hedged as unconfirmed at the
+  time, now corrected with a citation). `dc01-unexpected-shutdown` was already self-updating and
+  needed nothing.
 - **G — reconcile the stale plugin copy of the skill.** The app's plugin copy (under
   `~/Library/Application Support/Claude/local-agent-mode-sessions/skills-plugin/.../skills/tech-compass/SKILL.md`)
   still predates the 2026-09-01 streamline. Invoking `/tech-compass` outside this repo loads the

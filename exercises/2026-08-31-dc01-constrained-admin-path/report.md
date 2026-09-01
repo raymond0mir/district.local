@@ -307,3 +307,23 @@ I'd also test any command with shell-metacharacters (`$`, backticks, unescaped q
 - **Why the local-group cmdlet fails (SAM removed by DCPROMO) is asserted, not verified in this session.** Flagged as interpretation above; would need something like `Get-CimInstance -ClassName Win32_Group -Filter "LocalAccount=True"` or a WinNT-provider query on DC01 to confirm directly rather than by inference from Microsoft's documented DC behavior.
 - **AdminSDHolder / protected-group ACL state was not captured** and is part of "admin surface" in any real sense — not attempted this pass. Given `sysadmin` is a direct member of a protected group, its `adminCount` / SDProp state would be worth checking.
 - **No October baseline document exists to diff against.** This report is establishing DC01's current admin surface for the first time in the ledger, not confirming or correcting an inherited claim — there was nothing on record to correct.
+
+## Addendum — a correction from a later exercise, 2026-09-01
+
+The removal of `sysadmin`'s direct `BUILTIN\Administrators` grant, the central remediation of
+this report, was correct — a named account with a standing DC-level admin grant outside the
+groups a first-pass audit checks is exactly the sprawl pattern this series exists to find and
+remove. That conclusion still holds. What this report's own "What I'd do differently" didn't
+anticipate: three exercises later, the lab reached a session where `Administrator` was disabled,
+a domain-root-linked GPO (`Secure Admin WS`, discovered in that exercise) denied Domain Admins
+interactive logon everywhere including DC01, and this removal — with no verified break-glass
+path left in its place — combined into a full lockout. No account could log into DC01 at all.
+
+That's a sequencing defect, not a reason to reverse the removal, and it's worth stating plainly
+because the report that found the lockout initially read it the other way — concluding the
+grant had been "load-bearing" and the removal itself a mistake. That was also wrong, corrected
+on the record in the same session it was made. The actual lesson, from both corrections
+together: verify a real break-glass admin path exists before removing the last one, not that
+standing sprawl earns a pass just because removing it broke something later. See
+`exercises/2026-09-01-entra-connect-connector-account/report.md`'s "What broke, and why" section
+for the full account, and `verified-claims.md` for the corrected ledger rows.
