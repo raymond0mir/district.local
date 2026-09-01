@@ -1,0 +1,126 @@
+VM102 (entraconnect01) was never actually domain-joined, contradicting verified-claims.md:44.
+
+SYMPTOM CHAIN (all via qm guest exec 102 unless noted):
+
+1. Console login as Administrator with the freshly-rotated DOMAIN password failed. Initially
+   misdiagnosed by Claude as the Secure Admin WS deny rule "working as intended" on a member
+   server — that explanation was WRONG and is retracted; a machine not joined to the domain
+   cannot process a domain GPO at all.
+
+2. nltest /sc_verify:district.local
+   { "err-data": "I_NetLogonControl failed: Status = 1722 0x6ba RPC_S_SERVER_UNAVAILABLE",
+     "exitcode": 1, "exited": 1,
+     "out-data": "ComputerName dc01.district.local  TcpTestSucceeded True" }
+   Raw TCP/389 to DC01 succeeds; the secure channel does not. Distinct failures.
+
+3. Get-Service Netlogon -> Status: Stopped, StartType: Manual
+   Start-Service Netlogon -> FAILED (StartServiceFailed). StartType did flip to Automatic;
+   Status remained Stopped. Dependency LanmanWorkstation was Running — not the blocker.
+
+4. System event log, last 10 minutes, all Error/Warning/Critical:
+   ProviderName: NETLOGON, Id: 3095, Level: Error
+   "This computer is configured as a member of a workgroup, not as a member of a domain.
+    The Netlogon service does not need to run in this configuration."
+   (Two occurrences, 8:11:24 and 8:11:52 — both from today's start attempts. No older Netlogon
+    events exist in the current 500-event retention window, so the moment the machine left/never
+    entered the domain is NOT established by any capture.)
+
+   Same window also shows, not yet chased:
+   - "The Microsoft Azure AD Sync service terminated with the following service-specific error:
+      Unspecified error" (Id 7024), repeating every few minutes
+   - NtpClient unable to resolve time.windows.com
+   - WinRM not listening
+
+5. AUTHORITATIVE CONFIRMATION — machine side:
+   (Get-CimInstance Win32_ComputerSystem) | Select-Object Domain,PartOfDomain,Workgroup,Name
+   { "exitcode": 0, "exited": 1, "out-data":
+     "Domain: DISTRICT.LOCAL   PartOfDomain: False   Workgroup: DISTRICT.LOCAL   Name: ENTRACONNECT01" }
+
+   PartOfDomain: False. Note the trap: when PartOfDomain is False, Win32_ComputerSystem's
+   Domain property reports the WORKGROUP name, not a domain. The workgroup here happens to be
+   named the same string as the domain, so a glance at "Domain: DISTRICT.LOCAL" looks correct
+   and is not.
+
+6. AUTHORITATIVE CONFIRMATION — directory side (qm guest exec 100, against DC01):
+   Get-ADComputer -Identity ENTRACONNECT01 ...
+   { "err-data": "Cannot find an object with identity: 'ENTRACONNECT01' under: 'DC=district,DC=local'",
+     "exitcode": 1, "exited": 1 }
+
+   Get-ADComputer -Filter {Name -like "*entra*"} -Properties whenCreated,whenChanged,DistinguishedName
+   { "exitcode": 0, "exited": 1 }   <- exit 0, zero objects returned. Clean negative, not an error.
+
+   No computer object exists for this machine under any name. Both sides agree.
+
+   (One failed intermediate attempt worth keeping: an earlier version of the -Filter query used
+    escaped inner quotes inside a bash single-quoted string and died with
+    "A positional parameter cannot be found that accepts argument '*entra*\'" — Claude's own
+    bash-quoting bug, the same class of error hit twice already this session.)
+
+WHERE THE ORIGINAL CLAIM CAME FROM: the member-server-build report records post-join Server
+Manager showing "Workgroup: DISTRICT.LOCAL" and reads it as domain membership. Server Manager
+labels that field "Domain:" when a machine IS joined and "Workgroup:" when it is not. The
+screenshot was VM102 reporting it was not joined. That report also explicitly flags its GUI
+screenshots as "informational, not filed evidence" — this is precisely the case where that
+caveat mattered and was overlooked anyway. No qm guest exec capture of domain membership was
+ever taken at build time.
+
+LIKELY DOWNSTREAM IMPACT, NOT PROVEN: the entra-connect-install exercise tested five hypotheses
+against the wizard error "The domain specified in the credentials does not exist or cannot be
+contacted" and resolved none of them. A machine with working DNS/LDAP/GC reachability but no
+actual domain membership is the most parsimonious explanation now available for that error.
+Nothing captured isolates it as THE cause, and the wizard has not been re-run since — so this
+is a strong candidate, not a settled finding.
+
+REMEDIATION IN PROGRESS:
+  Snapshot: qm snapshot 102 pre-domain-join-fix-20260901  (verified registered via qm listsnapshot)
+  Local Administrator bootstrap password set via qm guest exec (Set-LocalUser; value returned in
+  out-data, deliberately NOT recorded here — throwaway, to be rotated by Raymond at the console
+  immediately on first login, same pattern as DC01's Administrator earlier this session).
+  Note: VM102's "Administrator" tile has been the LOCAL built-in Administrator all along, a
+  separate credential space from the domain account of the same name — which is the full
+  explanation for why the rotated domain password could never have worked there.
+
+REMEDIATION COMPLETE AND VERIFIED. Raymond rotated the local bootstrap password at the console,
+then ran at VM102's console:
+
+  Add-Computer -DomainName "district.local" -Credential (Get-Credential) -Restart
+
+(credential supplied to the interactive dialog only; never entered this channel)
+
+VERIFY 1 — machine side (qm guest exec 102), exitcode 0:
+  Domain       : district.local
+  PartOfDomain : True
+  Workgroup    :                    <- now empty, was DISTRICT.LOCAL
+  Name         : ENTRACONNECT01
+
+  Get-Service Netlogon -> Status: Running, StartType: Automatic
+    (was Stopped/Manual, and refused to start, before the join)
+
+  nltest /sc_verify:district.local ->
+    Flags: b0 HAS_IP HAS_TIMESERV
+    Trusted DC Name \\DC01.district.local
+    Trusted DC Connection Status  Status = 0 0x0 NERR_Success
+    Trust Verification Status     Status = 0 0x0 NERR_Success
+    The command completed successfully
+    (was RPC_S_SERVER_UNAVAILABLE / exitcode 1)
+
+VERIFY 2 — directory side (qm guest exec 100), exitcode 0:
+  DistinguishedName : CN=ENTRACONNECT01,CN=Computers,DC=district,DC=local
+  DNSHostName       : ENTRACONNECT01.district.local
+  Enabled           : True
+  ObjectGUID        : ee3ac09e-bff6-4be3-ab53-efb0f40861c7
+  OperatingSystem   : Windows Server 2022 Standard Evaluation
+  SamAccountName    : ENTRACONNECT01$
+  SID               : S-1-5-21-2288391267-384259729-2991373820-1130
+  whenCreated       : 9/1/2026 8:22:46 AM
+    (the same -Identity query returned ADIdentityNotFoundException before the join)
+
+  Placement note: the object landed in the default CN=Computers container, not a purpose-built
+  OU — same shape as svc-entraconnect defaulting into CN=Users before Raymond moved it. Not a
+  functional problem; a hygiene item.
+
+VERIFY 3 — host headroom after the join+restart (Proxmox host shell):
+  pve/data Data% 77.17, Meta% 3.98   (was 75.78% at preflight; +1.4 points from the join writes)
+  Mem: 15Gi total, 11Gi used, 3.6Gi available   (was 1.1Gi available at preflight; the restart
+  released memory — VM102's 3GB allocation remains below Microsoft's documented 4GB minimum for
+  Entra Connect, still untested under real sync load)

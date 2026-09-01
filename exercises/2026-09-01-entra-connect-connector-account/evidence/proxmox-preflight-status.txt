@@ -1,0 +1,26 @@
+Command (Proxmox host shell, run retroactively after the Administrator bootstrap re-enable,
+not before it — see evidence-log.md for that ordering gap):
+
+qm status 100
+lvs -a -o+lv_name,data_percent,metadata_percent,lv_size
+free -h
+
+Output:
+
+status: running
+
+LV `data` (thin pool, VG `pve`): Data% 75.78, Meta% 3.75, LSize <155.23g
+Snapshots present: snap_vm-100-disk-0_clean-install, snap_vm-100-disk-0_pre-upn-restamp-20260831,
+snap_vm-100-disk-1_clean-install, snap_vm-100-disk-1_pre-upn-restamp-20260831 (VM 100);
+snap_vm-101-disk-{0,1,2}_win11-ootb (VM 101)
+
+free -h:
+              total        used        free      shared  buff/cache   available
+Mem:           15Gi        13Gi        1.2Gi        30Mi       208Mi       1.1Gi
+Swap:         8.0Gi       2.1Gi        5.9Gi
+
+Assessment:
+- Thin pool at 75.78% — below the 85% caution threshold, no pruning action needed.
+- Host RAM is tight: only 1.1Gi available, 2.1Gi already in swap. Not a stop condition on its
+  own, but flagged as a live risk given DC01's prior unexplained-crash history and that this
+  exercise is about to add VM102 (Entra Connect wizard) memory load on top of an already-tight host.

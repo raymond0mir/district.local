@@ -1,0 +1,67 @@
+Delegation succeeded after the -Confirm:$false fix. LastTaskResult: 0. Transcript ran clean
+through all three cmdlets to === DONE ===, no stall.
+
+Root cause of the earlier stall, confirmed correct by this success: PowerShell's default
+$ConfirmPreference (High) triggers an interactive ShouldProcess confirmation for these cmdlets;
+under the scheduled task's non-interactive session that prompt had no console to read from and
+blocked indefinitely. -Confirm:$false on all three calls removed the prompt entirely. Isolating
+Get-ADForest beforehand (0.13s) had already ruled out DNS/GC/enumeration slowness as the cause.
+
+CONFIRMED IN THE LIVE ACL (not inferred from clean exit alone) - dsacls "DC=district,DC=local"
+via the transcript's own ACE dump, before and after PasswordHashSync ran:
+
+  After BasicRead + MsDsConsistencyGuid only:
+    svc-entraconnect has SPECIAL ACCESS / READ PROPERTY on subobject types (user, group,
+    computer, contact, device, foreignSecurityPrincipal, inetOrgPerson) and, after
+    MsDsConsistencyGuid, WRITE PROPERTY / READ PROPERTY on mS-DS-ConsistencyGuid specifically.
+    No replication rights at this point.
+
+  After PasswordHashSync ran, new domain-root-level entries appeared:
+    Allow DISTRICT\svc-entraconnect       Replicating Directory Changes
+    Allow DISTRICT\svc-entraconnect       Replicating Directory Changes All
+
+  This is the DCSync-equivalent grant, confirmed present by direct ACL comparison across the
+  three stages rather than assumed from "the cmdlet didn't error."
+
+Each cmdlet's own dsacls-style output ended with:
+  "The command completed successfully"
+  "WARNING: You will need to perform a full import to include any objects that may have come
+   in scope as a result of this operation."
+(standard AdSyncConfig output, not an error - noting because "WARNING" reads alarming out of
+context)
+
+Set-ADSyncRestrictedPermissions RUN AND VERIFIED, next. Run interactively at VM102's console
+(not the scheduled task - this cmdlet takes -Credential directly):
+
+  $cred = Get-Credential -UserName "DISTRICT\Administrator" -Message "..."
+  Import-Module "...\AdSyncConfig.psm1"
+  Set-ADSyncRestrictedPermissions -ADConnectorAccountDN "CN=svc-entraconnect,OU=Service Accounts,DC=district,DC=local" -Credential $cred -Confirm:$false
+
+Console output was a single line - "Set-ADSyncRestrictedPermissions: Setting Restricted
+permissions on '...'..." - then a clean prompt, no error, no completion message. Ambiguous on
+its own (unlike the other three cmdlets, this one produced no ACL dump / "command completed
+successfully" line), so verified against the live object rather than trusted:
+
+  Import-Module ActiveDirectory
+  $acl = Get-Acl -Path "AD:\CN=svc-entraconnect,OU=Service Accounts,DC=district,DC=local"
+  $acl.AreAccessRulesProtected  ->  True
+  $acl.Access | Select IdentityReference,AccessControlType,ActiveDirectoryRights
+
+  AreAccessRulesProtected: True confirms inheritance from OU=Service Accounts is now blocked -
+  the actual mechanism behind "restricted permissions." Remaining explicit ACL is tight and
+  correct: Domain Admins / Enterprise Admins / SYSTEM / BUILTIN\Administrators at GenericAll,
+  SELF with narrow ReadProperty/WriteProperty + ExtendedRight on its own attributes,
+  ENTERPRISE DOMAIN CONTROLLERS and Authenticated Users at GenericRead. No stray delegated
+  access carried over from the OU.
+
+  Minor procedural note: the first verification attempt failed with "Cannot find drive. A
+  drive with the name 'AD' does not exist" - the AD: PSDrive only exists after
+  Import-Module ActiveDirectory, which the first call omitted. Not a finding, just a gap in
+  the command as first written.
+
+CONNECTOR ACCOUNT PROVISIONING IS COMPLETE. svc-entraconnect: no admin group membership, in
+Service Accounts OU, basic read + ConsistencyGuid + PHS delegated at the domain root, own
+object ACL hardened against inheritance. Only remaining step in this whole thread: fully exit
+and relaunch the Entra Connect wizard on VM102, now genuinely domain-joined with a fully
+permissioned connector account - the actual goal of this exercise, and the second test of the
+"stale wizard state" hypothesis from entra-connect-install.

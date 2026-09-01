@@ -1,0 +1,39 @@
+Command (qm guest exec 100, safe - no secret in this one):
+
+Get-ADUser -Identity svc-entraconnect -Properties MemberOf,Enabled,PasswordNeverExpires,PasswordLastSet,DistinguishedName | Format-List
+
+Result:
+
+{
+   "exitcode" : 0,
+   "exited" : 1,
+   "out-data" : "DistinguishedName    : CN=svc-entraconnect,OU=Service Accounts,DC=district,DC=local
+Enabled              : True
+GivenName            :
+MemberOf             : {}
+Name                 : svc-entraconnect
+ObjectClass          : user
+ObjectGUID           : f3143ec5-0dd1-4e48-be71-ed2e14a25b31
+PasswordLastSet      : 9/1/2026 7:54:57 AM
+PasswordNeverExpires : False
+SamAccountName       : svc-entraconnect
+SID                  : S-1-5-21-2288391267-384259729-2991373820-1128
+Surname              :
+UserPrincipalName    :"
+}
+
+Confirms: no admin group membership (MemberOf empty), enabled, correctly placed in the
+Service Accounts OU (moved there by Raymond from the default Users container after creation).
+
+DISCREPANCY, resolved: the account was created with -PasswordNeverExpires $true and
+-UserPrincipalName "svc-entraconnect@raytakosharkygmail.onmicrosoft.com" specified in the
+New-ADUser command handed to Raymond, but this capture shows PasswordNeverExpires: False and
+an empty UserPrincipalName. Raymond, asked directly: "modified it, my doing" - a deliberate
+edit to the command as given, not a capture error or an accident. Worth noting: leaving
+PasswordNeverExpires at its default (False) is arguably the more defensible choice given this
+project's own permission-sprawl thesis - a password that never expires on a standing service
+account is exactly the kind of "nobody ever revisits it" pattern the thesis is about, even
+though it's also Microsoft's own stated recommendation for sync accounts (see report's earlier
+note on that tension). Whether the empty UPN matters depends on what the AD DS connector
+account actually needs to authenticate - being tracked as an open question until the wizard
+step tests it.

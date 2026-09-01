@@ -1,0 +1,61 @@
+Staging-mode preview, Synchronization Service Manager on VM102, all screenshot evidence
+(GUI-only, informational per capture contract).
+
+Operations tab: 4 runs, no Export operations present at all - confirms staging mode is working
+as designed (scheduler calculates but never runs the export step). Full Import for
+raytakosharkygmail.onmicrosoft.com - AAD showed "completed-no-objects" - expected, tenant has
+never had synced objects before.
+
+district.local Full Synchronization statistics:
+  Inbound: 26 Projections, 0 Joins, 203 Disconnectors (expected - default sync rules exclude
+    computers, most built-in groups, etc.)
+  Outbound (to raytakosharkygmail.onmicrosoft.com connector): Export Attribute Flow 20,
+    Provisioning Adds 20 - matches exactly the 20 objects retrieved via Search Connector Space
+    on the AAD connector (~9 groups, ~11 users).
+
+FINDING 1 - "System Admin" identity mystery from the START of this session, closed:
+  Opened the Pending Export properties for one staged user object at random. It was sysadmin -
+  commonName "System Admin", onPremisesSamAccountName sysadmin. This is the same "System Admin"
+  login tile that blocked the very first console-login attempt this session (see the opening of
+  CARRYOVER.md's consultation log). Confirms conclusively: "System Admin" was never a separate
+  account, it is sysadmin's AD display name. No further ambiguity.
+
+FINDING 2 - sysadmin's computed userPrincipalName looks correct:
+  userPrincipalName (New Value): sysadmin@raytakosharkygmail.onmicrosoft.com - matches the
+  restamp exercise's suffix exactly. sourceAnchor populated with a base64 value (the
+  mS-DS-ConsistencyGuid mechanism, confirmed working). Note: the Search Connector Space grid's
+  own userPrincipalName/displayName COLUMNS showed blank for every row even though the actual
+  object properties dialog showed correct values - a UI display quirk of that grid, not a real
+  data gap. Worth remembering for next time rather than re-discovering.
+
+  This is a positive signal (not proof) toward the wizard's "Not Added" status on
+  raytakosharkygmail.onmicrosoft.com being a false negative rather than a real sign-in blocker -
+  the attribute itself computed correctly and looks structurally exportable.
+
+FINDING 3 - bhound WILL LIKELY FAIL EXPORT, mechanism now identified precisely:
+  Opened bhound's Pending Export properties directly (onPremisesSamAccountName: bhound).
+  userPrincipalName (New Value): bhound@district.local
+
+  This confirms and sharpens the hybrid-identity-upn-baseline exercise's prediction
+  ("bhound has UserPrincipalName: null - the only account without one; Entra Connect requires
+  userPrincipalName to export an object, so this account would fail sync as-is"). The mechanism
+  is now specific: Entra Connect does NOT leave a missing UPN blank - it auto-constructs
+  sAMAccountName@<on-prem AD domain> as a fallback. district.local is non-routable and will
+  never be a verified domain in this tenant (confirmed via the same Entra admin center Domain
+  names blade used earlier - only raytakosharkygmail.onmicrosoft.com is listed there at all).
+  Microsoft Entra ID requires a verified domain suffix to accept a user object's UPN.
+
+  NOT YET PROVEN: whether the actual export (out of staging) rejects bhound outright with an
+  error, silently succeeds with an unusable UPN, or something else. This is staged/calculated
+  data, not a live export result. The real test is promoting out of staging and watching what
+  actually happens to this specific object.
+
+CARRIED FORWARD, next session:
+  - Promote out of staging mode, watch bhound's export specifically (expect either a clean
+    failure with a specific error code worth capturing, or an unexpected success worth
+    understanding).
+  - Decide bhound's fate before or depending on that result: give it a real UPN, exclude it
+    from sync scope, or delete it (still an unresolved, aging account from a BloodHound
+    capstone session per verified-claims.md, logging on as recently as 2026-08-27).
+  - The authoritative sign-in test for the "Not Added" question: a real account (sysadmin or
+    one of the other restamped users) attempting actual Entra ID sign-in with on-prem creds.

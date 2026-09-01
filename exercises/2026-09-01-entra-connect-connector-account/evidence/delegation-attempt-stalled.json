@@ -1,0 +1,129 @@
+Delegating AD DS connector permissions to svc-entraconnect — batch-logon mechanism PROVEN,
+delegation itself INCOMPLETE (stalled, not failed).
+
+WHY A SCHEDULED TASK AT ALL. The three permission cmdlets (Set-ADSyncBasicReadPermissions,
+Set-ADSyncMsDsConsistencyGuidPermissions, Set-ADSyncPasswordHashSyncPermissions) have no
+-Credential parameter — their "...WithCredential" parameter sets refer to TargetForestCredential,
+for cross-forest scenarios only. Captured via:
+
+  (Get-Command <cmd>).ParameterSets / .Parameters.Keys
+  -> ADConnectorAccountName, ADConnectorAccountDomain, ADConnectorAccountDN, ADobjectDN,
+     IncludeAdminSDHolders, TargetForest, TargetForestCredential, ...
+  Only Set-ADSyncRestrictedPermissions has a real -Credential (and it is required there).
+
+So they run in whatever security context invokes them, and need rights to modify domain-root ACLs.
+But VM102, now that it is genuinely domain-joined, receives Secure Admin WS — verified:
+
+  gpresult /r /scope:computer on ENTRACONNECT01 -> Applied GPOs: Default Domain Policy,
+    District Lockdown, Secure Admin WS
+  secedit /export /areas USER_RIGHTS on VM102 ->
+    SeBatchLogonRight           = *S-1-5-32-544,*S-1-5-32-551,*S-1-5-32-559
+    SeInteractiveLogonRight     = *S-1-5-32-544,*S-1-5-32-545,*S-1-5-32-551
+    SeDenyInteractiveLogonRight = *S-1-5-21-2288391267-384259729-2991373820-512  (Domain Admins)
+    (no SeDenyBatchLogonRight at all)
+
+  DISTRICT\Administrator cannot log on interactively to VM102. Batch logon is NOT denied, and
+  Domain Admins holds it via BUILTIN\Administrators (544). A scheduled task runs under batch
+  logon — hence the approach.
+
+  NOTE ON WHAT THIS IS AND IS NOT: batch logon still places the credential in LSASS on VM102.
+  This is not a credential-exposure-free bypass. Its defensible property is scope — one process,
+  one run, then unregistered — versus an open-ended GPO exception. Argue it on bounded scope and
+  reversibility, not on "it's secure."
+
+MECHANISM PROVEN. Transcript header from the run, captured:
+  Username:    DISTRICT\Administrator
+  RunAs User:  DISTRICT\Administrator
+  Machine:     ENTRACONNECT01
+  Host Application: powershell.exe -NoProfile -ExecutionPolicy Bypass -File C:\Windows\Temp\delegate.ps1
+  RUNNING AS: district\administrator
+
+  A genuine Domain Admin context obtained on a machine where interactive logon for that same
+  account is denied. The posture-preserving path works; no GPO change was needed.
+
+TWO FAILURES ALONG THE WAY, both kept:
+
+1. Multi-line paste into PowerShell ISE mangled the registration command — it truncated at
+   "-User $cred.UserName -", silently dropping -Password and -RunLevel Highest. Result: first
+   attempt errored on a null User; second registered a task with no valid principal, which then
+   failed Start-ScheduledTask with 0x80070002 (ERROR_FILE_NOT_FOUND). Claude's fault for handing
+   over a multi-line block to paste. Fixed by writing the registration into a script file
+   (C:\Windows\Temp\register-task.ps1) invoked as a single line, so nothing is pasted multi-line.
+
+2. First good run failed with LastTaskResult 1:
+     "Import-Module : Unable to import ActiveDirectory PowerShell Module.
+      Run 'Install-WindowsFeature RSAT-AD-Tools' to install Active Directory RSAT."
+     (thrown from AdSyncConfig.psm1:2113)
+   AdSyncConfig depends on the ActiveDirectory PowerShell module, which is NOT installed by
+   default on a member server and was never installed during the member-server-build exercise.
+   Same class as that build's three VirtIO driver gaps: an unstated prerequisite that only
+   surfaces when it blocks something.
+
+   Fixed via qm guest exec (local feature install, no domain rights needed, runs as SYSTEM):
+     Install-WindowsFeature RSAT-AD-Tools
+     -> Success: True, RestartNeeded: No, ExitCode: Success
+     Get-Module -ListAvailable ActiveDirectory -> Name: ActiveDirectory, Version: 1.0.1.0
+
+CURRENT STATE — STALLED, NOT FAILED. Second run started 8:46:34. Queried twice, several minutes
+apart; LastTaskResult 267009 both times.
+
+  267009 = 0x00041301 = SCHED_S_TASK_RUNNING
+
+  The transcript was byte-identical across both queries, last line both times:
+    VERBOSE: Get AD Domains: Retrieving list of Domains in the Forest...
+
+  Progress before the stall (real, captured):
+    Resolved svc-entraconnect via GC DC01.district.local:3268
+    Set-ADSyncBasicReadPermissions: Calling GrantADPermissionsOnAllDomains on all domain's root
+    ACEs computed for SID S-1-5-21-2288391267-384259729-2991373820-1128:
+      RP;;computer  RP;;device  RP;;foreignsecurityprincipal  RP;;user
+      RP;;inetOrgPerson  RP;;group  RP;;contact
+
+  NOT ESTABLISHED: whether those ACEs were actually written to the domain root before the stall,
+  or whether the forest-enumeration step hung before applying anything. The transcript shows the
+  ACEs being COMPUTED, not confirmed APPLIED. This must be checked against the live ACL, not
+  inferred from the transcript. Set-ADSyncMsDsConsistencyGuidPermissions and
+  Set-ADSyncPasswordHashSyncPermissions never ran at all — the transcript never reaches their
+  section headers.
+
+  Set-ADSyncRestrictedPermissions was never run either (it was to be run separately at the
+  console, since it takes -Credential directly).
+
+OPERATIONAL DEBT CREATED BY THIS ATTEMPT — MUST BE CLEARED:
+  The scheduled task "OneShotDelegation" is still registered on VM102 with a STORED DOMAIN ADMIN
+  CREDENTIAL. Register-ScheduledTask -User/-Password persists that secret for the task principal.
+  Leaving it registered means a standing Domain Admin credential sits on VM102 indefinitely —
+  precisely the permission-sprawl pattern this project documents, created by the very workaround
+  chosen to preserve posture. It must be unregistered, and the transcript file removed.
+
+  Also left behind: C:\Windows\Temp\delegate.ps1, C:\Windows\Temp\register-task.ps1,
+  C:\Windows\Temp\delegation-transcript.txt, C:\Windows\Temp\ur102.inf (none contain secrets;
+  the transcript does contain the AD structure detail above).
+
+  A -Verbose flag was passed to all three cmdlets, which flooded the transcript with several
+  hundred lines of module import/export noise. Drop -Verbose next time, or filter at read time.
+
+RESOLVED, next session. Two things settled:
+
+1. Scheduled task cleanup, run as three separate qm guest exec calls with progress markers
+   (Write-Output before/after each) rather than one chained command, after an unexplained pair
+   of empty exitcode:1 results on the first combined attempt (both qm/guest agent health checked
+   clean in between - qm status/qm agent ping on both VMs returned normal):
+     Stop-ScheduledTask -> exitcode 0, "stopping.../stop-done" both printed
+     Unregister-ScheduledTask -> exitcode 0, "unregistering.../unregister-done" both printed
+   The stored DISTRICT\Administrator credential in Task Scheduler is gone. A preceding
+   Get-ScheduledTask query returned exitcode 1 with only "checking..." printed and no further
+   output - unexplained, but superseded by the two state-changing commands both succeeding
+   cleanly and confirming the task existed immediately before removal.
+
+2. dsacls "DC=district,DC=local" | Select-String "svc-entraconnect", run with progress markers:
+     "querying..." ... "query-done", zero matching lines between them.
+   CONFIRMED: no ACEs for svc-entraconnect exist on the domain root. The stall happened before
+   any permission was actually written - the transcript's "AD permissions ACEs to add" line
+   describes a computed change, not an applied one. Delegation has NOT been done at all;
+   svc-entraconnect currently holds zero AD DS connector permissions of any kind.
+
+NEXT: all three permission cmdlets (BasicRead, MsDsConsistencyGuid, PasswordHashSync) plus
+Set-ADSyncRestrictedPermissions still need to be run from scratch. The forest-enumeration stall
+itself was never diagnosed - see CARRYOVER.md's untested hypotheses before re-attempting the
+same way and expecting a different result.

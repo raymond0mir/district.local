@@ -1,0 +1,21 @@
+Screenshot evidence (GUI-only, informational, not filed machine output) — Entra Connect wizard
+reached "Configuration complete": "Microsoft Entra Connect Sync configuration succeeded. The
+synchronization process has been initiated."
+
+Installed with staging mode ENABLED per Raymond's decision (first-ever sync from this DC,
+deliberately previewed rather than exported live, given the unresolved UPN-suffix question).
+
+Notes from the completion screen:
+- AD Recycle Bin is NOT enabled on district.local - flagged by the wizard itself as strongly
+  recommended. Not addressed this session; carried forward as an open item.
+- Source anchor confirmed: mS-DS-ConsistencyGuid, as configured on the Identifying Users step.
+- Device writeback / TPM recommendations shown are generic wizard boilerplate, not specific
+  findings for this lab (no device writeback configured elsewhere; TPM is a host-level concern
+  outside this exercise's scope).
+
+This is the endpoint of the entire multi-exercise Entra Connect thread that began with
+entra-connect-install (2026-08-31): components installed but never configured -> this session's
+domain-join correction, connector-account provisioning, permission delegation, and this
+successful wizard run. NOT yet the end of the exercise itself - staging mode means nothing has
+actually exported. See CARRYOVER.md "Next session, in order" for what remains: check the
+staging preview, promote out of staging, and the authoritative sign-in test.

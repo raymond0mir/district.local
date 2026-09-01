@@ -1,0 +1,23 @@
+Command (run from Proxmox host shell):
+
+qm guest exec 100 --timeout 30 -- powershell.exe -Command '$boot = -join ((48..57)+(65..90)+(97..122) | Get-Random -Count 16 | %{[char]$_}); Enable-ADAccount -Identity Administrator; Set-ADAccountPassword -Identity Administrator -NewPassword (ConvertTo-SecureString $boot -AsPlainText -Force) -Reset; "BOOTSTRAP_PW=$boot"'
+
+First attempt failed with exitcode 1 — bash double-quoting mangled `$_` before PowerShell saw it
+(ParserError: ExpectedValueExpression, "You must provide a value expression following the '/' operator").
+Same class of failure as the constrained-admin-path exercise's bash-quoting bug. Fixed by wrapping the
+whole -Command argument in single quotes so bash passes it through literally.
+
+Second attempt (corrected quoting):
+
+{
+   "exitcode" : 0,
+   "exited" : 1,
+   "out-data" : "BOOTSTRAP_PW=[REDACTED - not persisted to this repo, see note below]\r\n"
+}
+
+Result: Administrator re-enabled, password reset to a 16-char random bootstrap value returned in
+out-data. That value is NOT recorded here or anywhere in the repo, by design — it's a throwaway,
+meant to be superseded the moment Raymond logs in at the DC01 console and changes it himself via
+Ctrl+Alt+Del -> "Change a password" (pure Windows UI, never touches a command line or this channel).
+Treat the bootstrap value as burned the instant that rotation happens; if it's ever reused or found
+to still be live, that's a finding, not a convenience.

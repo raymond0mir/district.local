@@ -1,0 +1,47 @@
+Root cause chain, each step captured via qm guest exec unless noted:
+
+1. gpresult /r /scope:computer showed 5 applied GPOs, two never before captured in this project:
+   District Lockdown, Secure Admin WS (verified-claims.md:19 only recorded 2 — was incomplete,
+   not wrong, see report for the correction note).
+
+2. Get-GPOReport -Name "Secure Admin WS" -ReportType Xml, grepped for Logon/Deny/Interactive:
+   confirmed SeDenyInteractiveLogonRight and SeDenyRemoteInteractiveLogonRight both target
+   DISTRICT\Domain Admins (SID S-1-5-21-2288391267-384259729-2991373820-512). District Lockdown
+   had zero matches for those terms — not the cause.
+
+3. Same GPOReport XML, grepped for SOMPath/LinksTo: single link, SOMPath "district.local"
+   (domain root), Enabled true, NoOverride false. No dedicated OU, no DC exclusion.
+
+4. Snapshot taken before any change:
+   qm snapshot 100 pre-secure-admin-ws-scope-fix-20260901
+   Verified registered via qm listsnapshot both before and after (host shell output above).
+
+5. Deny-Apply ACE added for the "Domain Controllers" group on the Secure Admin WS GPO object,
+   via the GroupPolicy AD: PSDrive and the well-known "Apply Group Policy" extended right GUID
+   (edacfd8f-ffb3-11d1-b41d-00a0c968f939):
+
+   Import-Module GroupPolicy,ActiveDirectory
+   $gpo = Get-GPO -Name "Secure Admin WS"
+   $gpoPath = "AD:\" + $gpo.Path
+   $dcGroup = Get-ADGroup -Identity "Domain Controllers"
+   $applyGPO = New-Object Guid "edacfd8f-ffb3-11d1-b41d-00a0c968f939"
+   $acl = Get-Acl -Path $gpoPath
+   $identity = New-Object System.Security.Principal.SecurityIdentifier($dcGroup.SID)
+   $rule = New-Object System.DirectoryServices.ActiveDirectoryAccessRule($identity, "ExtendedRight", "Deny", $applyGPO)
+   $acl.AddAccessRule($rule)
+   Set-Acl -Path $gpoPath -AclObject $acl
+
+   Result: { "exitcode": 0, "exited": 1, "out-data": "ACE added\r\n" }
+
+6. Verification: gpupdate /force /target:computer; gpresult /r /scope:computer
+
+   Result: { "exitcode": 0, "exited": 1, ... }
+   "Applied Group Policy Objects": Default Domain Controllers Policy, DC - Secure LDAP,
+     Default Domain Policy, District Lockdown, Local Group Policy
+   "The following GPOs were not applied because they were filtered out":
+     Secure Admin WS — Filtering: Denied (Security)
+
+Conclusion: Secure Admin WS no longer applies to DC01. The Domain-Admins-tier logon deny rule
+is confirmed gone from this machine's effective policy — captured via gpresult's own filtering
+report, not inferred from the ACL change alone. Whether Administrator can actually log in now
+is the next thing to test, separately, at the console.

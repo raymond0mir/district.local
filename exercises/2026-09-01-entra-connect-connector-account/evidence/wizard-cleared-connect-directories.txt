@@ -1,0 +1,29 @@
+Screenshot evidence (GUI-only, informational per capture contract, not filed machine output) —
+the Entra Connect wizard cleared "Connect Directories" for the first time in this project.
+
+Sequence to get here, all captured this session:
+  1. VM102 domain-joined (was never actually joined despite prior record)
+  2. svc-entraconnect created, no admin group membership
+  3. Basic read + ConsistencyGuid + Password Hash Sync permissions delegated to it
+  4. Set-ADSyncRestrictedPermissions hardened the account object
+  5. Wizard relaunched fresh: signed into Microsoft Entra ID with breakglass@raytakosharkygmail.onmicrosoft.com
+  6. At "Connect Directories" -> Add Directory -> "Use existing AD account" ->
+     DISTRICT.LOCAL\svc-entraconnect
+  7. Password for svc-entraconnect had been forgotten (set interactively at account creation,
+     by design never captured) - reset via qm guest exec against DC01, returned once so it could
+     be typed into the wizard dialog. NOTE: unlike every other credential reset this session,
+     this one is NOT a throwaway meant for immediate rotation - it becomes the account's live
+     operational credential for ongoing sync, since it must be entered into a GUI field rather
+     than set through an interactive console prompt. Value not recorded in this file.
+  8. Wizard accepted it: "district.local (Active Directory)" now shows with a green checkmark
+     under Configured Directories, "Next" button enabled (previously greyed out at this point
+     in every prior attempt).
+
+CONCLUSION, still not 100% isolated to one variable since multiple things changed together
+(domain join + connector account + delegated permissions all landed in the same session before
+this retry): the wizard's original "domain cannot be contacted" failure is very likely explained
+by VM102 never having been domain-joined, as flagged as a strong candidate in
+evidence/vm102-not-domain-joined.json. This screenshot is the first direct behavioral evidence
+supporting that candidate - the exact step that died before now succeeds - but it does not by
+itself prove domain-join was the SOLE fix, since a properly-permissioned connector account was
+also introduced in the same pass. Worth stating precisely rather than overclaiming.

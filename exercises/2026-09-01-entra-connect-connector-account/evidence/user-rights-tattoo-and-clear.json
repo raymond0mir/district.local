@@ -1,0 +1,58 @@
+The GPO filtering fix (secure-admin-ws-scope-fix.json) stopped Secure Admin WS applying to DC01,
+but the console login error did NOT change. Reason: Security Settings user-rights assignments are
+written into the machine's local LSA policy and do not self-revert when a GPO stops applying —
+filtering stops the setting being refreshed, it does not remove what is already written ("tattooing").
+
+DIAGNOSTIC — confirm the tattoo, via qm guest exec 100:
+
+  secedit /export /areas USER_RIGHTS /cfg C:\Windows\Temp\ur.inf | Out-Null
+  Get-Content C:\Windows\Temp\ur.inf | Select-String "SeDenyInteractiveLogonRight|SeDenyRemoteInteractiveLogonRight|SeInteractiveLogonRight"
+
+  { "exitcode": 0, "exited": 1, "out-data":
+    "SeInteractiveLogonRight = *S-1-5-32-544,*S-1-5-32-549,*S-1-5-32-550,*S-1-5-32-551,*S-1-5-9
+     SeDenyInteractiveLogonRight = Domain Admins
+     SeDenyRemoteInteractiveLogonRight = Domain Admins" }
+
+TWO DISTINCT CAUSES, ONE ERROR STRING. Both accounts showed the identical console message
+("The sign-in method you're trying to use isn't allowed") for different reasons:
+  - Administrator: HAS the logon grant (member of BUILTIN\Administrators = S-1-5-32-544) but was
+    hit by the explicit deny on Domain Admins. Deny overrides allow.
+  - sysadmin: NOT denied (never in Domain Admins) but has NO grant either — SeInteractiveLogonRight
+    lists only BUILTIN\Administrators (544), Server Operators (549), Print Operators (550),
+    Backup Operators (551), Enterprise Domain Controllers (S-1-5-9), and sysadmin is in none of
+    them since its BUILTIN\Administrators membership was removed in the constrained-admin-path
+    exercise.
+
+REMEDIATION — clear the tattooed deny from local policy, via qm guest exec 100. Input is DC01's
+own export with only the two deny lines blanked, rather than a hand-authored INF:
+
+  $p = "C:\Windows\Temp\ur.inf"
+  (Get-Content $p) -replace "^SeDenyInteractiveLogonRight.*", "SeDenyInteractiveLogonRight =" `
+                   -replace "^SeDenyRemoteInteractiveLogonRight.*", "SeDenyRemoteInteractiveLogonRight =" |
+      Set-Content C:\Windows\Temp\urfix.inf -Encoding Unicode
+  secedit /configure /db C:\Windows\Temp\urfix.sdb /cfg C:\Windows\Temp\urfix.inf /areas USER_RIGHTS
+
+  Result: { "exitcode": 0, "exited": 1, ... }
+  "Completed 100 percent (15/15) Process Privilege Rights area"
+  "The task has completed successfully."
+
+VERIFY — re-export immediately after:
+
+  secedit /export /areas USER_RIGHTS /cfg C:\Windows\Temp\ur2.inf | Out-Null
+  Get-Content C:\Windows\Temp\ur2.inf | Select-String "SeDenyInteractiveLogonRight|SeDenyRemoteInteractiveLogonRight|SeInteractiveLogonRight"
+
+  Returns ONLY:
+    SeInteractiveLogonRight = *S-1-5-32-544,*S-1-5-32-549,*S-1-5-32-550,*S-1-5-32-551,*S-1-5-9
+
+  Both deny entries are absent from the export — cleared, not merely emptied-in-place.
+
+SCOPE: this clears the deny on DC01 only. Secure Admin WS remains linked at the domain root and
+still applies to every other machine in district.local, so the Domain-Admins interactive-logon
+restriction stays intact everywhere it was actually intended.
+
+CONFIRMED at console: Administrator successfully logged in to DC01 via the Proxmox noVNC console
+with the bootstrap password, after the deny-clear above and before any password rotation. The
+full chain from symptom to fix: Secure Admin WS linked at domain root with no DC exclusion ->
+SeDenyInteractiveLogonRight/SeDenyRemoteInteractiveLogonRight tattooed for Domain Admins on
+DC01's local policy -> GPO security-filtering fix stopped further pushes but did not clear the
+existing tattoo -> secedit-based clear of the two deny lines -> login succeeds.

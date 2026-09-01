@@ -1,0 +1,42 @@
+Wizard's "Microsoft Entra sign-in configuration" step showed both district.local and
+raytakosharkygmail.onmicrosoft.com as "Not Added" against the tenant's verified domains,
+blocking Next until the "Continue without matching all UPN suffixes to verified domains"
+override was checked.
+
+district.local: expected, non-routable, and no real account carries this UPN suffix anymore
+since the restamp exercise. Not a concern.
+
+raytakosharkygmail.onmicrosoft.com: genuinely unexplained. Checked against the actual tenant
+state (not assumed) via the Entra admin center, signed in as breakglass@raytakosharkygmail.onmicrosoft.com:
+Identity > Domain names > Custom domain names showed raytakosharkygmail.onmicrosoft.com,
+Status: Available (green check), spelled identically to the AD UPN suffix. No typo, no case
+mismatch, genuinely verified on Microsoft's side.
+
+RULED OUT:
+- Stale wizard cache: fully exited and relaunched the whole Entra Connect application, signed
+  in fresh as breakglass. Identical "Not Added" result both times.
+- Missing connectivity to Graph/sign-in endpoints: from VM102, qm guest exec ->
+  login.microsoftonline.com:443 True, graph.microsoft.com:443 True, graph.windows.net:443 True.
+- A specific "provisioningapi.microsoftonline.com" endpoint gap: this was Claude's own
+  hypothesis, named from memory rather than a verified source, and it was WRONG. Resolve-DnsName
+  for that hostname returned nothing both via DC01's forwarder AND via 1.1.1.1 directly (a
+  resolver with no relationship to this lab) - the hostname does not exist in public DNS at all.
+  Retracted explicitly rather than left standing.
+
+NOT YET EXPLAINED: why the wizard reports "Not Added" for a domain independently confirmed
+Available in the tenant. No further evidence-backed hypothesis was available without more
+guessing, so the decision (Raymond's) was to proceed past it via the wizard's own override
+checkbox rather than keep diagnosing.
+
+CONSEQUENCE ACCEPTED KNOWINGLY: the override's own warning states users will not be able to
+sign in to Microsoft Entra ID with on-premises credentials if the UPN suffix does not match a
+verified domain. Since every real user account in district.local now carries the
+raytakosharkygmail.onmicrosoft.com suffix (per the restamp exercise), if the wizard's warning
+is actually correct rather than a false negative, EVERY real user would fail hybrid sign-in.
+This has NOT been tested yet.
+
+OPEN QUESTION FOR THIS REPORT, HIGH PRIORITY: after sync completes, test whether a real
+synced user account (e.g. jsmith) can actually sign in to Microsoft Entra ID / Microsoft 365
+with their on-premises credential. This is the authoritative test of whether the wizard's
+warning was a real problem or a false negative — nothing short of an actual sign-in attempt
+settles it.
