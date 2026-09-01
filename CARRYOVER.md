@@ -1,5 +1,126 @@
 # Carryover — 2026-09-01 session
 
+## Next session: review follow-ups (written 2026-09-01, for whichever model picks this up)
+
+Context you need and won't otherwise have: a review-only pass on 2026-09-01 audited the
+`tech-compass` skill, `verified-claims.md`, this file, and the 09-01 exercise. The skill was
+rewritten and committed (`f91ecce`); read `.claude/skills/tech-compass/SKILL.md` first and
+follow it. Session rules: Claude has no live access to the lab. Every lab command is pasted to
+Raymond, he runs it from the Proxmox host shell, and pastes the output back. Ask before anything
+touching standing privilege, security posture, or deletion. Everything below is documentation
+work except section A, which is captures Raymond runs.
+
+### A. Captures to request from Raymond (one command each, file each under a new exercise or as an addendum)
+
+1. **`Administrator` state on DC01.** The 09-01 report says it was "disabled again at close"
+   with no evidence file behind it. `qm guest exec 100 -- powershell.exe -Command "Get-ADUser
+   Administrator -Properties Enabled,PasswordLastSet | Select Enabled,PasswordLastSet"`. Also
+   settles whether the owed password rotation happened (its value was typed into Task
+   Scheduler on VM 102 on 09-01).
+2. **`ConfirmImpact` on the AdSyncConfig cmdlets**, on VM 102: `Select-String -Path 'C:\Program
+   Files\Microsoft Azure Active Directory Connect\AdSyncConfig\AdSyncConfig.psm1' -Pattern
+   'ConfirmImpact'`. The 09-01 stall diagnosis ("default `$ConfirmPreference` High triggers a
+   prompt") is only correct if these declare `ConfirmImpact='High'`; per Microsoft Learn, High
+   preference prompts only for High-impact commands. If it's Medium, the diagnosis is wrong and
+   the report's Phase 3 paragraph needs a retraction.
+3. **Key Admins rights on the domain root**, on DC01: `dsacls "DC=district,DC=local" | findstr /i
+   "Key Admins"`. `bhound` (throwaway BloodHound account, still enabled) sits in Key Admins.
+   This turns "possible shadow-credentials path" into a captured finding either way.
+4. **Domain max password age**, on DC01: `Get-ADDefaultDomainPasswordPolicy | Select
+   MaxPasswordAge`. `svc-entraconnect` was created with `PasswordNeverExpires: False`; this is
+   the date sync silently breaks unless a rotation runbook exists.
+5. **`OneShotDelegation` is gone**, on VM 102: `Get-ScheduledTask -TaskName OneShotDelegation`
+   should error. This file says it was unregistered; a fresh negative read belongs in the ledger.
+6. **VM 101's identity**, on the host: `qm config 101 | head`. It exists, had snapshots pruned,
+   and nothing records what it is.
+7. **Account Operators absence.** DC01's captured `SeInteractiveLogonRight` is 544/549/550/551
+   and S-1-5-9. Microsoft's Default Domain Controllers Policy default also includes Account
+   Operators (548). Something removed it and nobody has explained it; it is an inherited state.
+   `gpresult /h C:\Windows\Temp\rsop.html` on DC01, then grep `SeInteractiveLogonRight` across
+   the five applied GPOs' `GptTmpl.inf` in SYSVOL.
+
+### B. Fix the 09-01 report before it is committed (`exercises/2026-09-01-entra-connect-connector-account/report.md`, still untracked)
+
+1. **Reframe the `sysadmin` finding.** The report, this file, and a ledger row call the removal
+   of `sysadmin`'s direct `BUILTIN\Administrators` grant "the wrong read" because the grant was
+   "load-bearing." A grant being in use does not make it appropriate; that account holding a
+   direct DC Administrators grant is the sprawl pattern the series argues against. The real
+   lesson is sequencing: the lab reached zero working Tier 0 admin paths because `Administrator`
+   was disabled, a root-linked GPO denied Domain Admins everywhere, and the last path was
+   removed without a verified replacement. Rewrite the "What broke" paragraph and consultation
+   point 1 accordingly. Keep every captured fact verbatim.
+2. **Own the tiering mistake.** Phase 3 stored a Domain Admin password in Task Scheduler on
+   VM 102, a Tier 1 host. Microsoft's enterprise access model says Tier 0 credentials never
+   land there. The better option existed: run the delegation from DC01's console (copy
+   `AdSyncConfig.psm1`, or use `dsacls`). That recommendation came from Claude at consultation
+   point 5 and was the weaker option; say so. This also dissolves the proposed "Secure Admin WS
+   vs. vendor procedure" memo: the GPO denying Domain Admins on member servers is correct
+   tiering, and only the missing DC exclusion was a defect.
+3. **Add to "What I'd do differently":** relink `Secure Admin WS` at the workstation and
+   member-server OUs and remove the Deny-Apply ACE, which is a workaround; and run
+   scheduled-task PowerShell with `-NonInteractive` so a prompt fails loudly instead of hanging.
+4. **Move the uncaptured claim** ("disabled again at close") to Open questions unless A1 lands.
+5. **Split the report in two**: the GPO lockout and tattoo half, and the connector account and
+   wizard half. Its own last open question says so. Drop step 14 and consultation point 10
+   (GitHub setup); that goes in the README (D).
+6. **Note the UPN "Not Added" question is probably cosmetic for this tenant.** Per Microsoft
+   Learn's UserPrincipalName population page, an unverified suffix makes Entra compute
+   `<MailNickName>@<initial domain>`, and MailNickName falls back to the on-prem UPN prefix
+   when mailNickName, proxyAddresses, and mail are absent. For `sysadmin@raytakosharkygmail.onmicrosoft.com`
+   both branches produce the same value, so the staging preview cannot distinguish them. The
+   live sign-in test is still the only real check, and the question only matters once a custom
+   verified domain is involved.
+
+### C. Ledger corrections (`verified-claims.md`), on the record, not quiet edits
+
+1. **`bhound` adminCount row.** It says Key Admins is "not on the classic AdminSDHolder-protected
+   list" and the value is "not explained." Microsoft Learn (Appendix C, Protected Accounts and
+   Groups) lists Key Admins and Enterprise Key Admins as protected. Keep the captured facts, fix
+   the interpretation, add a Retired row explaining the correction.
+2. **SDProp/adminCount rows.** "Does adminCount self-clear" has a documented answer: SDProp sets
+   it and never clears it. Replace the "textbook, not independently observed" hedge with a doc
+   citation.
+3. **`sysadmin` row's bolded clause** ("removed as sprawl ... was the only thing granting it
+   console logon") is a captured fact wearing an interpretation. Split them per B1.
+4. **Full pass on every row**: separate what the box printed from what was concluded, in each
+   row. Only interpretations were spot-checked on 2026-09-01.
+
+### D. README at repo root (does not exist)
+
+A public portfolio repo currently shows `.claude`, `.obsidian`, `exercises`, and a ledger, with
+no explanation. Write a short README: what district.local is, who it's for, the capture contract
+in three sentences, how to read an exercise, where the ledger and CARRYOVER live, and the
+permission-sprawl through-line. Consider removing the committed `.obsidian/*.json` files
+(only `workspace.json` is ignored). Include the GitHub setup note removed in B5.
+
+### E. Rewrite this file per the new skill
+
+The skill now says CARRYOVER holds only what is still open and is overwritten at each close.
+Everything below this section is the 09-01 handoff with DONE items struck through and a header
+that says the report isn't written. After B is done, collapse it to open items only.
+
+### F. Prose pass on the six committed reports
+
+Structure and evidence citations were checked; prose was not. The constrained-admin-path report
+is 309 lines and needs an addendum after B1 ("the removal was right, the ordering was wrong").
+For each report: does it lead with the finding, is it under roughly 150 lines, does "What the
+box said" quote rather than summarize.
+
+### G. Reconcile the plugin copy of the skill
+
+The app's plugin copy (under `~/Library/Application Support/Claude/local-agent-mode-sessions/skills-plugin/.../skills/tech-compass/SKILL.md`)
+is the pre-review version. Invoking `/tech-compass` outside the repo loads it. Either re-import
+from the repo or remove it; the repo copy is canonical per its header.
+
+### H. Known-exposures page, from captured facts only
+
+One page listing what the evidence already shows: `bhound` enabled in Key Admins, `Administrator`
+rotation owed, AD Recycle Bin off, `svc-entraconnect` expiry (A4), the five applied GPOs on DC01
+nobody has fully read, `districtsafetyphoto.com` verification window nearly elapsed. Doubles as
+the next exercise queue.
+
+---
+
 Session paused mid-delegation. This file is the state handoff; `report.md` is not yet written.
 
 ## Immediate, before anything else
