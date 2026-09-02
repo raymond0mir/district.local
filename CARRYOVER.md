@@ -5,11 +5,82 @@ Open items only, as of **2026-09-02**, at the close of
 close per `.claude/skills/tech-compass/SKILL.md` — resolved work lives in `report.md` files,
 `evidence-log.md` files, and `verified-claims.md`, not here.
 
-**Resolved today, for the record:** the thin-pool headroom crisis that had blocked Phase A since
-2026-09-01 is closed. `Data%` 91.06% → **70.86%**, under the 85% gate with 21.95 GiB of margin,
-by backing up and destroying VM 105 (`kali-red`) — no hardware purchased, no external media used.
-The overcommit ratio is now measured (3.25x against the pool, not 3.6x against the VG). VM 101 is
-confirmed as `win11-client01`. Full detail in that exercise's `report.md`.
+---
+
+## Start here (written as a handoff to a fresh session)
+
+**Read first, in this order:** the `tech-compass` skill (the repo copy at
+`.claude/skills/tech-compass/SKILL.md` is canonical), then this file, then `EXPOSURES.md`.
+`verified-claims.md` is the ledger — check it before labelling anything Inherited or Recalled.
+
+**You have no live access to the lab.** DC01 has no WinRM, RDP, or PowerShell remoting by design,
+and that is a finding worth keeping, not an obstacle to route around. Everything reaches the lab
+as `qm guest exec` from the Proxmox host shell, and **Raymond runs the commands and pastes the
+output back.** Give him one self-contained block at a time; keep all four JSON fields
+(`out-data`, `err-data`, `exitcode`, `exited`) when they come back.
+
+**`qm guest exec` has no attached TTY.** Anything that expects interactive input — or that opens a
+GUI dialog on the guest, which is what `slmgr` does under its default `wscript` host — hangs until
+the timeout and orphans a process on the guest. This has already happened once (pid 4624, still
+unconfirmed as terminated). Prefer native PowerShell/CIM over VBScript wrappers, and always pass
+`-NonInteractive`.
+
+**Every capture block should self-timestamp** with `date -u` on the host. See the convention note
+below for why.
+
+**Git state at close:** commit `7599e7e` on `main`, pushed to
+`git@github.com:raymond0mir/district.local.git`, working tree clean. Push key is
+`~/.ssh/id_ed25519_github`. Run a credential scan before any commit — a literal password reached
+report prose once, on 2026-08-31.
+
+**Lab state at close:** thin pool **70.86%** (under the 85% gate, 21.95 GiB margin).
+VM 100 (`winserver2022`/DC01) running. VM 104 (`pfsense-fw`) running. **VM 102
+(`entraconnect01`) is stopped** — shut down deliberately to recover host RAM. VM 101
+(`win11-client01`) stopped. VM 105 (`kali-red`) **no longer exists** — backed up and destroyed
+during A1.
+
+---
+
+## Queued as the next action, not yet run
+
+**The DC01 licensing / uptime capture.** Written and handed to Raymond at the end of the session;
+he paused before running it. It is the cheapest open item and it closes three at once. Run
+verbatim from the Proxmox host shell:
+
+```
+{ echo "# host: proxmox (host shell)"; echo "# utc: $(date -u '+%Y-%m-%dT%H:%M:%SZ')"; echo "# cmd: qm guest exec 100 --timeout 90 -- powershell.exe -NonInteractive -Command <Win32_OperatingSystem + SoftwareLicensingProduct>"; echo; qm guest exec 100 --timeout 90 -- powershell.exe -NonInteractive -Command 'Get-CimInstance Win32_OperatingSystem | Select-Object Caption,Version,InstallDate,LastBootUpTime | Format-List; Get-CimInstance SoftwareLicensingProduct -Filter "PartialProductKey IS NOT NULL" | Select-Object Name,Description,LicenseStatus,GracePeriodRemaining,EvaluationEndDate | Format-List'; echo "exit: $?"; } 2>&1
+```
+
+**Do not substitute `slmgr /dlv`** — it is VBScript hosted by `wscript`, which renders to a modal
+GUI dialog on the guest and will hang the guest-exec call. That is the pid 4624 failure mode.
+
+What it answers:
+- `EvaluationEndDate` / `LicenseStatus` — settles whether DC01 is past its evaluation window.
+  `LicenseStatus`: 1 = Licensed, 2 = OOB grace, 3 = out-of-tolerance grace, 5 = Notification
+  (expired; nags, eventually restarts hourly), 6 = extended grace. `GracePeriodRemaining` is in
+  minutes.
+- `InstallDate` — **tests an explicit inference.** The claim that DC01 was built from
+  `SERVER_EVAL_x64FRE_en-us.iso` rests only on that ISO and DC01's `clean-install` snapshot
+  sharing the date 2025-09-29. If `InstallDate` disagrees, the inference was wrong and that
+  belongs on the record in the ledger, not quietly dropped.
+- `LastBootUpTime` — closes pid 4624 for free. If DC01 rebooted since 2026-09-02, the orphaned
+  process is gone.
+
+If `exit` is non-zero or `out-data` is empty, do not re-run blind. ADWS and the guest agent have
+both been slow to initialize after boot on this host, and a failure there is itself a capturable
+behavior.
+
+---
+
+**Resolved 2026-09-02, for the record:** the thin-pool headroom crisis that had blocked Phase A
+since 2026-09-01 is closed. `Data%` 91.06% → **70.86%**, by backing up and destroying VM 105
+(`kali-red`) — no hardware purchased, no external media used. The overcommit ratio is now measured
+(3.25x against the pool, not 3.6x against the VG). VM 101 is confirmed as `win11-client01`.
+Full detail in `exercises/2026-09-02-thin-pool-headroom-reclaim/report.md`.
+
+The same exercise retracted two of my own mid-session claims and one inherited ledger error; all
+three are documented in that report's "What broke, and why" rather than edited away. A fresh
+session should read that section before trusting derived figures elsewhere in the repo.
 
 ## Immediate, from today's exercise
 
@@ -19,11 +90,8 @@ confirmed as `win11-client01`. Full detail in that exercise's `report.md`.
   (`/var/lib/vz/dump/vzdump-qemu-105-2026_09_02-08_55_49.vma.zst`) passed `zstd -t`, which proves
   it is not corrupt, not that it restores to a bootable VM. There is now 21.95 GiB of pool margin
   to test this in. Testing it also decides whether to keep the ~10-11 GiB archive at all.
-- **DC01 may be running on expired Windows Server evaluation media.** `SERVER_EVAL_x64FRE...iso`
-  and DC01's `clean-install` snapshot share the date 2025-09-29; a 180-day eval from then elapsed
-  around 2026-03-28. This is inference from matching dates, **not captured**. One command settles
-  it: `qm guest exec 100 -- powershell.exe -Command "slmgr /dlv"` (note `slmgr` is cscript-based;
-  may need `cscript //nologo C:\Windows\System32\slmgr.vbs /dlv` to return output non-interactively).
+- **DC01 may be running on expired Windows Server evaluation media.** See *Queued as the next
+  action* above — the command is written and ready to run.
 - **Host RAM is over-committed by 3.77 GiB and nobody has rebalanced it.** DC01 alone is assigned
   10000 MB. Whether it needs that for a lab domain of this size is untested. Rebalancing is free
   and would let three or four VMs coexist; it is a config change, not a purchase.
