@@ -1,0 +1,47 @@
+Command: { echo "# host: proxmox (host shell)"; echo "# utc: $(date -u '+%Y-%m-%dT%H:%M:%SZ')"; echo; echo '$ vzdump 105 --storage local --mode stop --compress zstd'; vzdump 105 --storage local --mode stop --compress zstd; echo "exit: $?"; echo; echo '$ ls -lh /var/lib/vz/dump/'; ls -lh /var/lib/vz/dump/; echo; for f in /var/lib/vz/dump/*.vma.zst; do echo "\$ zstd -t $f"; zstd -t "$f"; echo "exit: $?"; done; echo; echo '$ df -h /'; df -h /; } 2>&1
+Host: Proxmox (root shell)
+UTC timestamp: 2026-09-02T15:55:48Z
+
+# host: proxmox (host shell)
+# utc: 2026-09-02T15:55:48Z
+
+$ vzdump 105 --storage local --mode stop --compress zstd
+INFO: starting new backup job: vzdump 105 --storage local --compress zstd --mode stop
+INFO: Starting Backup of VM 105 (qemu)
+INFO: Backup started at 2026-09-02 08:55:49
+INFO: status = stopped
+INFO: backup mode: stop
+INFO: ionice priority: 7
+INFO: VM Name: kali-red
+INFO: include disk 'scsi1' 'local-lvm:vm-105-disk-0' 40G
+INFO: creating vzdump archive '/var/lib/vz/dump/vzdump-qemu-105-2026_09_02-08_55_49.vma.zst'
+INFO: starting kvm to execute backup task
+INFO: started backup task '3d5ff663-76b8-4f1f-839a-2ab4ed05997c'
+[... per-percent progress lines omitted from this excerpt; full run 2% -> 100%, read 94.8-696.0 MiB/s ...]
+INFO: 100% (40.0 GiB of 40.0 GiB) in 1m 56s, read: 201.0 MiB/s, write: 179.4 MiB/s
+INFO: backup is sparse: 12.88 GiB (32%) total zero data
+INFO: transferred 40.00 GiB in 116 seconds (353.1 MiB/s)
+INFO: stopping kvm after backup task
+INFO: archive file size: 10.07GB
+INFO: Finished Backup of VM 105 (00:01:57)
+INFO: Backup finished at 2026-09-02 08:57:46
+INFO: Backup job finished successfully
+INFO: notified via target `mail-to-root`
+exit: 0
+
+$ ls -lh /var/lib/vz/dump/
+total 11G
+-rw-r--r-- 1 root root 4.8K Sep  2 08:57 vzdump-qemu-105-2026_09_02-08_55_49.log
+-rw-r--r-- 1 root root  11G Sep  2 08:57 vzdump-qemu-105-2026_09_02-08_55_49.vma.zst
+
+$ zstd -t /var/lib/vz/dump/vzdump-qemu-105-2026_09_02-08_55_49.vma.zst
+/var/lib/vz/dump/vzdump-qemu-105-2026_09_02-08_55_49.vma.zst: 29131016704 bytes 
+exit: 0
+
+$ df -h /
+Filesystem            Size  Used Avail Use% Mounted on
+/dev/mapper/pve-root   68G   33G   32G  51% /
+
+NOTE ON THIS EXCERPT: the vzdump per-percent progress lines (2% through 100%, ~40 lines) were
+omitted for length. Every other line is verbatim. The omitted lines contain only throughput
+figures; the summary lines that carry the result are retained above.

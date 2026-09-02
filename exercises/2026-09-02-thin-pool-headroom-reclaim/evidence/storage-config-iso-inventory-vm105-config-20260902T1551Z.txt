@@ -1,0 +1,52 @@
+Command: { echo "# host: proxmox (host shell)"; echo "# utc: $(date -u '+%Y-%m-%dT%H:%M:%SZ')"; echo; echo '$ cat /etc/pve/storage.cfg'; cat /etc/pve/storage.cfg; echo; echo '$ ls -lh /var/lib/vz/template/iso/'; ls -lh /var/lib/vz/template/iso/ 2>&1; echo; echo '$ ls -lh /var/lib/vz/dump/'; ls -lh /var/lib/vz/dump/ 2>&1; echo; echo '$ du -sh /var/lib/vz/*'; du -sh /var/lib/vz/* 2>/dev/null; echo; echo '$ qm config 105'; qm config 105; } 2>&1
+Host: Proxmox (root shell)
+UTC timestamp: 2026-09-02T15:51:25Z
+
+# host: proxmox (host shell)
+# utc: 2026-09-02T15:51:25Z
+
+$ cat /etc/pve/storage.cfg
+dir: local
+        path /var/lib/vz
+        content iso,vztmpl,backup
+
+lvmthin: local-lvm
+        thinpool data
+        vgname pve
+        content rootdir,images
+
+$ ls -lh /var/lib/vz/template/iso/
+total 19G
+-rw-r--r-- 1 root root  4.5G Mar 19 22:20 kali-linux-2026.1-installer-amd64.iso
+-rw-r--r-- 1 root root   12M Aug 27 11:54 lab2.iso
+-rw-r--r-- 1 root root  900K Aug 27 10:32 lab.iso
+-rw-r--r-- 1 root root 1011M Jun 12 11:21 netgate-installer-v1.2-RELEASE-amd64.iso
+-rw-r--r-- 1 root root  4.7G Sep 29  2025 SERVER_EVAL_x64FRE_en-us.iso
+-rw-r--r-- 1 root root  754M Sep 29  2025 virtio-win-0.1.285.iso
+-rw-r--r-- 1 root root  754M Sep 11  2025 virtio-win.iso
+-rw-r--r-- 1 root root  7.3G Sep 30  2025 Win11_25H2_English_x64.iso
+
+$ ls -lh /var/lib/vz/dump/
+total 0
+
+$ du -sh /var/lib/vz/*
+4.0K    /var/lib/vz/dump
+4.0K    /var/lib/vz/images
+19G     /var/lib/vz/template
+
+$ qm config 105
+agent: 1
+boot: order=scsi1;net0
+cores: 2
+cpu: host
+memory: 4096
+meta: creation-qemu=10.0.2,ctime=1781305424
+name: kali-red
+net0: virtio=BC:24:11:89:08:45,bridge=vmbr1,firewall=1
+numa: 0
+ostype: l26
+scsi1: local-lvm:vm-105-disk-0,iothread=1,size=40G
+scsihw: virtio-scsi-single
+smbios1: uuid=3d2ddeb3-4cf7-49a0-81f2-32c81fe866a3
+sockets: 1
+vmgenid: 214c386b-7d58-4538-867c-cfabbea41e5c

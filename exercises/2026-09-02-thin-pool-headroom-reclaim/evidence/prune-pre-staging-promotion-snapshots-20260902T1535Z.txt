@@ -1,0 +1,42 @@
+Command: { echo "# host: proxmox (host shell)"; echo "# utc: $(date -u '+%Y-%m-%dT%H:%M:%SZ')"; echo; echo '$ timedatectl'; timedatectl; echo; echo '$ lvs -o lv_name,lv_size,data_percent,metadata_percent pve/data'; lvs -o lv_name,lv_size,data_percent,metadata_percent pve/data; echo; echo '$ qm delsnapshot 100 pre-staging-promotion-20260902'; qm delsnapshot 100 pre-staging-promotion-20260902; echo "exit: $?"; echo; echo '$ qm delsnapshot 102 pre-staging-promotion-20260902'; qm delsnapshot 102 pre-staging-promotion-20260902; echo "exit: $?"; echo; echo '$ lvs -o lv_name,lv_size,data_percent,metadata_percent pve/data'; lvs -o lv_name,lv_size,data_percent,metadata_percent pve/data; echo; echo '$ vgs'; vgs; echo; echo '$ free -h'; free -h; } 2>&1
+Host: Proxmox (root shell)
+UTC timestamp: 2026-09-02T15:35:08Z
+
+# host: proxmox (host shell)
+# utc: 2026-09-02T15:35:08Z
+
+$ timedatectl
+               Local time: Wed 2026-09-02 08:35:08 PDT
+           Universal time: Wed 2026-09-02 15:35:08 UTC
+                 RTC time: Wed 2026-09-02 15:35:08
+                Time zone: America/Los_Angeles (PDT, -0700)
+System clock synchronized: yes
+              NTP service: active
+          RTC in local TZ: no
+
+$ lvs -o lv_name,lv_size,data_percent,metadata_percent pve/data
+  LV   LSize    Data%  Meta% 
+  data <155.23g 91.06  4.39  
+
+$ qm delsnapshot 100 pre-staging-promotion-20260902
+  Logical volume "snap_vm-100-disk-1_pre-staging-promotion-20260902" successfully removed.
+  Logical volume "snap_vm-100-disk-0_pre-staging-promotion-20260902" successfully removed.
+exit: 0
+
+$ qm delsnapshot 102 pre-staging-promotion-20260902
+  Logical volume "snap_vm-102-disk-1_pre-staging-promotion-20260902" successfully removed.
+  Logical volume "snap_vm-102-disk-0_pre-staging-promotion-20260902" successfully removed.
+exit: 0
+
+$ lvs -o lv_name,lv_size,data_percent,metadata_percent pve/data
+  LV   LSize    Data%  Meta% 
+  data <155.23g 88.95  4.12  
+
+$ vgs
+  VG  #PV #LV #SN Attr   VSize   VFree
+  pve   1  19   0 wz--n- 237.47g 2.00g
+
+$ free -h
+               total        used        free      shared  buff/cache   available
+Mem:            15Gi        10Gi       4.1Gi        15Mi       206Mi       4.0Gi
+Swap:          8.0Gi       1.2Gi       6.8Gi

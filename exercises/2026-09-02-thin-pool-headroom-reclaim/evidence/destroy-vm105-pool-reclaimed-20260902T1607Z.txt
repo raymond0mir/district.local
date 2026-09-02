@@ -1,0 +1,40 @@
+Command: { echo "# host: proxmox (host shell)"; echo "# utc: $(date -u '+%Y-%m-%dT%H:%M:%SZ')"; echo; echo '$ lvs -o lv_name,lv_size,data_percent,metadata_percent pve/data'; lvs -o lv_name,lv_size,data_percent,metadata_percent pve/data; echo; echo '$ qm destroy 105 --purge'; qm destroy 105 --purge; echo "exit: $?"; echo; echo '$ lvs -o lv_name,lv_size,data_percent,metadata_percent pve/data'; lvs -o lv_name,lv_size,data_percent,metadata_percent pve/data; echo; echo '$ vgs'; vgs; echo; echo '$ qm list'; qm list; echo; echo '$ ls -lh /var/lib/vz/dump/'; ls -lh /var/lib/vz/dump/; echo; echo '$ free -h'; free -h; } 2>&1
+Host: Proxmox (root shell)
+UTC timestamp: 2026-09-02T16:07:36Z
+
+# host: proxmox (host shell)
+# utc: 2026-09-02T16:07:36Z
+
+$ lvs -o lv_name,lv_size,data_percent,metadata_percent pve/data
+  LV   LSize    Data%  Meta% 
+  data <155.23g 88.98  4.12  
+
+$ qm destroy 105 --purge
+  Logical volume "vm-105-disk-0" successfully removed.
+purging VM 105 from related configurations..
+exit: 0
+
+$ lvs -o lv_name,lv_size,data_percent,metadata_percent pve/data
+  LV   LSize    Data%  Meta% 
+  data <155.23g 70.86  3.47  
+
+$ vgs
+  VG  #PV #LV #SN Attr   VSize   VFree
+  pve   1  18   0 wz--n- 237.47g 2.00g
+
+$ qm list
+      VMID NAME                 STATUS     MEM(MB)    BOOTDISK(GB) PID       
+       100 winserver2022        running    10000             60.00 171510    
+       101 win11-client01       stopped    4096              64.00 0         
+       102 entraconnect01       stopped    3072              60.00 0         
+       104 pfsense-fw           running    2048              20.00 152426    
+
+$ ls -lh /var/lib/vz/dump/
+total 11G
+-rw-r--r-- 1 root root 4.8K Sep  2 08:57 vzdump-qemu-105-2026_09_02-08_55_49.log
+-rw-r--r-- 1 root root  11G Sep  2 08:57 vzdump-qemu-105-2026_09_02-08_55_49.vma.zst
+
+$ free -h
+               total        used        free      shared  buff/cache   available
+Mem:            15Gi        11Gi       281Mi        21Mi       4.0Gi       4.0Gi
+Swap:          8.0Gi       1.2Gi       6.8Gi

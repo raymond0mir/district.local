@@ -16,17 +16,25 @@ earlier build or an outside document and was never re-verified). Same contract a
 
 Four things, in order of how hard they bind.
 
-**1. The lab is currently past its own stop threshold. (Captured)**
-Thin pool `Data%` was 92.01% at the 09-02 pre-flight and 88.47% after three rounds of pruning.
-The skill's gate is 85%. The volume group has **2.00 GiB `VFree`** on a single PV
-(`/dev/nvme0n1p3`, 237.47 GiB) — the Proxmox host is a laptop, so there is no `lvextend` path
-without adding physical storage. Using the spare SD card or USB stick as a live LVM PV was
-considered and rejected on 09-02: a thin pool's extents span PVs, so a removable device failing
-or being unplugged risks the whole pool, not just its own capacity.
+**1. The lab was past its own stop threshold. RESOLVED 2026-09-02 by Exercise A1. (Captured)**
+Thin pool `Data%` is now **70.86%**, under the skill's 85% gate with 21.95 GiB of margin, after
+A1 destroyed VM 105 (`kali-red`) following a verified backup. See
+`exercises/2026-09-02-thin-pool-headroom-reclaim/report.md`.
 
-*Consequence:* no exercise that builds a new VM or installs an OS can start until headroom
-exists. The original plan's "Windows 11 client (VM or hardware)" line is a hard blocker, not a
-setup note. This is why the sequence below opens with storage instead of SAML.
+*Correction to this document's earlier figure:* it previously stated the pool reached "88.47%
+after three rounds of pruning." That number was **Recalled, not Captured** — it appeared in no
+evidence file and propagated here from a miscited `verified-claims.md` row, now retired. The last
+genuinely captured pre-A1 readings were 92.01% and 88.99%.
+
+What has **not** changed: the volume group still has **2.00 GiB `VFree`** on a single PV
+(`/dev/nvme0n1p3`, 237.47 GiB), and A1 confirmed this figure does not move when pool space is
+reclaimed — freed thin blocks return to the pool, not the VG. The Latitude 5420 has one M.2 slot,
+so disk expansion means replacing the 256 GB NVMe. Using removable media as a live LVM PV remains
+rejected (a thin pool's extents span PVs, so a device failing risks the whole pool).
+
+*Consequence:* the blocker is lifted. Exercises that build a VM or install an OS can proceed.
+A1 also established that VM 101 is `win11-client01` — a Windows 11 client already exists, so the
+original plan's "Windows 11 client (VM or hardware)" line needs no new build at all.
 
 **2. The tenant is Entra ID Free, and that ceiling is now measured, not assumed. (Captured)**
 `GET /auditLogs/signIns` returns `Authentication_RequestFromNonPremiumTenantOrB2CTenant`. That
@@ -418,7 +426,7 @@ What's fixed, and what floats:
 
 | Fixed | Why |
 |---|---|
-| A1 before anything that builds or installs | 88.47% `Data%`, 2.00 GiB `VFree`, 85% gate |
+| ~~A1 before anything that builds or installs~~ **DONE 2026-09-02** | Was 91.06% `Data%` vs an 85% gate; now 70.86%. `VFree` still 2.00 GiB and structurally unfixable without new hardware |
 | A3 step 3 before the trial opens | It decides whether B2 is inside or outside the window |
 | B1 → B2 → B3 contiguous | One 30-day trial, no second chance |
 | `svc-entraconnect` rotated before ~2026-10-13 | Live sync; opaque failure mode |

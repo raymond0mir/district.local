@@ -1,0 +1,46 @@
+Command: { echo "# host: proxmox (host shell)"; echo "# utc: $(date -u '+%Y-%m-%dT%H:%M:%SZ')"; echo; echo '$ df -h / /boot/efi'; df -h / /boot/efi; echo; echo '$ du -sh /var/log /var/lib/vz /var/cache 2>/dev/null'; du -sh /var/log /var/lib/vz /var/cache 2>/dev/null; echo; echo '$ dmidecode -s system-product-name'; dmidecode -s system-product-name; echo; echo '$ dmidecode -t memory'; dmidecode -t memory | grep -E 'Maximum Capacity|Number Of Devices|Locator:|^\s+Size:|Type:|Speed:' ; echo; echo '$ lscpu'; lscpu | grep -E 'Model name|^CPU\(s\)|Core\(s\)|Thread\(s\)'; echo; echo '$ nvme list'; nvme list 2>/dev/null || lsblk -d -o NAME,SIZE,MODEL; } 2>&1
+Host: Proxmox (root shell)
+UTC timestamp: 2026-09-02T15:48:05Z
+
+# host: proxmox (host shell)
+# utc: 2026-09-02T15:48:05Z
+
+$ df -h / /boot/efi
+Filesystem            Size  Used Avail Use% Mounted on
+/dev/mapper/pve-root   68G   23G   43G  35% /
+/dev/nvme0n1p2       1022M  8.8M 1014M   1% /boot/efi
+
+$ du -sh /var/log /var/lib/vz /var/cache 2>/dev/null
+77M     /var/log
+19G     /var/lib/vz
+158M    /var/cache
+
+$ dmidecode -s system-product-name
+Latitude 5420
+
+$ dmidecode -t memory
+        Error Correction Type: None
+        Maximum Capacity: 256 GB
+        Number Of Devices: 2
+        Size: No Module Installed
+        Locator: DIMM B
+        Bank Locator: BANK 0
+        Type: Unknown
+        Size: 16 GB
+        Locator: DIMM A
+        Bank Locator: BANK 0
+        Type: DDR4
+        Speed: 3200 MT/s
+        Configured Memory Speed: 3200 MT/s
+
+$ lscpu
+CPU(s):                                  8
+Model name:                              11th Gen Intel(R) Core(TM) i5-1145G7 @ 2.60GHz
+Thread(s) per core:                      2
+Core(s) per socket:                      4
+CPU(s) scaling MHz:                      52%
+
+$ nvme list
+NAME      SIZE MODEL
+mmcblk0  30.6M 
+nvme0n1 238.5G PC SN530 NVMe WDC 256GB

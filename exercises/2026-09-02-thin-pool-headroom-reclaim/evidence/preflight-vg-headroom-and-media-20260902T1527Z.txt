@@ -1,0 +1,83 @@
+Command: { echo "# host: proxmox (host shell)"; echo "# utc: $(date -u '+%Y-%m-%dT%H:%M:%SZ')"; echo; echo '$ qm status 100'; qm status 100; echo; echo '$ lvs -a -o+data_percent,metadata_percent'; lvs -a -o+data_percent,metadata_percent; echo; echo '$ vgs'; vgs; echo; echo '$ pvs'; pvs; echo; echo '$ free -h'; free -h; echo; echo '$ lsblk -o NAME,SIZE,FSTYPE,TYPE,MOUNTPOINT,MODEL'; lsblk -o NAME,SIZE,FSTYPE,TYPE,MOUNTPOINT,MODEL; } 2>&1
+Host: Proxmox (root shell)
+UTC timestamp: 2026-09-02T15:27:45Z (self-reported by the command itself)
+
+# host: proxmox (host shell)
+# utc: 2026-09-02T15:27:45Z
+
+$ qm status 100
+status: running
+
+$ lvs -a -o+data_percent,metadata_percent
+  LV                                                VG  Attr       LSize    Pool Origin                        Data%  Meta%  Move Log Cpy%Sync Convert Data%  Meta% 
+  data                                              pve twi-aotz-- <155.23g                                    91.00  4.38                             91.00  4.38  
+  [data_tdata]                                      pve Twi-ao---- <155.23g                                                                                         
+  [data_tmeta]                                      pve ewi-ao----   <1.44g                                                                                         
+  [lvol0_pmspare]                                   pve ewi-------   <1.44g                                                                                         
+  root                                              pve -wi-ao----  <69.37g                                                                                         
+  snap_vm-100-disk-0_clean-install                  pve Vri---tz-k    4.00m data vm-100-disk-0                                                                      
+  snap_vm-100-disk-0_pre-staging-promotion-20260902 pve Vri---tz-k    4.00m data vm-100-disk-0                                                                      
+  snap_vm-100-disk-1_clean-install                  pve Vri---tz-k   60.00g data vm-100-disk-1                                                                      
+  snap_vm-100-disk-1_pre-staging-promotion-20260902 pve Vri---tz-k   60.00g data vm-100-disk-1                                                                      
+  snap_vm-101-disk-0_win11-ootb                     pve Vri---tz-k    4.00m data                                                                                    
+  snap_vm-101-disk-1_win11-ootb                     pve Vri---tz-k   64.00g data                                                                                    
+  snap_vm-101-disk-2_win11-ootb                     pve Vri---tz-k    4.00m data                                                                                    
+  snap_vm-102-disk-0_pre-staging-promotion-20260902 pve Vri---tz-k    4.00m data vm-102-disk-0                                                                      
+  snap_vm-102-disk-1_pre-staging-promotion-20260902 pve Vri---tz-k   60.00g data vm-102-disk-1                                                                      
+  swap                                              pve -wi-ao----    8.00g                                                                                         
+  vm-100-disk-0                                     pve Vwi-aotz--    4.00m data                               14.06                                   14.06        
+  vm-100-disk-1                                     pve Vwi-aotz--   60.00g data                               42.73                                   42.73        
+  vm-100-state-clean-install                        pve Vwi---tz--   <8.49g data                                                                                    
+  vm-101-disk-0                                     pve Vwi-a-tz--    4.00m data snap_vm-101-disk-0_win11-ootb 14.06                                   14.06        
+  vm-101-disk-1                                     pve Vwi-a-tz--   64.00g data snap_vm-101-disk-1_win11-ootb 62.26                                   62.26        
+  vm-101-disk-2                                     pve Vwi-a-tz--    4.00m data snap_vm-101-disk-2_win11-ootb 1.56                                    1.56         
+  vm-101-state-win11-ootb                           pve Vwi---tz--   <8.49g data                                                                                    
+  vm-102-disk-0                                     pve Vwi-aotz--    4.00m data                               14.06                                   14.06        
+  vm-102-disk-1                                     pve Vwi-aotz--   60.00g data                               24.90                                   24.90        
+  vm-104-disk-0                                     pve Vwi-aotz--   20.00g data                               14.61                                   14.61        
+  vm-105-disk-0                                     pve Vwi---tz--   40.00g data                                                                                    
+
+$ vgs
+  VG  #PV #LV #SN Attr   VSize   VFree
+  pve   1  23   0 wz--n- 237.47g 2.00g
+
+$ pvs
+  PV             VG  Fmt  Attr PSize   PFree
+  /dev/nvme0n1p3 pve lvm2 a--  237.47g 2.00g
+
+$ free -h
+               total        used        free      shared  buff/cache   available
+Mem:            15Gi        14Gi       199Mi        14Mi       189Mi       113Mi
+Swap:          8.0Gi       1.4Gi       6.6Gi
+
+$ lsblk -o NAME,SIZE,FSTYPE,TYPE,MOUNTPOINT,MODEL
+NAME                           SIZE FSTYPE      TYPE MOUNTPOINT MODEL
+mmcblk0                       30.6M             disk            
+nvme0n1                      238.5G             disk            PC SN530 NVMe WDC 256GB
+├─nvme0n1p1                   1007K             part            
+├─nvme0n1p2                      1G vfat        part /boot/efi  
+└─nvme0n1p3                  237.5G LVM2_member part            
+  ├─pve-swap                     8G swap        lvm  [SWAP]     
+  ├─pve-root                  69.4G ext4        lvm  /          
+  ├─pve-data_tmeta             1.4G             lvm             
+  │ └─pve-data-tpool         155.2G             lvm             
+  │   ├─pve-data             155.2G             lvm             
+  │   ├─pve-vm--104--disk--0    20G             lvm             
+  │   ├─pve-vm--100--disk--1    60G             lvm             
+  │   ├─pve-vm--100--disk--0     4M             lvm             
+  │   ├─pve-vm--102--disk--0     4M             lvm             
+  │   ├─pve-vm--102--disk--1    60G             lvm             
+  │   ├─pve-vm--101--disk--1    64G             lvm             
+  │   ├─pve-vm--101--disk--0     4M             lvm             
+  │   └─pve-vm--101--disk--2     4M             lvm             
+  └─pve-data_tdata           155.2G             lvm             
+    └─pve-data-tpool         155.2G             lvm             
+      ├─pve-data             155.2G             lvm             
+      ├─pve-vm--104--disk--0    20G             lvm             
+      ├─pve-vm--100--disk--1    60G             lvm             
+      ├─pve-vm--100--disk--0     4M             lvm             
+      ├─pve-vm--102--disk--0     4M             lvm             
+      ├─pve-vm--102--disk--1    60G             lvm             
+      ├─pve-vm--101--disk--1    64G             lvm             
+      ├─pve-vm--101--disk--0     4M             lvm             
+      └─pve-vm--101--disk--2     4M             lvm             

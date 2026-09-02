@@ -49,48 +49,77 @@ entirely) is still open, see `CARRYOVER.md`.
 
 ## Infrastructure
 
-**Proxmox host RAM was at 1.1 GiB available as of the last check.** Out of 15 GiB total, with
-2.1 GiB already in swap. Not itself a stop condition per the skill's pre-flight rule, but tight
-enough to be worth watching, especially alongside the thin-pool history below.
-*Evidence:* `exercises/2026-09-01-entra-connect-connector-account/evidence/proxmox-preflight-status.txt`.
+**Host RAM is over-committed by 3.77 GiB — a configuration problem, not a hardware ceiling.**
+`qm list` shows 10000 MB assigned to VM 100 (DC01), 4096 MB to VM 101, 3072 MB to VM 102 and
+2048 MB to VM 104: **18.77 GiB committed on a 15 GiB host**. All four cannot run at once, and
+three of them drove available memory to **113Mi** on 2026-09-02 — the worst reading this lab has
+captured. Shutting down VM 102 alone recovered it to 2.8Gi. Whether DC01 needs 10 GB for a lab
+domain of this size is untested and looks unlikely; rebalancing is free and has not been done.
+Separately, `DIMM B` on the Latitude 5420 is empty and the board takes a second module, so the
+hardware ceiling is 2x what is installed. *Evidence:*
+`exercises/2026-09-02-thin-pool-headroom-reclaim/evidence/destroy-vm105-pool-reclaimed-20260902T1607Z.txt`,
+`exercises/2026-09-02-thin-pool-headroom-reclaim/evidence/host-hardware-and-root-usage-20260902T1548Z.txt`,
+`exercises/2026-09-02-thin-pool-headroom-reclaim/evidence/vm102-shutdown-and-snapshot-names-20260902T1533Z.txt`.
 
-**The Proxmox thin pool's overcommit ratio hasn't been rechecked since the extension and prune
-that fixed it.** An earlier capture found it at roughly 3.6x overcommitted (864.93 GiB allocated
-against a 237.47 GiB volume group); since then the pool was extended (+14 GiB) and multiple
-snapshots across three VMs were pruned, which should have improved that ratio significantly —
-but the ratio itself was never recaptured after those changes, only `Data%` was (see below).
-Worth a fresh `lvs`/`vgs` read before treating the overcommit question as closed.
-*Evidence (stale figure, cited for context only):*
-`exercises/2026-08-31-dc01-constrained-admin-path/report.md`, "What broke, and why."
+**The volume group cannot be extended, and no amount of reclaim changes that.** `VFree` is
+2.00 GiB on the sole PV (`/dev/nvme0n1p3`, 237.47 GiB) and it did **not** move when 28.13 GiB was
+reclaimed from the pool — freed thin blocks return to the *pool*, not to the VG. The Latitude 5420
+has a single M.2 slot, so the only disk expansion path is replacing the 256 GB NVMe. Structural,
+permanent until hardware changes, and unrelated to how full the pool is. *Evidence:*
+`exercises/2026-09-02-thin-pool-headroom-reclaim/evidence/destroy-vm105-pool-reclaimed-20260902T1607Z.txt`,
+`exercises/2026-09-02-thin-pool-headroom-reclaim/evidence/host-hardware-and-root-usage-20260902T1548Z.txt`.
 
-**Thin pool `Data%` was last captured at 88.47%** (2026-09-02, after this session's own
-pruning brought it down from 92.01%), above the skill's 85% caution threshold — not below it.
-This session proceeded past the threshold anyway on Raymond's explicit judgment call (the
-planned operation was a light incremental sync, not disk-heavy), not because the pool was
-actually safe. The VG behind it (`pve`, single PV `/dev/nvme0n1p3`, 237.47 GiB) had only
-2.00 GiB `VFree` — there is essentially no room to `lvextend` without adding real physical or
-virtual storage. This is a harder constraint than the earlier "overcommit ratio never
-rechecked" note below: the pool isn't just cluttered with prunable snapshots, it's structurally
-near its ceiling. *Evidence:*
-`exercises/2026-09-02-entra-connect-upn-signin-test/evidence/preflight-thin-pool-and-memory-20260902.txt`,
-`exercises/2026-09-02-entra-connect-upn-signin-test/evidence/postprune-thin-pool-and-memory-20260902.txt`
-(the `vgs`/`pvs` free-space reading itself was not filed as a separate evidence capture — see
-that exercise's `CARRYOVER.md` entry).
+**29% of the disk is assigned to a host OS that uses a third of it.** `pve-root` is 68G with 23G
+used — and 19G of that 23G is `/var/lib/vz` (ISOs and templates), so the Proxmox OS itself
+occupies roughly 4G. That allocation was made at install and never revisited. It is not currently
+binding and reclaiming it means an offline `resize2fs`/`lvreduce` with real risk of an unbootable
+host, so it is recorded as a known inefficiency rather than a queued action. *Evidence:*
+`exercises/2026-09-02-thin-pool-headroom-reclaim/evidence/host-hardware-and-root-usage-20260902T1548Z.txt`.
 
-**VM 104 (pfSense) has zero snapshots**, after all three were pruned during the 08-31 thin-pool
-crisis response. If a future firewall configuration change goes wrong, there is currently no
-rollback point for the router. *Evidence:*
+**There is effectively no backup posture.** Before 2026-09-02 this lab had **never taken a
+backup** — `/var/lib/vz/dump/` was empty. It now holds exactly one archive, of a VM that no longer
+exists. Nothing protects DC01, VM 101, VM 102 or pfSense. Note also that `local` lives on the same
+physical NVMe as the thin pool, so anything backed up there is a rollback point, not disaster
+recovery: a drive failure takes both. *Evidence:*
+`exercises/2026-09-02-thin-pool-headroom-reclaim/evidence/storage-config-iso-inventory-vm105-config-20260902T1551Z.txt`,
+`exercises/2026-09-02-thin-pool-headroom-reclaim/evidence/vzdump-vm105-to-local-verified-20260902T1555Z.txt`.
+
+**The restore path has never been verified.** The one archive that exists passed `zstd -t`
+(exit 0, decompressed 27.13 GiB), which proves the file is not corrupt. It does not prove a
+restore produces a bootable VM. There is now 21.95 GiB of pool margin to test this in, and it was
+not tested. *Evidence:* `exercises/2026-09-02-thin-pool-headroom-reclaim/evidence/vzdump-vm105-to-local-verified-20260902T1555Z.txt`.
+
+**VM 104 (pfSense) still has zero snapshots**, after all three were pruned during the 08-31
+thin-pool crisis response. If a firewall change goes wrong there is no rollback point for the
+router — and unlike on 08-31, there is now both pool headroom and a working backup target, so
+this is a gap that is cheap to close and simply hasn't been. *Evidence:*
 `exercises/2026-08-31-dc01-unexpected-shutdown/evidence/pool-extended-and-pruned.txt`.
 
-**What actually happens when the Proxmox thin pool hits 100% is still unknown.** It's come close
-twice (96.49%, then 86.48%) but the boundary itself has never been crossed and observed directly.
-*Evidence:* `exercises/2026-08-31-dc01-unexpected-shutdown/report.md`, "Open questions."
+**21.93 GiB of pool consumption is unattributed.** Before the 2026-09-02 destroy, named volumes
+summed to 116.15 GiB against a pool reporting 138.08 GiB consumed. The retained `clean-install`
+and `win11-ootb` snapshot sets are the likely holders, but both carry the `k` skip-activation
+attribute and were never activated with `lvchange -K` to read their `Data%`. Note also that
+per-volume `Data%` counts referenced blocks that can be shared with an origin, so these figures
+bound the picture rather than partition it. *Evidence:*
+`exercises/2026-09-02-thin-pool-headroom-reclaim/evidence/inactive-volume-consumption-20260902T1537Z.txt`.
+
+**What actually happens when the Proxmox thin pool hits 100% is still unknown.** It has come close
+three times (96.49%, 86.48%, 92.01%) but the boundary itself has never been crossed and observed
+directly. *Evidence:* `exercises/2026-08-31-dc01-unexpected-shutdown/report.md`, "Open questions."
 
 **AD Recycle Bin is not enabled on `district.local`.** Flagged by the Entra Connect wizard's own
 completion screen; means an accidentally deleted object (user, group, computer) has no clean
 recovery path short of an authoritative restore. *Evidence: flagged in
 `exercises/2026-09-01-entra-connect-connector-account/report.md`'s Open questions — not yet
 independently captured via a direct `Get-ADOptionalFeature` read.*
+
+**Dated artifact names in this repo do not derive from the lab's clock.** The host is
+`America/Los_Angeles` (PDT, -0700), NTP synchronized, RTC in UTC, and `qm listsnapshot` prints
+local time. Both snapshots named `pre-staging-promotion-20260902` were created **2026-09-01
+23:35 UTC** — 09-01 in both bases. The exercise directory
+`2026-09-02-entra-connect-upn-signin-test` carries the same one-day offset. Anyone correlating
+this repo against host-side logs will land a day off. *Evidence:*
+`exercises/2026-09-02-thin-pool-headroom-reclaim/evidence/vm102-shutdown-and-snapshot-names-20260902T1533Z.txt`.
 
 ## Time-sensitive
 
@@ -105,6 +134,14 @@ exemption — not yet decided which. *Evidence:*
 registration window flagged 2026-08-31 is nearly elapsed as of this writing. *Evidence:*
 `exercises/2026-08-31-entra-connect-install/report.md`, Open questions.
 
+**DC01 may be running on expired Windows Server evaluation media.**
+`SERVER_EVAL_x64FRE_en-us.iso` sits in the ISO store dated 2025-09-29, and DC01's `clean-install`
+snapshot carries the same date — **inference from two matching dates, not a capture**. Windows
+Server evaluation runs 180 days, which from that date elapsed around 2026-03-28. Either it was
+rearmed, activated, or the domain controller is past its evaluation window and the consequences
+have not surfaced yet. Settled by one `slmgr /dlv` on DC01. *Evidence:*
+`exercises/2026-09-02-thin-pool-headroom-reclaim/evidence/storage-config-iso-inventory-vm105-config-20260902T1551Z.txt`.
+
 ## Recently closed (for contrast, not action)
 
 - `bhound` — an enabled BloodHound-capstone throwaway holding a live shadow-credentials path via
@@ -113,3 +150,11 @@ registration window flagged 2026-08-31 is nearly elapsed as of this writing. *Ev
   still holding a live `DISTRICT\Administrator` credential and removed, 2026-09-01.
 - `Administrator`'s password, previously typed into that same scheduled task, was rotated without
   the new value ever being disclosed to any channel, 2026-09-01.
+- The thin pool's headroom crisis, open since 2026-08-31, closed 2026-09-02: `Data%` 91.06% ->
+  70.86%, under the 85% gate with 21.95 GiB of margin, achieved by destroying VM 105 (`kali-red`)
+  after a verified backup rather than by buying storage.
+- The overcommit ratio, flagged as never rechecked, is now measured: **3.25x** (505.02 GiB of thin
+  allocation against a 155.23 GiB pool). The prior ~3.6x figure was computed against the volume
+  group, which is the wrong denominator for thin provisioning.
+- VM 101's purpose is no longer a Recalled claim — `qm list` names it **`win11-client01`**,
+  a stopped Windows 11 client with a 64 GB boot disk.

@@ -1,0 +1,45 @@
+Command: { echo "# host: proxmox (host shell)"; echo "# utc: $(date -u '+%Y-%m-%dT%H:%M:%SZ')"; echo; for lv in vm-105-disk-0 vm-100-state-clean-install vm-101-state-win11-ootb; do echo "\$ lvchange -ay pve/$lv"; lvchange -ay "pve/$lv"; echo "exit: $?"; done; echo; echo '$ lvs -a -o lv_name,lv_size,data_percent pve'; lvs -a -o lv_name,lv_size,data_percent pve; echo; for lv in vm-105-disk-0 vm-100-state-clean-install vm-101-state-win11-ootb; do echo "\$ lvchange -an pve/$lv"; lvchange -an "pve/$lv"; echo "exit: $?"; done; } 2>&1
+Host: Proxmox (root shell)
+UTC timestamp: 2026-09-02T15:37:47Z
+
+# host: proxmox (host shell)
+# utc: 2026-09-02T15:37:47Z
+
+$ lvchange -ay pve/vm-105-disk-0
+exit: 0
+$ lvchange -ay pve/vm-100-state-clean-install
+exit: 0
+$ lvchange -ay pve/vm-101-state-win11-ootb
+exit: 0
+
+$ lvs -a -o lv_name,lv_size,data_percent pve
+  LV                               LSize    Data% 
+  data                             <155.23g 88.95 
+  [data_tdata]                     <155.23g       
+  [data_tmeta]                       <1.44g       
+  [lvol0_pmspare]                    <1.44g       
+  root                              <69.37g       
+  snap_vm-100-disk-0_clean-install    4.00m       
+  snap_vm-100-disk-1_clean-install   60.00g       
+  snap_vm-101-disk-0_win11-ootb       4.00m       
+  snap_vm-101-disk-1_win11-ootb      64.00g       
+  snap_vm-101-disk-2_win11-ootb       4.00m       
+  swap                                8.00g       
+  vm-100-disk-0                       4.00m 14.06 
+  vm-100-disk-1                      60.00g 42.73 
+  vm-100-state-clean-install         <8.49g 11.37 
+  vm-101-disk-0                       4.00m 14.06 
+  vm-101-disk-1                      64.00g 62.26 
+  vm-101-disk-2                       4.00m 1.56  
+  vm-101-state-win11-ootb            <8.49g 43.63 
+  vm-102-disk-0                       4.00m 14.06 
+  vm-102-disk-1                      60.00g 24.90 
+  vm-104-disk-0                      20.00g 14.68 
+  vm-105-disk-0                      40.00g 70.30 
+
+$ lvchange -an pve/vm-105-disk-0
+exit: 0
+$ lvchange -an pve/vm-100-state-clean-install
+exit: 0
+$ lvchange -an pve/vm-101-state-win11-ootb
+exit: 0
