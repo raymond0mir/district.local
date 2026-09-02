@@ -1,0 +1,23 @@
+Query: GET https://graph.microsoft.com/v1.0/auditLogs/signIns?$filter=userPrincipalName eq 'jsmith@raytakosharkygmail.onmicrosoft.com'&$top=3
+Host: Graph Explorer, signed in as breakglass@raytakosharkygmail.onmicrosoft.com, after
+consenting to AuditLog.Read.All (first attempt returned a plain 403 consent-gap error, not
+filed separately — this is the result after consent was granted)
+UTC timestamp: 2026-09-02T00:17:08 (from the response's own innerError.date)
+
+{
+    "error": {
+        "code": "Authentication_RequestFromNonPremiumTenantOrB2CTenant",
+        "message": "Tenant is not a B2C tenant and doesn't have premium license",
+        "innerError": {
+            "date": "2026-09-02T00:17:08",
+            "request-id": "89529d57-9eee-4c1e-a7f6-8dcd83d03b4f",
+            "client-request-id": "75c3d034-8c4e-41eb-ec09-862f204a7e43"
+        }
+    }
+}
+
+Finding: this is a license limitation, not a permissions/consent gap — the error is distinct
+from the AuditLog.Read.All consent-gap error seen first, and names the actual cause
+directly. Entra Free (this tenant's tier) does not expose sign-in logs via Graph's
+auditLogs/signIns endpoint. Standing constraint for any future exercise that wants to use
+sign-in logs as evidence: this path is not available without an Entra ID P1/P2 upgrade.

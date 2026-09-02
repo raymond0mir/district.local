@@ -1,0 +1,33 @@
+Command 1: qm guest exec 102 --timeout 30 -- powershell.exe -Command "Import-Module ADSync; Get-Command -Module ADSync -Name '*Staging*' | Select-Object Name"
+Command 2: qm guest exec 102 --timeout 30 -- powershell.exe -Command "Import-Module ADSync; (Get-Command Set-ADSyncScheduler).Parameters.Keys"
+Command 3: qm guest exec 102 --timeout 30 -- powershell.exe -Command "Get-ADSyncScheduler | Select-Object StagingModeEnabled"
+Host: VM 102 (entraconnect01), via qm guest exec from the Proxmox host
+UTC timestamp: not provided by Raymond when pasted
+
+Command 1 (run twice, identical both times):
+{
+   "exitcode" : 0,
+   "exited" : 1
+}
+(no out-data / err-data keys present in either run — zero cmdlets matched "*Staging*" in the ADSync module)
+
+Command 2:
+{
+   "exitcode" : 0,
+   "exited" : 1,
+   "out-data" : "CustomizedSyncCycleInterval\r\nSyncCycleEnabled\r\nNextSyncCyclePolicyType\r\nPurgeRunHistoryInterval\r\nMaintenanceEnabled\r\nSchedulerSuspended\r\nForce\r\nAADUserName\r\nVerbose\r\nDebug\r\nErrorAction\r\nWarningAction\r\nInformationAction\r\nErrorVariable\r\nWarningVariable\r\nInformationVariable\r\nOutVariable\r\nOutBuffer\r\nPipelineVariable\r\n"
+}
+(StagingModeEnabled is not among Set-ADSyncScheduler's parameters)
+
+Command 3:
+{
+   "exitcode" : 0,
+   "exited" : 1,
+   "out-data" : "\r\nStagingModeEnabled\r\n------------------\r\n              True\r\n\r\n\r\n"
+}
+(current state confirmed: still in staging mode as of this capture)
+
+Finding: on this Entra Connect install, there is no ADSync-module PowerShell path to
+disable staging mode — neither a dedicated *Staging* cmdlet nor a parameter on
+Set-ADSyncScheduler. Two independent negative checks, not an assumption. The wizard's GUI
+"Configure staging mode" task is the only path found so far.

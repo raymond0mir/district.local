@@ -1,0 +1,42 @@
+qm status 100 / qm status 102 / lvs -a -o+data_percent,metadata_percent / free -h
+Host: Proxmox (root shell)
+UTC timestamp: not provided by Raymond when pasted — flagged as a capture gap, see evidence-log.md
+
+status: running
+status: running
+  LV                                                        VG  Attr       LSize    Pool Origin                        Data%  Meta%  Move Log Cpy%Sync Convert Data%  Meta%
+  data                                                      pve twi-aotz-- <155.23g                                    92.01  4.52                             92.01  4.52
+  [data_tdata]                                              pve Twi-ao---- <155.23g
+  [data_tmeta]                                              pve ewi-ao----   <1.44g
+  [lvol0_pmspare]                                           pve ewi-------   <1.44g
+  root                                                      pve -wi-ao----  <69.37g
+  snap_vm-100-disk-0_clean-install                          pve Vri---tz-k    4.00m data vm-100-disk-0
+  snap_vm-100-disk-0_pre-secure-admin-ws-scope-fix-20260901 pve Vri---tz-k    4.00m data vm-100-disk-0
+  snap_vm-100-disk-0_pre-upn-restamp-20260831               pve Vri---tz-k    4.00m data vm-100-disk-0
+  snap_vm-100-disk-1_clean-install                          pve Vri---tz-k   60.00g data vm-100-disk-1
+  snap_vm-100-disk-1_pre-secure-admin-ws-scope-fix-20260901 pve Vri---tz-k   60.00g data vm-100-disk-1
+  snap_vm-100-disk-1_pre-upn-restamp-20260831               pve Vri---tz-k   60.00g data vm-100-disk-1
+  snap_vm-101-disk-0_win11-ootb                             pve Vri---tz-k    4.00m data
+  snap_vm-101-disk-1_win11-ootb                             pve Vri---tz-k   64.00g data
+  snap_vm-101-disk-2_win11-ootb                             pve Vri---tz-k    4.00m data
+  snap_vm-102-disk-0_pre-domain-join-fix-20260901           pve Vri---tz-k    4.00m data vm-102-disk-0
+  snap_vm-102-disk-1_pre-domain-join-fix-20260901           pve Vri---tz-k   60.00g data vm-102-disk-1
+  swap                                                      pve -wi-ao----    8.00g
+  vm-100-disk-0                                             pve Vwi-aotz--    4.00m data                               14.06                                   14.06
+  vm-100-disk-1                                             pve Vwi-aotz--   60.00g data                               42.73                                   42.73
+  vm-100-state-clean-install                                pve Vwi---tz--   <8.49g data
+  vm-101-disk-0                                             pve Vwi-a-tz--    4.00m data snap_vm-101-disk-0_win11-ootb 14.06                                   14.06
+  vm-101-disk-1                                             pve Vwi-a-tz--   64.00g data snap_vm-101-disk-1_win11-ootb 62.26                                   62.26
+  vm-101-disk-2                                             pve Vwi-a-tz--    4.00m data snap_vm-101-disk-2_win11-ootb 1.56                                    1.56
+  vm-101-state-win11-ootb                                   pve Vwi---tz--   <8.49g data
+  vm-102-disk-0                                             pve Vwi-aotz--    4.00m data                               14.06                                   14.06
+  vm-102-disk-1                                             pve Vwi-aotz--   60.00g data                               23.73                                   23.73
+  vm-104-disk-0                                             pve Vwi-aotz--   20.00g data                               14.25                                   14.25
+  vm-105-disk-0                                             pve Vwi---tz--   40.00g data
+               total        used        free      shared  buff/cache   available
+Mem:            15Gi        14Gi       257Mi        19Mi       190Mi       169Mi
+Swap:          8.0Gi       2.1Gi       5.9Gi
+
+Reading: thin pool Data% = 92.01%, above the skill's 85% stop-threshold, BEFORE any
+snapshot in this exercise was taken. Host RAM available = 169Mi (of 15Gi), swap already
+2.1Gi/8Gi used.

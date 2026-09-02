@@ -1,0 +1,24 @@
+lvs -a -o+data_percent,metadata_percent / free -h (after deleting snap_vm-100-*_pre-upn-restamp-20260831 and snap_vm-102-*_pre-domain-join-fix-20260901)
+Host: Proxmox (root shell)
+UTC timestamp: not provided by Raymond when pasted — same capture gap as the pre-flight reading
+
+  LV                                                        VG  Attr       LSize    Pool Origin                        Data%  Meta%
+  data                                                      pve twi-aotz-- <155.23g                                    88.99  4.33
+  snap_vm-100-disk-0_clean-install                          pve Vri---tz-k    4.00m data vm-100-disk-0
+  snap_vm-100-disk-0_pre-secure-admin-ws-scope-fix-20260901 pve Vri---tz-k    4.00m data vm-100-disk-0
+  snap_vm-100-disk-0_pre-staging-promotion-20260902         pve Vri---tz-k    4.00m data vm-100-disk-0
+  snap_vm-100-disk-1_clean-install                          pve Vri---tz-k   60.00g data vm-100-disk-1
+  snap_vm-100-disk-1_pre-secure-admin-ws-scope-fix-20260901 pve Vri---tz-k   60.00g data vm-100-disk-1
+  snap_vm-100-disk-1_pre-staging-promotion-20260902         pve Vri---tz-k   60.00g data vm-100-disk-1
+  snap_vm-101-disk-0_win11-ootb                             pve Vri---tz-k    4.00m data
+  snap_vm-101-disk-1_win11-ootb                             pve Vri---tz-k   64.00g data
+  snap_vm-101-disk-2_win11-ootb                             pve Vri---tz-k    4.00m data
+  snap_vm-102-disk-0_pre-staging-promotion-20260902         pve Vri---tz-k    4.00m data vm-102-disk-0
+  snap_vm-102-disk-1_pre-staging-promotion-20260902         pve Vri---tz-k   60.00g data vm-102-disk-1
+               total        used        free      shared  buff/cache   available
+Mem:            15Gi        13Gi       1.8Gi        19Mi       204Mi       1.7Gi
+Swap:          8.0Gi       2.1Gi       5.9Gi
+
+Reading: Data% dropped 92.01% -> 88.99% after removing two snapshot pairs — still above the
+85% stop-threshold. RAM available improved substantially: 169Mi -> 1.7Gi. Full pvs/vgs
+context (2.00g VFree on the sole PV) captured in the prior exchange, not re-run here.

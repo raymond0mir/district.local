@@ -1,0 +1,23 @@
+Command: qm guest exec 102 --timeout 30 -- powershell.exe -Command "Get-ADSyncScheduler | Select-Object StagingModeEnabled"
+Host: VM 102 (entraconnect01), via qm guest exec from the Proxmox host
+UTC timestamp: not provided by Raymond when pasted
+
+Before (matches the pre-toggle capture in staging-mode-toggle-not-in-powershell.json):
+{
+   "exitcode" : 0,
+   "exited" : 1,
+   "out-data" : "\r\nStagingModeEnabled\r\n------------------\r\n              True\r\n\r\n\r\n"
+}
+
+After the wizard's "Configure staging mode" task (GUI, driven by Raymond on VM102's console
+— the wizard's own "Configuration complete" screen is Recalled/informational only, not filed
+as evidence; this command result is the real proof):
+{
+   "exitcode" : 0,
+   "exited" : 1,
+   "out-data" : "\r\nStagingModeEnabled\r\n------------------\r\n             False\r\n\r\n\r\n"
+}
+
+Finding: staging mode is genuinely disabled — confirmed by ADSync's own state, not the
+wizard's completion screen. This is the first time this DC's directory has ever been
+eligible to actually export objects to Entra ID.

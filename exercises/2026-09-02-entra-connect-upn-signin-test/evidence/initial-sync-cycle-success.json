@@ -1,0 +1,14 @@
+Command: qm guest exec 102 --timeout 120 -- powershell.exe -Command "Start-ADSyncSyncCycle -PolicyType Initial"
+Host: VM 102 (entraconnect01), via qm guest exec from the Proxmox host
+UTC timestamp: not provided by Raymond when pasted
+
+{
+   "exitcode" : 0,
+   "exited" : 1,
+   "out-data" : "\r\n Result\r\n ------\r\nSuccess\r\n\r\n\r\n"
+}
+
+Finding: the first-ever non-staging (real export) sync cycle from this DC completed with a
+top-level "Success" result. This does not by itself confirm any specific object's export
+outcome (e.g. jsmith) — that's checked separately via Graph — only that the run as a whole
+did not fail outright.

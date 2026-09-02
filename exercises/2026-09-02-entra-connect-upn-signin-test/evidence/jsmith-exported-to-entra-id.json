@@ -1,0 +1,24 @@
+Query: GET https://graph.microsoft.com/v1.0/users?$filter=userPrincipalName eq 'jsmith@raytakosharkygmail.onmicrosoft.com'&$select=id,userPrincipalName,onPremisesSyncEnabled,onPremisesSamAccountName,accountEnabled
+Host: Graph Explorer, signed in as breakglass@raytakosharkygmail.onmicrosoft.com
+UTC timestamp: not provided by Raymond when pasted
+
+{
+    "@odata.context": "https://graph.microsoft.com/v1.0/$metadata#users(id,userPrincipalName,onPremisesSyncEnabled,onPremisesSamAccountName,accountEnabled)",
+    "value": [
+        {
+            "id": "03b0f0f4-1230-42c1-983c-9bb5ecb1a2c8",
+            "userPrincipalName": "jsmith@raytakosharkygmail.onmicrosoft.com",
+            "onPremisesSyncEnabled": true,
+            "onPremisesSamAccountName": "jsmith",
+            "accountEnabled": true
+        }
+    ]
+}
+
+Finding: jsmith exported to Entra ID with the correct UPN on the raytakosharkygmail.onmicrosoft.com
+suffix, onPremisesSyncEnabled true, correctly linked to the on-prem SAM account name. This
+is a real object landing correctly on the domain the wizard displayed as "Not Added" —
+partial evidence that the wizard's status was cosmetic/UI-level rather than a real export
+block, though it does not by itself prove the UPN suffix is routing as a *verified* domain
+versus computing the same value by coincidence (Microsoft Learn's caveat) — only the actual
+sign-in test settles that.

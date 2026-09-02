@@ -63,12 +63,19 @@ Worth a fresh `lvs`/`vgs` read before treating the overcommit question as closed
 *Evidence (stale figure, cited for context only):*
 `exercises/2026-08-31-dc01-constrained-admin-path/report.md`, "What broke, and why."
 
-**Thin pool `Data%` was last captured at 75.78%** (2026-09-01, `qm guest exec`-adjacent host
-check), down from a peak of 96.49% that preceded VM 100's first crash. Below the skill's 85%
-caution threshold as of that reading, but it has climbed unexpectedly before during disk-heavy
-operations (a VM OS install pushed it from a clean pre-flight read to a second crash the same
-day) — recheck before starting any exercise that installs an OS or writes significant data.
-*Evidence:* `exercises/2026-09-01-entra-connect-connector-account/evidence/proxmox-preflight-status.txt`.
+**Thin pool `Data%` was last captured at 88.47%** (2026-09-02, after this session's own
+pruning brought it down from 92.01%), above the skill's 85% caution threshold — not below it.
+This session proceeded past the threshold anyway on Raymond's explicit judgment call (the
+planned operation was a light incremental sync, not disk-heavy), not because the pool was
+actually safe. The VG behind it (`pve`, single PV `/dev/nvme0n1p3`, 237.47 GiB) had only
+2.00 GiB `VFree` — there is essentially no room to `lvextend` without adding real physical or
+virtual storage. This is a harder constraint than the earlier "overcommit ratio never
+rechecked" note below: the pool isn't just cluttered with prunable snapshots, it's structurally
+near its ceiling. *Evidence:*
+`exercises/2026-09-02-entra-connect-upn-signin-test/evidence/preflight-thin-pool-and-memory-20260902.txt`,
+`exercises/2026-09-02-entra-connect-upn-signin-test/evidence/postprune-thin-pool-and-memory-20260902.txt`
+(the `vgs`/`pvs` free-space reading itself was not filed as a separate evidence capture — see
+that exercise's `CARRYOVER.md` entry).
 
 **VM 104 (pfSense) has zero snapshots**, after all three were pruned during the 08-31 thin-pool
 crisis response. If a future firewall configuration change goes wrong, there is currently no

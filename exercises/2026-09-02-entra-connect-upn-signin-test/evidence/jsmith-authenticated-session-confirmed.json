@@ -1,0 +1,33 @@
+Query: GET https://graph.microsoft.com/v1.0/me
+Host: Graph Explorer, signed in as jsmith@raytakosharkygmail.onmicrosoft.com (after
+completing interactive sign-in at login.microsoftonline.com with the on-premises AD
+password reset on DC01's console, then registering an MFA method to satisfy Entra Free's
+Security Defaults enforcement)
+UTC timestamp: not provided by Raymond when pasted
+
+{
+    "@odata.context": "https://graph.microsoft.com/v1.0/$metadata#users/$entity",
+    "@microsoft.graph.tips": "This request only returns a subset of the resource's properties. Your app will need to use $select to return non-default properties. To find out what other properties are available for this resource see https://learn.microsoft.com/graph/api/resources/user",
+    "businessPhones": [],
+    "displayName": "John Smith",
+    "givenName": "John",
+    "jobTitle": null,
+    "mail": null,
+    "mobilePhone": null,
+    "officeLocation": null,
+    "preferredLanguage": null,
+    "surname": "Smith",
+    "userPrincipalName": "jsmith@raytakosharkygmail.onmicrosoft.com",
+    "id": "03b0f0f4-1230-42c1-983c-9bb5ecb1a2c8"
+}
+
+Finding: this is the authoritative test the project has been building toward since
+2026-08-31. jsmith authenticated to Entra ID with a password set moments earlier on DC01's
+own AD, via Password Hash Sync over a UPN suffix (raytakosharkygmail.onmicrosoft.com) the
+Entra Connect wizard displayed as "Not Added." The id matches the object already confirmed
+exported (jsmith-exported-to-entra-id.json), and displayName/givenName/surname are now
+populated from the synced AD attributes, not the bare stub breakglass's own /me call showed.
+This resolves the practical question the "Not Added" status raised: whatever that label
+means, it did not block a real user from signing in with their real on-prem credential.
+It does not explain the root cause of the "Not Added" display itself — that remains a
+separate, still-open cosmetic/UI question.
