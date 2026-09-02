@@ -45,6 +45,30 @@ Still open from today:
   `qm guest exec` JSON/text file. Re-run and file properly if this number needs to be cited
   precisely again.
 
+## Raised 2026-09-02 while committing `CURRICULUM.md`
+
+- **The published break-glass account is about to become load-bearing, and its details are
+  already public.** `breakglass@raytakosharkygmail.onmicrosoft.com` appears in `verified-claims.md`
+  (rows 40-41), `exercises/2026-08-31-hybrid-identity-upn-baseline/report.md`, and four evidence
+  files — with its object GUID (`de938dc8-feb7-4140-9a01-8e32649b8fd6`), its confirmed Global
+  Administrator role assignment, and its single-device Authenticator MFA dependency. The tenant's
+  original Global Admin (a Microsoft Account on Raymond's real personal address) is published
+  alongside it. None of this was a leak — it was captured deliberately as evidence for a real
+  finding, and it should stay readable as that. The problem is forward-looking: `CURRICULUM.md`
+  exercise B1 designs the Conditional Access baseline around this account as the exclusion that
+  prevents a lockout, which turns a published identity into the thing standing between the tenant
+  and an unrecoverable state.
+
+  Unlike the on-prem lab, this exposure does not depend on the Proxmox box being powered on — the
+  tenant is internet-reachable whenever it exists.
+
+  **Decision owed before B1 starts, not after.** Options weighed 2026-09-02: scrub git history
+  (rejected as unreliable once pushed public, and it would destroy load-bearing evidence);
+  disable the published account (rejected on its own — a disabled break-glass is not a
+  break-glass); rotate the identity (recommended). The sequencing rule this project already
+  learned the expensive way applies directly: **create and verify the replacement before touching
+  the published one.** Not yet decided or executed.
+
 ## Still open from before today
 
 - **B5 — split `exercises/2026-09-01-entra-connect-connector-account/report.md` in two.**
