@@ -1,0 +1,27 @@
+# cmd: Get-ADGroup -Filter {Name -eq "Admins"} -Properties Members,GroupCategory,GroupScope,whenCreated;
+#      Get-ADGroup -Filter {Name -like "*Admin*"} | Select-Object Name,GroupCategory,GroupScope
+# host: proxmox (host shell)
+# utc: 2026-09-02T17:01:28Z
+
+--- exact match "Admins" ---
+(zero results - no output between the header lines)
+
+--- every group in the domain with "Admin" in its name ---
+Name                           GroupCategory  GroupScope
+Administrators                      Security DomainLocal
+Hyper-V Administrators              Security DomainLocal
+Storage Replica Administrators      Security DomainLocal
+Schema Admins                       Security   Universal
+Enterprise Admins                   Security   Universal
+Domain Admins                       Security      Global
+Key Admins                          Security      Global
+Enterprise Key Admins               Security   Universal
+DnsAdmins                           Security DomainLocal
+DHCP Administrators                 Security DomainLocal
+SG_admin_tier0_domain               Security      Global
+SG_admin_tier1_helpdesk             Security      Global
+SG_admin_tier2_desktop              Security      Global
+
+CONCLUSION: no group named exactly "Admins" exists anywhere in district.local. District Lockdown's
+Restricted Groups setting (see gpo-origin-timestamps-and-full-reports file) targets a name that
+does not resolve to any real security principal - dead configuration, not an active control.

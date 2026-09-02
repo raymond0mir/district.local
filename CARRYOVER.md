@@ -41,34 +41,49 @@ during A1.
 
 ---
 
-## Queued as the next action, not yet run
+## DC01's crash root cause: found and mitigated (temporarily) today
 
-**The DC01 licensing / uptime capture.** Written and handed to Raymond at the end of the session;
-he paused before running it. It is the cheapest open item and it closes three at once. Run
-verbatim from the Proxmox host shell:
+**`wlms.exe` (Windows License Manager) was repeatedly, deliberately shutting DC01 down** because
+its evaluation license expired — confirmed from DC01's own System event log (Event 1074), not
+inferred. It crashed once during today's session; `qm start 100` brought it back, and the event
+log pull off DC01 (once back up) pinned the mechanism precisely.
 
-```
-{ echo "# host: proxmox (host shell)"; echo "# utc: $(date -u '+%Y-%m-%dT%H:%M:%SZ')"; echo "# cmd: qm guest exec 100 --timeout 90 -- powershell.exe -NonInteractive -Command <Win32_OperatingSystem + SoftwareLicensingProduct>"; echo; qm guest exec 100 --timeout 90 -- powershell.exe -NonInteractive -Command 'Get-CimInstance Win32_OperatingSystem | Select-Object Caption,Version,InstallDate,LastBootUpTime | Format-List; Get-CimInstance SoftwareLicensingProduct -Filter "PartialProductKey IS NOT NULL" | Select-Object Name,Description,LicenseStatus,GracePeriodRemaining,EvaluationEndDate | Format-List'; echo "exit: $?"; } 2>&1
-```
+**Decided and applied same day: rearmed.** `RemainingWindowsReArmCount` was 6; checked via CIM
+(no `slmgr` needed for that read), then `slmgr /rearm` run through explicit `cscript //NoLogo //B`
+(`slmgr.vbs` carries the same `wscript`-GUI-hang risk as `/dlv` — forced the console host rather
+than assuming `/rearm` avoids it). Required a restart to apply; confirmed post-restart:
+`LicenseStatus` 5 → 2 (OOB Grace), `GracePeriodRemaining` 14400 min = **exactly 10 days**,
+`RemainingWindowsReArmCount` now 5.
 
-**Do not substitute `slmgr /dlv`** — it is VBScript hosted by `wscript`, which renders to a modal
-GUI dialog on the guest and will hang the guest-exec call. That is the pid 4624 failure mode.
+**This is a reprieve, not a fix — put a reminder on it.** DC01 goes back to Notification state
+and the shutdown cycle resumes around **2026-09-12** unless rearmed again (5 left, ~50 more days
+of runway if stretched to the limit) or replaced with real activation / a rebuild. That larger
+decision is still not made — just deferred with room to breathe. Full investigation and the rearm
+sequence in `exercises/2026-09-02-dc01-eval-license-status/report.md`.
 
-What it answers:
-- `EvaluationEndDate` / `LicenseStatus` — settles whether DC01 is past its evaluation window.
-  `LicenseStatus`: 1 = Licensed, 2 = OOB grace, 3 = out-of-tolerance grace, 5 = Notification
-  (expired; nags, eventually restarts hourly), 6 = extended grace. `GracePeriodRemaining` is in
-  minutes.
-- `InstallDate` — **tests an explicit inference.** The claim that DC01 was built from
-  `SERVER_EVAL_x64FRE_en-us.iso` rests only on that ISO and DC01's `clean-install` snapshot
-  sharing the date 2025-09-29. If `InstallDate` disagrees, the inference was wrong and that
-  belongs on the record in the ledger, not quietly dropped.
-- `LastBootUpTime` — closes pid 4624 for free. If DC01 rebooted since 2026-09-02, the orphaned
-  process is gone.
+**Do not use `slmgr /dlv`** to investigate further — same `wscript`-GUI-hang risk as above (the
+pid 4624 failure mode, closed as of today, but the trap is still live for any future `slmgr`
+invocation that doesn't force `cscript` explicitly).
 
-If `exit` is non-zero or `out-data` is empty, do not re-run blind. ADWS and the guest agent have
-both been slow to initialize after boot on this host, and a failure there is itself a capturable
-behavior.
+**Two threads left genuinely open, not the same finding:**
+- A 9/1 1:46:15 PM shutdown Windows itself flagged as *unexpected* on the next boot — no
+  `wlms.exe` entry near it. Doesn't fit the pattern above; still unexplained.
+- Whether the *original* 08-31 09:38:11 crash was also `wlms.exe`-driven — unconfirmed, a 20-event
+  query didn't reach back that far.
+- An unexplained `root@pam` Proxmox auth logged 45 seconds before today's crash — confirmed not
+  Raymond (he was terminal-only, hadn't touched the dashboard). Not yet checked against
+  `pveproxy`'s access log for a source.
+
+---
+
+**Resolved 2026-09-02, DC01 licensing capture:** `LicenseStatus: 5` (Notification/expired),
+`GracePeriodRemaining: 0` — confirms, independent of date arithmetic, that DC01 is running expired
+Windows Server 2022 evaluation media. `EvaluationEndDate` came back as a null-`FILETIME` sentinel,
+not a usable date. `InstallDate` (9/30/2025) is one day off the ISO/`clean-install` date
+(2025-09-29) — consistent with this host's already-documented clock-offset artifact, not a
+contradiction. **pid 4624 is closed**: `LastBootUpTime` postdates the hang that created it. Full
+writeup in `exercises/2026-09-02-dc01-eval-license-status/report.md`; ledger rows added to
+`verified-claims.md`; `EXPOSURES.md` updated.
 
 ---
 
@@ -90,8 +105,9 @@ session should read that section before trusting derived figures elsewhere in th
   (`/var/lib/vz/dump/vzdump-qemu-105-2026_09_02-08_55_49.vma.zst`) passed `zstd -t`, which proves
   it is not corrupt, not that it restores to a bootable VM. There is now 21.95 GiB of pool margin
   to test this in. Testing it also decides whether to keep the ~10-11 GiB archive at all.
-- **DC01 may be running on expired Windows Server evaluation media.** See *Queued as the next
-  action* above — the command is written and ready to run.
+- **DC01 is confirmed running expired Windows Server evaluation media.** No longer "may be" — see
+  *Resolved 2026-09-02, DC01 licensing capture* above. Decision (activate/rearm/rebuild/accept) not
+  yet made; possibly connected to an hourly-restart hypothesis also not yet confirmed.
 - **Host RAM is over-committed by 3.77 GiB and nobody has rebalanced it.** DC01 alone is assigned
   10000 MB. Whether it needs that for a lab domain of this size is untested. Rebalancing is free
   and would let three or four VMs coexist; it is a config change, not a purchase.
@@ -150,12 +166,20 @@ session should read that section before trusting derived figures elsewhere in th
 - **`svc-entraconnect`'s password expires approximately 2026-10-13** (42-day default max age,
   `PasswordLastSet` 2026-09-01 07:54:57 AM). Rotate before then or set up a fine-grained password
   policy exemption — not yet decided which.
-- **Origin of `Secure Admin WS`'s domain-root GPO link** — deliberate design choice or setup-time
-  scope creep — was never established, only its current effective scope.
-- **Whether the tattooed `SeDenyInteractiveLogonRight` could re-tattoo DC01** on a future GPO
-  refresh cycle was never observed over time, only immediately after the one fix applied.
-- **Two of the five GPOs applying to DC01 have never been fully read** — `Default Domain Policy`
-  and `District Lockdown`, per `EXPOSURES.md`.
+- **A2 done, closed 2026-09-02.** `exercises/2026-09-02-a2-gpo-surface-and-domain-root-link/`.
+  `Secure Admin WS` relinked to `OU=Workstations` + `OU=Servers/OU=Application Servers`, domain-
+  root link and Deny-Apply ACE both removed, VM 102 moved into the OU structure. `gpresult`
+  confirms it no longer touches DC01 at all. **Worth remembering: the relink itself briefly
+  recreated the exact lockout exposure it was fixing** — `Remove-GPLink` needed the
+  distinguishedName form of the domain root (`"DC=district,DC=local"`), not the DNS form
+  (`"district.local"`) that worked for `New-GPLink`; ~90 seconds of real exposure before the fix
+  landed, no interactive Domain Admin logon attempted during it. Full account in that exercise's
+  report. Two findings surfaced along the way, not part of A2's original hypothesis, filed in
+  `EXPOSURES.md`: `Default Domain Policy` has `LockoutBadCount = 0` (no account-lockout threshold
+  anywhere in the domain), and `District Lockdown`'s Restricted Groups setting targets a group
+  named "Admins" that doesn't exist (likely confused with one of two OUs actually named "Admins").
+  **Still open from A2:** the final, later-in-time half of step 4's tattoo observation (baseline
+  confirmed no recurrence; a second check after more elapsed time was never done).
 - **AD Recycle Bin is not enabled on `district.local`** — flagged by the Entra Connect wizard's
   own completion screen, never independently captured via `Get-ADOptionalFeature`.
 - **The wizard's "Filtering" step was never actually reviewed** — screenshot skipped, contents
@@ -170,12 +194,7 @@ session should read that section before trusting derived figures elsewhere in th
   (`Authentication_RequestFromNonPremiumTenantOrB2CTenant`) — a named licensing constraint, not a
   permissions gap. Any exercise wanting sign-in-log evidence needs a licensing decision or the
   `GET /me`-as-the-user fallback already proven here.
-- **Whether the orphaned `qm guest exec` process (pid 4624) on DC01 was ever terminated.** Not
-  checked today. DC01's uptime was never read, so whether it rebooted since 09-02 is undetermined —
-  if it did, this closes itself.
-
 ## Next exercise
 
-**A2 — read the unread policy surface, and de-fragilize the `Secure Admin WS` domain-root link.**
-Per `CURRICULUM.md`. Its prerequisite (pool headroom, so a snapshot can be taken before a GPO
-change) is now satisfied. Note A2 opens with a snapshot — name it from `date -u` on the host.
+**A3 — the Entra ID Free ceiling, measured.** Per `CURRICULUM.md`. A2 is done (see above). A3
+needs no license and no new VM, same as A1/A2.

@@ -1,0 +1,54 @@
+# cmd: (host) qm status 100; lvs pool line; free -h
+#      (guest) Get-GPO -All timestamps/owner; Get-GPOReport -Name "Default Domain Policy" -ReportType Xml;
+#              Get-GPOReport -Name "District Lockdown" -ReportType Xml; gpresult /r; secedit baseline (failed this round, see follow-up file)
+# host: proxmox (host shell)
+# utc: 2026-09-02T16:56:56Z
+
+--- qm status 100 ---
+status: running
+--- pool ---
+  LV   VG  Attr       LSize    Pool Origin  Data%  Meta%
+  data pve twi-aotz-- <155.23g               70.91  3.47
+--- free -h ---
+               total        used        free      shared  buff/cache   available
+Mem:            15Gi        12Gi       422Mi        22Mi       2.8Gi       2.9Gi
+Swap:          8.0Gi       1.2Gi       6.8Gi
+
+--- GPO timestamps (origin check) ---
+DisplayName                       CreationTime           ModificationTime       Owner
+District Lockdown                 10/2/2025 10:46:06 PM  10/2/2025 10:54:56 PM  DISTRICT\Domain Admins
+Default Domain Policy              9/30/2025 2:11:33 PM   9/30/2025 2:15:10 PM  DISTRICT\Domain Admins
+Default Domain Controllers Policy  9/30/2025 2:11:33 PM  10/8/2025 11:38:50 PM  DISTRICT\Domain Admins
+DC - Security Baseline            10/4/2025 12:44:06 AM  10/4/2025 12:44:08 AM  DISTRICT\Domain Admins
+Desktop Wallpaper                  9/30/2025 5:23:29 PM   9/30/2025 6:05:56 PM  DISTRICT\Domain Admins
+Baseline - Windows 11 v25H2       10/4/2025 1:02:51 AM   10/4/2025 1:02:50 AM   DISTRICT\Domain Admins
+District - Lockdown Users         10/2/2025 11:15:28 PM  10/3/2025 9:04:28 PM   DISTRICT\Domain Admins
+Secure Admin WS                   10/8/2025 10:36:54 PM   9/1/2026 7:25:40 AM   DISTRICT\sysadmin
+DC - Secure LDAP                  10/3/2025 9:34:44 PM   10/3/2025 9:41:56 PM   DISTRICT\Domain Admins
+
+--- Default Domain Policy (XML, key extracts) ---
+Linked at: SOMPath district.local (domain root), Enabled true, NoOverride false
+Account Policy: LockoutBadCount=0 (no lockout threshold), MaximumPasswordAge=42,
+  MinimumPasswordAge=1, MinimumPasswordLength=7, PasswordComplexity=true, PasswordHistorySize=24
+Kerberos Policy: MaxClockSkew=5, MaxRenewAge=7, MaxServiceAge=600, MaxTicketAge=10, TicketValidateClient=true
+Security Options: NoLMHash=1, ForceLogoffWhenHourExpire=0, LSAAnonymousNameLookup=0
+Public Key: EFS Recovery Agent = Administrator, cert valid to 2125-09-06 (standard AD-generated artifact)
+(Full XML captured in session scrollback; this file holds the extracted findings, not the raw XML blob)
+
+--- District Lockdown (XML, key extracts) ---
+Linked at: SOMPath district.local (domain root), Enabled true, NoOverride false
+Computer\Security extension: RestrictedGroups -> GroupName "Admins", zero members listed
+  (no SID given for the group itself; no member SIDs/names listed)
+ACL: explicitly lists both DISTRICT\Domain Admins and DISTRICT\Enterprise Admins with
+  "Edit, delete, modify security" (most other GPOs list only Domain Admins for that level)
+
+--- gpresult /r (first attempt, this round) ---
+INFO: The user "DISTRICT\DC01$" does not have RSoP data.
+(qm guest exec runs as SYSTEM with no logged-on user session; user-scoped RSoP has nothing to
+report. Re-run with /scope:computer in the follow-up capture.)
+
+--- secedit baseline (first attempt) ---
+(export command's output was suppressed via Out-Null and the targeted Select-String grep for
+SeDenyInteractiveLogonRight/SeDenyRemoteInteractiveLogonRight returned nothing - ambiguous whether
+that means "confirmed absent" or "export silently failed." Not trusted as-is; re-verified properly
+in the follow-up capture with the export's own exit code and the full file dumped.)

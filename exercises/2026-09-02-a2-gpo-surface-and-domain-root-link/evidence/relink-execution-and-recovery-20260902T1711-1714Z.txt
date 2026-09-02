@@ -1,0 +1,49 @@
+# Sequence: stage 1 (additive, move VM102 + add two new GPO links), stage 1 verification retry,
+# stage 2 (remove domain-root link + Deny-Apply ACE), stage 2 FAILURE + brief exposure, stage 2 fix.
+# host: proxmox (host shell)
+# utc range: 2026-09-02T17:11:13Z through 2026-09-02T17:14:51Z
+
+--- Stage 1, 17:11:13Z: move ENTRACONNECT01, add two GPO links (New-GPLink prints nothing on success) ---
+{
+   "out-data" : "=== Move ENTRACONNECT01 into Application Servers OU ===\r\n\r\nName           DistinguishedName\r\n----           -----------------\r\nENTRACONNECT01 CN=ENTRACONNECT01,OU=Application Servers,OU=Servers,DC=district,DC=local\r\n=== Link Secure Admin WS to Application Servers OU ===\r\n=== Link Secure Admin WS to Workstations OU ===\r\n=== Verify: links on Application Servers OU ===\r\n=== Verify: links on Workstations OU ===\r\n"
+}
+
+--- Stage 1 verification, 17:12:12Z: ground-truth check via Secure Admin WS's own GPOReport + retry New-GPLink to confirm via error text ---
+{
+   "out-data" : "=== Current SOM links on Secure Admin WS (before retry) ===\r\n\r\nSOMPath                                    Enabled NoOverride\r\ndistrict.local/Workstations                true    false\r\ndistrict.local/Servers/Application Servers true    false\r\ndistrict.local                             true    false\r\n=== Retry: link to Application Servers OU ===\r\nFAILED: The GPO named 'Secure Admin WS' is already linked to a Scope of Management with Path 'OU=Application Servers,OU=Servers,DC=district,DC=local'.\r\n=== Retry: link to Workstations OU ===\r\nFAILED: The GPO named 'Secure Admin WS' is already linked to a Scope of Management with Path 'OU=Workstations,DC=district,DC=local'.\r\n"
+}
+CONFIRMED: stage 1's New-GPLink calls succeeded silently the first time. Empty pipeline output from
+New-GPLink is normal on success for this cmdlet, not a failure signal - do not trust its silence
+alone again; the "already linked" error text on retry is what proved it.
+
+--- Stage 2 attempt 1, 17:13:04Z: FAILED - Remove-GPLink with DNS-form target "district.local" ---
+{
+   "out-data" : "=== Remove domain-root link ===\r\nFAILED: There is no such object on the server. (Exception from HRESULT: 0x80072030)\r\n=== Links on Secure Admin WS now ===\r\n...district.local...Enabled true... (domain-root link still present)\r\n=== Remove Deny-Apply ACE ===\r\nRemoveAccessRule matched and removed: True\r\n=== gpupdate + gpresult on DC01 ===\r\n... Applied Group Policy Objects: ...District Lockdown, Secure Admin WS, Local Group Policy ..."
+}
+FAILURE: Remove-GPLink rejected the same "district.local" string that Get-GPOReport's own SOMPath
+field displays and that this project's other tooling treats as the domain root's normal form.
+The ACE removal (a separate, independent operation) succeeded in the same script run. Net effect:
+for a window bounded by the gpupdate in this capture (10:13:08 AM local, i.e. this exact gpresult
+run) and the gpupdate in the fix below (10:14:45 AM local) - roughly 90 seconds - DC01 had
+Secure Admin WS's domain-root link fully live with NO exception protecting it. gpresult's own
+"Applied Group Policy Objects" list for that window includes "Secure Admin WS" directly, not as
+Recalled or inferred - this is Captured evidence the exposure was real, not just theoretical.
+No interactive or RDP logon as a Domain Admin was attempted during this window (all activity this
+session ran through qm guest exec / SYSTEM context, a different logon type entirely, unaffected by
+SeDenyInteractiveLogonRight/SeDenyRemoteInteractiveLogonRight). Whether an actual lockout would
+have occurred if someone had tried is not tested and not claimed either way.
+
+--- Stage 2 attempt 2 (fix), 17:14:42Z: SUCCESS - Remove-GPLink with DN-form target "DC=district,DC=local" ---
+{
+   "out-data" : "=== Retry: remove domain-root link, DN-form target ===\r\n\r\nDisplayName: Secure Admin WS ... Link removal SUCCESS\r\n=== Current links on Secure Admin WS ===\r\ndistrict.local/Workstations  true  false\r\ndistrict.local/Servers/Application Servers  true  false\r\n(domain-root link gone)\r\n=== gpupdate + gpresult on DC01 ===\r\n... Applied Group Policy Objects: Default Domain Controllers Policy, DC - Secure LDAP, Default Domain Policy, District Lockdown, Local Group Policy\r\n(Secure Admin WS absent entirely - not applied, not filtered, no link targets DC01 at all)"
+}
+ROOT CAUSE of the Remove-GPLink failure: Remove-GPLink's -Target parameter does not accept the
+DNS-form domain name ("district.local") that New-GPLink accepted for the same conceptual target,
+and that GPOReport's own SOMPath field displays. It requires the distinguishedName form
+("DC=district,DC=local") instead. This is an inconsistency in the GroupPolicy module's own cmdlets,
+not a mistake in identifying the right target.
+
+FINAL STATE, confirmed: Secure Admin WS linked only to OU=Workstations and
+OU=Servers/OU=Application Servers. No domain-root link. No Deny-Apply ACE (removed, and now
+unnecessary since nothing links the GPO to DC01's OU chain). DC01's gpresult shows Secure Admin WS
+absent entirely.

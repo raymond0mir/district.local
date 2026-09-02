@@ -1,0 +1,10 @@
+# cmd: qm guest exec 100 --timeout 90 -- powershell.exe -NonInteractive -Command 'Get-CimInstance Win32_OperatingSystem | Select-Object Caption,Version,InstallDate,LastBootUpTime | Format-List; Get-CimInstance SoftwareLicensingProduct -Filter "PartialProductKey IS NOT NULL" | Select-Object Name,Description,LicenseStatus,GracePeriodRemaining,EvaluationEndDate | Format-List'
+# host: proxmox (host shell)
+# utc: 2026-09-02T16:26:33Z
+
+{
+   "exitcode" : 0,
+   "exited" : 1,
+   "out-data" : "\r\n\r\nCaption        : Microsoft Windows Server 2022 Standard Evaluation\r\nVersion        : 10.0.20348\r\nInstallDate    : 9/30/2025 12:36:49 AM\r\nLastBootUpTime : 9/2/2026 8:27:36 AM\r\n\r\n\r\n\r\n\r\n\r\nName                 : Windows(R), ServerStandardEval edition\r\nDescription          : Windows(R) Operating System, TIMEBASED_EVAL channel\r\nLicenseStatus        : 5\r\nGracePeriodRemaining : 0\r\nEvaluationEndDate    : 12/31/1600 4:00:00 PM\r\n\r\n\r\n\r\n"
+}
+exit: 0

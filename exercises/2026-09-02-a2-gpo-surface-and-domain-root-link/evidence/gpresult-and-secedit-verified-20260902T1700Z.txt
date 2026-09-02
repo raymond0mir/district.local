@@ -1,0 +1,80 @@
+# cmd: gpresult /r /scope:computer; secedit /export /cfg <path> /areas USER_RIGHTS (exit code + Test-Path + full dump)
+# host: proxmox (host shell)
+# utc: 2026-09-02T17:00:27Z
+
+--- gpresult /r /scope:computer ---
+RSOP data for  on DC01 : Logging Mode
+OS Configuration:            Primary Domain Controller
+Last time Group Policy was applied: 9/2/2026 at 9:58:07 AM
+Group Policy was applied from:      DC01.district.local
+
+Applied Group Policy Objects
+-----------------------------
+    Default Domain Controllers Policy
+    DC - Secure LDAP
+    Default Domain Policy
+    District Lockdown
+    Local Group Policy
+
+The following GPOs were not applied because they were filtered out
+---------------------------------------------------------------------
+    Secure Admin WS
+        Filtering:  Denied (Security)
+
+The computer is a part of the following security groups
+---------------------------------------------------------
+    BUILTIN\Administrators, Everyone, BUILTIN\Pre-Windows 2000 Compatible Access, BUILTIN\Users,
+    Windows Authorization Access Group, NT AUTHORITY\NETWORK, NT AUTHORITY\Authenticated Users,
+    This Organization, DC01$, Domain Controllers, NT AUTHORITY\ENTERPRISE DOMAIN CONTROLLERS,
+    Authentication authority asserted identity, Denied RODC Password Replication Group,
+    System Mandatory Level
+
+--- secedit /export /cfg C:\Windows\Temp\secpol-recheck-a2.cfg /areas USER_RIGHTS ---
+The task has completed successfully. See log %windir%\security\logs\scesrv.log for detail info.
+secedit exit: 0
+file exists: True
+
+--- full exported [Privilege Rights] section ---
+[Unicode]
+Unicode=yes
+[Privilege Rights]
+SeNetworkLogonRight = *S-1-1-0,*S-1-5-11,*S-1-5-32-544,*S-1-5-32-554,*S-1-5-9
+SeMachineAccountPrivilege = *S-1-5-11
+SeBackupPrivilege = *S-1-5-32-544,*S-1-5-32-549,*S-1-5-32-551
+SeChangeNotifyPrivilege = *S-1-1-0,*S-1-5-11,*S-1-5-19,*S-1-5-20,*S-1-5-32-544,*S-1-5-32-554
+SeSystemtimePrivilege = *S-1-5-19,*S-1-5-32-544,*S-1-5-32-549
+SeCreatePagefilePrivilege = *S-1-5-32-544
+SeDebugPrivilege = *S-1-5-32-544
+SeRemoteShutdownPrivilege = *S-1-5-32-544,*S-1-5-32-549
+SeAuditPrivilege = *S-1-5-19,*S-1-5-20
+SeIncreaseQuotaPrivilege = *S-1-5-19,*S-1-5-20,*S-1-5-32-544
+SeIncreaseBasePriorityPrivilege = *S-1-5-32-544,*S-1-5-90-0
+SeLoadDriverPrivilege = *S-1-5-32-544,*S-1-5-32-550
+SeBatchLogonRight = *S-1-5-32-544,*S-1-5-32-551,*S-1-5-32-559
+SeServiceLogonRight = *S-1-5-80-0
+SeInteractiveLogonRight = *S-1-5-32-544,*S-1-5-32-549,*S-1-5-32-550,*S-1-5-32-551,*S-1-5-9
+SeSecurityPrivilege = *S-1-5-32-544
+SeSystemEnvironmentPrivilege = *S-1-5-32-544
+SeProfileSingleProcessPrivilege = *S-1-5-32-544
+SeSystemProfilePrivilege = *S-1-5-32-544,*S-1-5-80-3139157870-2983391045-3678747466-658725712-1809340420
+SeAssignPrimaryTokenPrivilege = *S-1-5-19,*S-1-5-20
+SeRestorePrivilege = *S-1-5-32-544,*S-1-5-32-549,*S-1-5-32-551
+SeShutdownPrivilege = *S-1-5-32-544,*S-1-5-32-549,*S-1-5-32-550,*S-1-5-32-551
+SeTakeOwnershipPrivilege = *S-1-5-32-544
+SeUndockPrivilege = *S-1-5-32-544
+SeEnableDelegationPrivilege = *S-1-5-32-544
+SeManageVolumePrivilege = *S-1-5-32-544
+SeRemoteInteractiveLogonRight = *S-1-5-32-544
+SeImpersonatePrivilege = *S-1-5-19,*S-1-5-20,*S-1-5-32-544,*S-1-5-6
+SeCreateGlobalPrivilege = *S-1-5-19,*S-1-5-20,*S-1-5-32-544,*S-1-5-6
+SeIncreaseWorkingSetPrivilege = *S-1-5-32-545
+SeTimeZonePrivilege = *S-1-5-19,*S-1-5-32-544,*S-1-5-32-549
+SeCreateSymbolicLinkPrivilege = *S-1-5-32-544
+SeDelegateSessionUserImpersonatePrivilege = *S-1-5-32-544
+[Version]
+signature="$CHICAGO$"
+Revision=1
+
+NOTE: SeDenyInteractiveLogonRight and SeDenyRemoteInteractiveLogonRight are both ABSENT from this
+full, verified export (exit 0, file confirmed present, entire [Privilege Rights] section read, not
+grepped). This is a genuine "no tattoo" reading, not an ambiguous empty grep result.

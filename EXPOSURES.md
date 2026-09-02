@@ -40,12 +40,33 @@ surface on a domain controller. *Evidence:*
 `exercises/2026-09-01-entra-connect-connector-account/evidence/secure-admin-ws-scope-fix.json`
 (the RSoP count).
 
-**`Secure Admin WS`'s domain-root link, with a Deny-Apply exception for the current Domain
-Controllers group, is fragile.** It works, and it's the fix actually applied 2026-09-01, but a
-future GPO edit that drops the exception — or a new domain controller added without checking for
-it — silently reintroduces the exact lockout this project already hit once. The cleaner fix
-(relink at the workstation/member-server OUs it actually means to govern, drop the exception
-entirely) is still open, see `CARRYOVER.md`.
+**Resolved 2026-09-02 (A2).** `Secure Admin WS`'s domain-root link with the Deny-Apply exception is
+gone. Relinked to `OU=Workstations` and `OU=Servers/OU=Application Servers` (with VM 102 moved
+into the OU structure to keep receiving it); domain-root link and the 09-01 Deny-Apply ACE both
+removed; `gpresult` on DC01 confirms it no longer applies through any mechanism. The link's origin
+also got a real answer along the way — 8 of 9 domain GPOs are owned by `Domain Admins` and built in
+the 9/30–10/4/2025 window, while `Secure Admin WS` alone is owned by the individual account
+`sysadmin` and created 10/8/2025, days later, pointing at a later, individual addition rather than
+deliberate initial design. **Worth keeping on record even though closed:** the relink itself
+briefly recreated this exact exposure for ~90 seconds mid-fix (`Remove-GPLink`'s domain-root target
+format differs from `New-GPLink`'s) — caught and fixed the same session, full account in
+`exercises/2026-09-02-a2-gpo-surface-and-domain-root-link/report.md`'s "What broke, and why."
+*Evidence:* `exercises/2026-09-02-a2-gpo-surface-and-domain-root-link/evidence/relink-execution-and-recovery-20260902T1711-1714Z.txt`.
+
+**`Default Domain Policy` sets `LockoutBadCount = 0` — no account-lockout threshold exists
+anywhere in district.local.** Password complexity and history are enforced; no number of failed
+password attempts ever locks an account out. Surfaced 2026-09-02 while reading this GPO in full
+for A2, unrelated to that exercise's actual hypothesis. *Evidence:*
+`exercises/2026-09-02-a2-gpo-surface-and-domain-root-link/evidence/gpo-origin-timestamps-and-full-reports-20260902T1656Z.txt`.
+
+**`District Lockdown`'s Restricted Groups setting targets a group that doesn't exist.** Linked at
+the domain root (same pattern `Secure Admin WS` had), it defines Restricted Groups membership for
+a group named literally "Admins" — confirmed against all 13 real `*Admin*` groups in the domain,
+none of which is a bare "Admins." Currently inert, since Windows can't restrict membership on an
+unresolvable name, but it's dead configuration in a domain-root-linked GPO nobody had verified
+before — exactly the class of thing the imported October 2025 baseline is known to carry.
+*Evidence:*
+`exercises/2026-09-02-a2-gpo-surface-and-domain-root-link/evidence/admins-group-existence-check-20260902T1701Z.txt`.
 
 ## Infrastructure
 
@@ -134,13 +155,31 @@ exemption — not yet decided which. *Evidence:*
 registration window flagged 2026-08-31 is nearly elapsed as of this writing. *Evidence:*
 `exercises/2026-08-31-entra-connect-install/report.md`, Open questions.
 
-**DC01 may be running on expired Windows Server evaluation media.**
-`SERVER_EVAL_x64FRE_en-us.iso` sits in the ISO store dated 2025-09-29, and DC01's `clean-install`
-snapshot carries the same date — **inference from two matching dates, not a capture**. Windows
-Server evaluation runs 180 days, which from that date elapsed around 2026-03-28. Either it was
-rearmed, activated, or the domain controller is past its evaluation window and the consequences
-have not surfaced yet. Settled by one `slmgr /dlv` on DC01. *Evidence:*
-`exercises/2026-09-02-thin-pool-headroom-reclaim/evidence/storage-config-iso-inventory-vm105-config-20260902T1551Z.txt`.
+**DC01's expired evaluation license is actively shutting it down, and this has been happening
+since at least 2026-08-31.** `LicenseStatus` 5 (Notification/expired), `GracePeriodRemaining` 0
+minutes, confirmed directly off DC01 via CIM 2026-09-02 — no longer an inference from two matching
+ISO/snapshot dates. Mid-session the same day, DC01 crashed; its own System event log named the
+exact mechanism: `wlms.exe` (Windows License Manager) initiating a full shutdown, logged as *"The
+license period for this installation of Windows has expired. The operating system is shutting
+down"* — six seconds before the host-side crash signature. The same message recurs at irregular
+intervals (60 minutes to 16+ hours apart, not a fixed timer) reaching back to at least 8/31 4:52 PM,
+which lands seven seconds before the exact timestamp `exercises/2026-08-31-dc01-unexpected-
+shutdown/report.md` logged as its own unexplained "occurrence 2" crash — a root cause that
+investigation could not pin down at the time, because nobody yet knew the license was expired.
+**Mitigated same day, not resolved.** DC01 was rearmed (`slmgr /rearm` via `cscript`, avoiding the
+same `wscript` GUI-hang risk `/dlv` has), moving `LicenseStatus` from 5 (Notification/expired) to 2
+(OOB Grace) with `GracePeriodRemaining` 14400 minutes — **exactly 10 days, not a reset of the full
+180-day evaluation window.** `RemainingWindowsReArmCount` is now 5 of an original 6. **The
+underlying exposure is unchanged**: this is a temporary extension of an evaluation build running a
+production domain controller, not a licensed one, and the shutdown cycle resumes on schedule
+around **2026-09-12** unless rearmed again or replaced with real activation. Two threads remain
+genuinely open and separate from this finding: a 9/1 1:46:15 PM shutdown Windows itself flagged as
+*unexpected* (no `wlms.exe` entry near it), and whether the original 08-31 09:38:11 crash was also
+license-driven (unconfirmed — the event-log query didn't reach back that far). *Evidence:*
+`exercises/2026-09-02-dc01-eval-license-status/evidence/os-and-licensing-status-20260902T1626Z.txt`,
+`exercises/2026-09-02-dc01-eval-license-status/evidence/system-eventlog-1074-6006-6008-41-1076-20260902T1644Z.txt`,
+`exercises/2026-09-02-dc01-eval-license-status/evidence/rearm-and-post-restart-verification-20260902T1650Z.txt`,
+full analysis in `exercises/2026-09-02-dc01-eval-license-status/report.md`.
 
 ## Recently closed (for contrast, not action)
 
