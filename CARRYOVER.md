@@ -1,8 +1,9 @@
 # Carryover
 
-Open items only, as of **2026-09-02**, at the close of
-`exercises/2026-09-02-thin-pool-headroom-reclaim` (Exercise A1). Overwritten at each session
-close per `.claude/skills/tech-compass/SKILL.md` — resolved work lives in `report.md` files,
+Open items only, as of **2026-09-02**, at the close of two exercises —
+`exercises/2026-09-02-dc01-eval-license-status` and
+`exercises/2026-09-02-a2-gpo-surface-and-domain-root-link`. Overwritten at each session close per
+`.claude/skills/tech-compass/SKILL.md` — resolved work lives in `report.md` files,
 `evidence-log.md` files, and `verified-claims.md`, not here.
 
 ---
@@ -21,180 +22,136 @@ output back.** Give him one self-contained block at a time; keep all four JSON f
 
 **`qm guest exec` has no attached TTY.** Anything that expects interactive input — or that opens a
 GUI dialog on the guest, which is what `slmgr` does under its default `wscript` host — hangs until
-the timeout and orphans a process on the guest. This has already happened once (pid 4624, still
-unconfirmed as terminated). Prefer native PowerShell/CIM over VBScript wrappers, and always pass
-`-NonInteractive`.
+the timeout and orphans a process on the guest (this happened once, pid 4624, since confirmed
+closed by a later reboot). Prefer native PowerShell/CIM over VBScript wrappers, always pass
+`-NonInteractive`, and when `slmgr` is genuinely needed, force the console host explicitly
+(`cscript.exe //NoLogo //B`) rather than letting the default association pick `wscript`.
 
-**Every capture block should self-timestamp** with `date -u` on the host. See the convention note
-below for why.
+**GroupPolicy module gotchas, learned today, worth remembering:** `New-GPLink` returns nothing to
+the pipeline on success — empty output is not a failure signal, verify via `Get-GPOReport`'s own
+`LinksTo` field instead of trusting cmdlet silence. `Remove-GPLink` and `New-GPLink` do **not**
+accept the same target-string format for the domain root: `New-GPLink` took the DNS form
+(`"district.local"`); `Remove-GPLink` needed the distinguishedName form
+(`"DC=district,DC=local"`) and failed outright on the DNS form. Getting this wrong on a live
+domain controller briefly recreated a real lockout exposure today — see below. Verify a cmdlet's
+actual accepted input before trusting an assumption carried over from its counterpart.
 
-**Git state at close:** commit `7599e7e` on `main`, pushed to
+**Every capture block should self-timestamp** with `date -u` on the host; snapshot names and
+exercise directories should be derived the same way (the host runs America/Los_Angeles).
+
+**Git state at close:** commit `0614436` on `main`, pushed to
 `git@github.com:raymond0mir/district.local.git`, working tree clean. Push key is
 `~/.ssh/id_ed25519_github`. Run a credential scan before any commit — a literal password reached
 report prose once, on 2026-08-31.
 
-**Lab state at close:** thin pool **70.86%** (under the 85% gate, 21.95 GiB margin).
-VM 100 (`winserver2022`/DC01) running. VM 104 (`pfsense-fw`) running. **VM 102
-(`entraconnect01`) is stopped** — shut down deliberately to recover host RAM. VM 101
-(`win11-client01`) stopped. VM 105 (`kali-red`) **no longer exists** — backed up and destroyed
-during A1.
+**Lab state at close (last verified ~17:14 UTC today):** thin pool ~70.9% (healthy, under the 85%
+gate). VM 100 (DC01) **running** — rearmed today, ~10 days of licensing runway, see below. VM 104
+(pfsense-fw) running. VM 102 (entraconnect01) **stopped** — its AD computer object was moved into
+`OU=Application Servers` today, but the VM itself was not started this session; Entra Connect is
+not syncing while it's down. VM 101 stopped. VM 105 no longer exists (destroyed in A1). Host RAM
+was tight at last reading — 422Mi free, 2.9Gi available, 1.2Gi in swap, with only DC01 and pfSense
+running — worth a fresh `free -h` before assuming headroom for anything heavier.
 
 ---
 
-## DC01's crash root cause: found and mitigated (temporarily) today
+## Time-sensitive: DC01's license runway
 
-**`wlms.exe` (Windows License Manager) was repeatedly, deliberately shutting DC01 down** because
-its evaluation license expired — confirmed from DC01's own System event log (Event 1074), not
-inferred. It crashed once during today's session; `qm start 100` brought it back, and the event
-log pull off DC01 (once back up) pinned the mechanism precisely.
+**DC01 is running Windows Server 2022 evaluation media, confirmed expired, rearmed today.**
+`wlms.exe` was found to be the direct cause of a recurring crash pattern going back to at least
+8/31 (it force-shuts-down DC01 on an irregular schedule once the eval is past grace) — this also
+explains the previously-unresolved root cause from `2026-08-31-dc01-unexpected-shutdown`'s
+"occurrence 2". Rearmed via `slmgr /rearm` (forced through `cscript`): `LicenseStatus` moved from
+5 (Notification/expired) to 2 (OOB Grace), `GracePeriodRemaining` exactly 10 days,
+`RemainingWindowsReArmCount` now 5 of an original 6.
 
-**Decided and applied same day: rearmed.** `RemainingWindowsReArmCount` was 6; checked via CIM
-(no `slmgr` needed for that read), then `slmgr /rearm` run through explicit `cscript //NoLogo //B`
-(`slmgr.vbs` carries the same `wscript`-GUI-hang risk as `/dlv` — forced the console host rather
-than assuming `/rearm` avoids it). Required a restart to apply; confirmed post-restart:
-`LicenseStatus` 5 → 2 (OOB Grace), `GracePeriodRemaining` 14400 min = **exactly 10 days**,
-`RemainingWindowsReArmCount` now 5.
+**Put a reminder on ~2026-09-12.** That's when DC01 goes back to Notification and the shutdown
+cycle resumes, unless rearmed again (5 rearms left, ~50 more days of runway if stretched to the
+limit) or replaced with real activation / a rebuild. That larger decision — activate, keep
+rearming, rebuild, or accept and work around it — is still not made. Full investigation in
+`exercises/2026-09-02-dc01-eval-license-status/report.md`.
 
-**This is a reprieve, not a fix — put a reminder on it.** DC01 goes back to Notification state
-and the shutdown cycle resumes around **2026-09-12** unless rearmed again (5 left, ~50 more days
-of runway if stretched to the limit) or replaced with real activation / a rebuild. That larger
-decision is still not made — just deferred with room to breathe. Full investigation and the rearm
-sequence in `exercises/2026-09-02-dc01-eval-license-status/report.md`.
+**Do not use `slmgr /dlv`** — same `wscript`-GUI-hang risk noted above.
 
-**Do not use `slmgr /dlv`** to investigate further — same `wscript`-GUI-hang risk as above (the
-pid 4624 failure mode, closed as of today, but the trap is still live for any future `slmgr`
-invocation that doesn't force `cscript` explicitly).
+**Loose threads from this investigation, genuinely unexplained, not the same finding as the above:**
+- A shutdown at 9/1 1:46:15 PM that Windows itself flagged as *unexpected* — no `wlms.exe` entry
+  near it in the event log.
+- Whether the *original* 8/31 09:38:11 crash was also `wlms.exe`-driven — a 20-event query didn't
+  reach back that far.
+- A `pveproxy` `root@pam` auth logged 45 seconds before DC01's crash today — confirmed not Raymond
+  (terminal-only, hadn't touched the dashboard). Source never checked against the access log.
 
-**Two threads left genuinely open, not the same finding:**
-- A 9/1 1:46:15 PM shutdown Windows itself flagged as *unexpected* on the next boot — no
-  `wlms.exe` entry near it. Doesn't fit the pattern above; still unexplained.
-- Whether the *original* 08-31 09:38:11 crash was also `wlms.exe`-driven — unconfirmed, a 20-event
-  query didn't reach back that far.
-- An unexplained `root@pam` Proxmox auth logged 45 seconds before today's crash — confirmed not
-  Raymond (he was terminal-only, hadn't touched the dashboard). Not yet checked against
-  `pveproxy`'s access log for a source.
+## A2 done: Secure Admin WS de-fragilized
 
----
+`Secure Admin WS` no longer touches DC01 through any mechanism. Relinked to `OU=Workstations` and
+`OU=Servers/OU=Application Servers`; domain-root link and the 09-01 Deny-Apply exception both
+removed; VM 102's computer object moved into the OU structure so it keeps receiving the GPO via
+the new direct link instead of the old domain-root cascade. `gpresult` on DC01 confirms it's
+absent entirely now, not even filtered.
 
-**Resolved 2026-09-02, DC01 licensing capture:** `LicenseStatus: 5` (Notification/expired),
-`GracePeriodRemaining: 0` — confirms, independent of date arithmetic, that DC01 is running expired
-Windows Server 2022 evaluation media. `EvaluationEndDate` came back as a null-`FILETIME` sentinel,
-not a usable date. `InstallDate` (9/30/2025) is one day off the ISO/`clean-install` date
-(2025-09-29) — consistent with this host's already-documented clock-offset artifact, not a
-contradiction. **pid 4624 is closed**: `LastBootUpTime` postdates the hang that created it. Full
-writeup in `exercises/2026-09-02-dc01-eval-license-status/report.md`; ledger rows added to
-`verified-claims.md`; `EXPOSURES.md` updated.
+**The relink briefly recreated the exact lockout exposure it was fixing** — ~90 seconds, caused by
+the `Remove-GPLink` target-format issue noted above, caught and fixed the same session. Full
+account, including what would have discriminated a real lockout from a config-only exposure, in
+that exercise's report.
 
----
+**Two findings surfaced along the way, filed in `EXPOSURES.md`, not yet acted on:**
+- `Default Domain Policy` sets `LockoutBadCount = 0` — no account-lockout threshold exists
+  anywhere in this domain.
+- `District Lockdown`'s Restricted Groups setting targets a group named "Admins" that doesn't
+  exist (likely confused with one of two OUs literally named "Admins" — Restricted Groups can't
+  target an OU). Currently inert. Whether it logged an error anywhere was never checked.
 
-**Resolved 2026-09-02, for the record:** the thin-pool headroom crisis that had blocked Phase A
-since 2026-09-01 is closed. `Data%` 91.06% → **70.86%**, by backing up and destroying VM 105
-(`kali-red`) — no hardware purchased, no external media used. The overcommit ratio is now measured
-(3.25x against the pool, not 3.6x against the VG). VM 101 is confirmed as `win11-client01`.
-Full detail in `exercises/2026-09-02-thin-pool-headroom-reclaim/report.md`.
+**Still open from A2 itself:** the final, later-in-time half of CURRICULUM's step-4 tattoo
+observation — the baseline (no recurrence, checked today) is real evidence but not the full
+before/after the exercise asked for.
 
-The same exercise retracted two of my own mid-session claims and one inherited ledger error; all
-three are documented in that report's "What broke, and why" rather than edited away. A fresh
-session should read that section before trusting derived figures elsewhere in the repo.
+## Immediate, still open from A1
 
-## Immediate, from today's exercise
-
-- **VM 102 is stopped and Entra Connect is not syncing.** Shut down to recover RAM during storage
-  work. Must be restarted before anything sync-dependent. `qm start 102`.
+- **VM 102 is stopped and Entra Connect is not syncing.** `qm start 102` before anything
+  sync-dependent.
 - **The restore path has never been verified.** The one archive in the lab
-  (`/var/lib/vz/dump/vzdump-qemu-105-2026_09_02-08_55_49.vma.zst`) passed `zstd -t`, which proves
-  it is not corrupt, not that it restores to a bootable VM. There is now 21.95 GiB of pool margin
-  to test this in. Testing it also decides whether to keep the ~10-11 GiB archive at all.
-- **DC01 is confirmed running expired Windows Server evaluation media.** No longer "may be" — see
-  *Resolved 2026-09-02, DC01 licensing capture* above. Decision (activate/rearm/rebuild/accept) not
-  yet made; possibly connected to an hourly-restart hypothesis also not yet confirmed.
-- **Host RAM is over-committed by 3.77 GiB and nobody has rebalanced it.** DC01 alone is assigned
-  10000 MB. Whether it needs that for a lab domain of this size is untested. Rebalancing is free
-  and would let three or four VMs coexist; it is a config change, not a purchase.
-- **21.93 GiB of pool consumption is unattributed.** The retained `clean-install` and `win11-ootb`
-  snapshot sets are the likely holders but carry the `k` skip-activation flag and were never read.
-  `lvchange -K -ay` on them would close it.
-- **pfSense still has zero snapshots** — but now there is both pool headroom and a proven backup
-  target, so the reason it stayed open no longer applies. Cheapest outstanding win in the repo.
+  (`vzdump-qemu-105-2026_09_02-08_55_49.vma.zst`) passed `zstd -t` only — proves not corrupt, not
+  restorable. 21.95 GiB of pool margin exists to test this in.
+- **Host RAM is over-committed and nobody has rebalanced it.** DC01 alone is assigned 10000 MB;
+  whether it needs that is untested. A free config change, not a purchase — and today's tight
+  readings (422Mi free with only two VMs running) make this more pressing than it was at A1's
+  close.
+- **21.93 GiB of pool consumption is unattributed** — the retained `clean-install` and
+  `win11-ootb` snapshot sets are the likely holders, never read (`lvchange -K -ay` would close it).
+- **pfSense still has zero snapshots.** Cheapest outstanding win in the repo.
 
 ## Deferred by Raymond's decision, not lost
 
-- **Hardware.** He asked whether the lab is hardware-limited, then decided: *"lets put aside the
-  purchases, it can be something, lets just run lean on what we got."* A1 completed with no
-  purchase, so this is genuinely deferred rather than blocking. The captured facts if it comes
-  back up: Dell Latitude 5420, i5-1145G7 4C/8T; **`DIMM B` is empty**, one 16 GB DDR4-3200 in
-  `DIMM A`, so RAM can double without removing anything; **one M.2 slot**, so disk means replacing
-  the 256 GB NVMe; `pve-root` is 68G holding 23G, of which 19G is ISOs.
-  A second physical host remains worth doing for *architecture* reasons a single node cannot
-  demonstrate — a second DC with real replication, or an attacker box off the domain's own
-  hypervisor — but not as a storage fix.
-- **B5 — split `exercises/2026-09-01-entra-connect-connector-account/report.md` in two.**
-  Explicitly held, Raymond's call: needs real narrative rework (separate framing for the
-  GPO-lockout/tattoo half vs. the connector-account/wizard half), not mechanical cut-and-paste.
-  Drop step 14 and consultation point 10 (GitHub setup) when this happens — that content now
-  lives in `README.md`.
+- **Hardware.** *"lets put aside the purchases, it can be something, lets just run lean on what
+  we got."* Dell Latitude 5420, i5-1145G7 4C/8T; `DIMM B` empty (RAM can double), one M.2 slot
+  (disk means replacing the 256 GB NVMe).
+- **B5 — split `exercises/2026-09-01-entra-connect-connector-account/report.md` in two.** Needs
+  real narrative rework, not mechanical cut-and-paste. Drop step 14 / consultation point 10
+  (GitHub setup) when this happens — now lives in `README.md`.
 
 ## Decision owed before Phase B starts
 
-- **The published break-glass account.** `breakglass@raytakosharkygmail.onmicrosoft.com` appears
-  in `verified-claims.md`, `exercises/2026-08-31-hybrid-identity-upn-baseline/report.md`, and four
-  evidence files — with its object GUID, its confirmed Global Administrator role, and its
-  single-device Authenticator MFA dependency. None of it was a leak; it was captured deliberately
-  as evidence and should stay readable as that. The forward-looking problem is that `CURRICULUM.md`
-  exercise B1 designs the Conditional Access baseline around this account as the exclusion that
-  prevents lockout — turning a published identity into the thing standing between the tenant and
-  an unrecoverable state. Unlike the on-prem lab, this exposure does not depend on the Proxmox box
-  being powered on.
+- **The published break-glass account**, `breakglass@raytakosharkygmail.onmicrosoft.com` —
+  captured deliberately as evidence across several reports, not a leak, but `CURRICULUM.md`
+  exercise B1 would make it load-bearing for Conditional Access. **Rotate the identity
+  (recommended)**, create and verify the replacement before touching the published one. Not yet
+  decided or executed.
 
-  Options weighed 2026-09-02: scrub git history (rejected — unreliable once pushed public, and it
-  would destroy load-bearing evidence); disable the published account (rejected alone — a disabled
-  break-glass is not a break-glass); **rotate the identity (recommended)**. The sequencing rule
-  this project already learned expensively applies directly: **create and verify the replacement
-  before touching the published one.** Not yet decided or executed.
+## Still open from before this session
 
-## Convention change adopted today
+- **`svc-entraconnect`'s password expires approximately 2026-10-13.** Rotate before then or set
+  up a fine-grained password policy exemption.
+- **AD Recycle Bin is not enabled on `district.local`** — flagged by the Entra Connect wizard,
+  never independently captured via `Get-ADOptionalFeature`.
+- **The wizard's "Filtering" step was never actually reviewed.**
+- **`districtsafetyphoto.com` verification never happened** — the ~one-month window flagged
+  2026-08-31 has nearly elapsed.
+- **Root cause of the Entra Connect wizard's "Not Added" domain status** — practically moot, never
+  explained.
+- **`jsmith` is still the only restamped account taken end-to-end.**
+- **Sign-in logs are unavailable on Entra Free** — licensing constraint, not a permissions gap;
+  `GET /me`-as-the-user is the proven fallback.
 
-- **Dated names must come from the host's clock, not the session's.** The host is
-  `America/Los_Angeles` (PDT, -0700); both snapshots named `pre-staging-promotion-20260902` were
-  actually created 2026-09-01 23:35 UTC, and `2026-09-02-entra-connect-upn-signin-test` carries
-  the same one-day offset. Every capture block now self-timestamps with `date -u`; snapshot names
-  and exercise directories should be derived the same way. Existing directory names are left
-  alone — renaming them would break every citation in the ledger for no gain.
-
-## Still open from before today
-
-- **`svc-entraconnect`'s password expires approximately 2026-10-13** (42-day default max age,
-  `PasswordLastSet` 2026-09-01 07:54:57 AM). Rotate before then or set up a fine-grained password
-  policy exemption — not yet decided which.
-- **A2 done, closed 2026-09-02.** `exercises/2026-09-02-a2-gpo-surface-and-domain-root-link/`.
-  `Secure Admin WS` relinked to `OU=Workstations` + `OU=Servers/OU=Application Servers`, domain-
-  root link and Deny-Apply ACE both removed, VM 102 moved into the OU structure. `gpresult`
-  confirms it no longer touches DC01 at all. **Worth remembering: the relink itself briefly
-  recreated the exact lockout exposure it was fixing** — `Remove-GPLink` needed the
-  distinguishedName form of the domain root (`"DC=district,DC=local"`), not the DNS form
-  (`"district.local"`) that worked for `New-GPLink`; ~90 seconds of real exposure before the fix
-  landed, no interactive Domain Admin logon attempted during it. Full account in that exercise's
-  report. Two findings surfaced along the way, not part of A2's original hypothesis, filed in
-  `EXPOSURES.md`: `Default Domain Policy` has `LockoutBadCount = 0` (no account-lockout threshold
-  anywhere in the domain), and `District Lockdown`'s Restricted Groups setting targets a group
-  named "Admins" that doesn't exist (likely confused with one of two OUs actually named "Admins").
-  **Still open from A2:** the final, later-in-time half of step 4's tattoo observation (baseline
-  confirmed no recurrence; a second check after more elapsed time was never done).
-- **AD Recycle Bin is not enabled on `district.local`** — flagged by the Entra Connect wizard's
-  own completion screen, never independently captured via `Get-ADOptionalFeature`.
-- **The wizard's "Filtering" step was never actually reviewed** — screenshot skipped, contents
-  unknown.
-- **`districtsafetyphoto.com` verification never happened.** The roughly one-month registration
-  window flagged 2026-08-31 has nearly elapsed.
-- **Root cause of the Entra Connect wizard's "Not Added" domain status.** Practically moot (both
-  sign-in and export work regardless) but never explained.
-- **`jsmith` is still the only restamped account taken end-to-end.** Whether the other eight get
-  the same treatment, or `jsmith` stays the single test case, is undecided.
-- **Sign-in logs (`GET /auditLogs/signIns`) are unavailable on Entra Free**
-  (`Authentication_RequestFromNonPremiumTenantOrB2CTenant`) — a named licensing constraint, not a
-  permissions gap. Any exercise wanting sign-in-log evidence needs a licensing decision or the
-  `GET /me`-as-the-user fallback already proven here.
 ## Next exercise
 
-**A3 — the Entra ID Free ceiling, measured.** Per `CURRICULUM.md`. A2 is done (see above). A3
-needs no license and no new VM, same as A1/A2.
+**A3 — the Entra ID Free ceiling, measured.** Per `CURRICULUM.md`. Needs no license, no new VM,
+same as A1/A2.
