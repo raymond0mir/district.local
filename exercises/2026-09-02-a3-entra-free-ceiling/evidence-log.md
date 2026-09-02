@@ -46,6 +46,21 @@ status and body. No `qm guest exec` needed — this exercise is tenant-side, not
   Salesforce tenant to push past that step, so whether Free blocks provisioning further downstream
   is an open question, not a result. `evidence/gallery-app-scim-provisioning-attempt-20260902T2116Z.json`.
 
+- **Non-gallery (custom) SAML SSO — also succeeds cleanly on Free, closing the original gap.**
+  Same outcome as the gallery app: portal save succeeded, and the resulting servicePrincipal
+  confirms `preferredSingleSignOnMode: "saml"` with a live signing certificate, tagged
+  `WindowsAzureActiveDirectoryCustomSingleSignOnApplication` to mark it custom rather than
+  gallery-templated. `evidence/nongallery-app-saml-and-scim-attempt-20260902T2132Z.json`.
+- **Non-gallery SCIM provisioning setup — same "no gate, no real backend" outcome as gallery.**
+  Generic "Bearer authentication" connector form appears with no upsell; junk credentials fail
+  with `CredentialValidationUnavailable` (a real network attempt against the fake endpoint), not a
+  licensing refusal.
+
+**This closes CURRICULUM.md's step 3 gap.** The original Recalled note ("SAML SSO for non-gallery
+apps... requires P1") is now directly tested and does not hold, at least through app setup and
+SSO configuration — retracted on the record here and in `verified-claims.md`/`CARRYOVER.md`, not
+quietly revised.
+
 ## Not yet captured
 
 - The licensing recommendation write-up (CURRICULUM step 4) — depends on the above; next.

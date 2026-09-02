@@ -1,0 +1,67 @@
+Portal flow (Recalled — screenshots only, not machine output):
+Entra admin center, signed in as breakglass@raytakosharkygmail.onmicrosoft.com.
+Enterprise applications > New application > "Create your own application" > name
+"A3-nongallery-test" > "Integrate any other application you don't find in the gallery
+(Non-gallery)" > Create.
+
+SAML: Single sign-on > SAML > Basic SAML Configuration > Edit > placeholder values:
+  Identifier:  https://a3test.district.local/nongallery-saml
+  Reply URL:   https://a3test.district.local/nongallery-saml/acs
+  Sign on URL: https://a3test.district.local/nongallery-login
+Saved successfully — no license error, no upsell, identical outcome to the gallery-app case.
+
+Provisioning: Get started > New provisioning configuration. Admin credentials form appeared
+directly (auth method "Bearer authentication", Tenant URL + Secret token fields) — same as the
+gallery app's form shape but generic rather than Salesforce-specific, since there's no pre-built
+connector for a custom app. No upsell or license message. Entered junk values (Tenant URL
+"https://a3test.district.local/scim", a fake secret token) and clicked "Test connection."
+
+Result:
+  Error code: CredentialValidationUnavailable
+  Error details: "We received this unexpected response from your application: Message: An error
+  occurred while sending the request. Please check the service and try again."
+This is a network/protocol-level failure — Entra actually attempted to reach the fake SCIM
+endpoint and got no valid response, since a3test.district.local doesn't exist. Not a licensing
+refusal; same shape of wall as the gallery-app case (no real backend to test against), not a
+different one.
+
+Follow-up Graph capture (Captured):
+GET https://graph.microsoft.com/v1.0/servicePrincipals?$filter=displayName eq 'A3-nongallery-test'
+Host: Graph Explorer, signed in as breakglass@raytakosharkygmail.onmicrosoft.com
+UTC timestamp: 2026-09-02T2132Z (approx, per message order)
+
+200 OK (relevant fields only):
+{
+  "id": "6f326341-4161-4050-ba31-cba304a714c9",
+  "appDisplayName": "A3-nongallery-test",
+  "preferredSingleSignOnMode": "saml",
+  "loginUrl": "https://a3test.district.local/nongallery-login",
+  "replyUrls": ["https://a3test.district.local/nongallery-saml/acs"],
+  "servicePrincipalNames": [
+    "https://a3test.district.local/nongallery-saml",
+    "16956e9c-5e2a-4e24-8b9b-476b86e52c16"
+  ],
+  "tags": [
+    "WindowsAzureActiveDirectoryCustomSingleSignOnApplication",
+    "WindowsAzureActiveDirectoryIntegratedApp"
+  ],
+  "keyCredentials": [
+    {
+      "displayName": "CN=Microsoft Azure Federated SSO Certificate",
+      "type": "AsymmetricX509Cert",
+      "usage": "Sign",
+      "startDateTime": "2026-09-02T21:32:35Z",
+      "endDateTime": "2029-09-02T21:32:35Z"
+    }
+  ]
+}
+
+Finding: a non-gallery, fully custom SAML application configures and saves cleanly on Entra ID
+Free, with a real auto-generated signing certificate, tagged
+WindowsAzureActiveDirectoryCustomSingleSignOnApplication to distinguish it from the gallery
+template case tested earlier. Combined with the gallery-app result, this closes the gap
+CURRICULUM.md's original Recalled note left open: neither gallery nor non-gallery SAML SSO setup
+is blocked on Free. SCIM provisioning setup is likewise not blocked for either app type through
+the "Test connection" step; whether an actual provisioning run further downstream would be is
+still untested in both cases, for the same reason both times — no real third-party backend
+available in this lab.

@@ -29,6 +29,7 @@ report), stated at that precision rather than overclaimed.
 5. `GET /roleManagement/directory/roleEligibilityScheduleRequests` — attempted a PIM-surface read.
 6. Entra admin center: added the **Salesforce** gallery app to Enterprise Applications, attempted **Single sign-on → SAML** with placeholder values, then **Provisioning → Connect your application** with junk admin credentials.
 7. Follow-up Graph reads against the resulting `servicePrincipal` object and its `synchronization/jobs` collection, to confirm the portal outcome at the object level rather than trusting screenshots alone.
+8. Repeated steps 6–7 against a **non-gallery custom app** (`A3-nongallery-test`, "Integrate any other application you don't find in the gallery") to actually test the claim CURRICULUM.md's plan was originally making — the gallery-app result above doesn't test it at all.
 
 ## Where Raymond was consulted
 
@@ -85,6 +86,23 @@ confirms no job object was ever created, so whether Free would block an actual p
 further downstream is a real open question, not a result.
 (`evidence/gallery-app-scim-provisioning-attempt-20260902T2116Z.json`)
 
+**Non-gallery (custom) SAML SSO — also succeeds cleanly on Free.** Repeated the same SAML attempt
+against a fully custom app (`A3-nongallery-test`, no gallery template). Saved with no license
+error; the `servicePrincipal` confirms `preferredSingleSignOnMode: "saml"`, a live signing
+certificate, and the tag `WindowsAzureActiveDirectoryCustomSingleSignOnApplication` distinguishing
+it from the gallery case. **This directly retracts a claim from `CURRICULUM.md`'s plan**, not just
+extends the gallery result: the plan's Recalled note said SAML SSO for non-gallery apps requires
+P1. Tested directly, it does not — at least through app setup and SSO configuration.
+(`evidence/nongallery-app-saml-and-scim-attempt-20260902T2132Z.json`)
+
+**Non-gallery SCIM provisioning setup — same outcome as gallery: no license gate, no real backend
+to push past it.** The generic "Bearer authentication" connector form (Tenant URL + Secret token,
+no app-specific fields since there's no gallery template) appears with no upsell. "Test
+connection" with junk values fails with `CredentialValidationUnavailable` — Entra genuinely
+attempting to reach the fake endpoint and getting no response, a network-level failure, not a
+licensing one. Same conclusion as the gallery case: setup is unblocked, an actual provisioning
+*run* is untested in both app types for the same lab-capability reason.
+
 **Already Confirmed before this exercise, restated for completeness:** `GET /auditLogs/signIns`
 refuses with `Authentication_RequestFromNonPremiumTenantOrB2CTenant` (`verified-claims.md` line 54).
 
@@ -123,9 +141,11 @@ Conditional Access matters at all — it was the one Free refuses outright with 
 credit. Whether P2 is worth the incremental spend depends specifically on whether PIM's
 just-in-time privileged access is a stated requirement, versus something CA's session controls
 and a well-run Restricted Groups/AGDLP model on-prem could substitute for. SSO and provisioning
-for a handful of gallery SaaS apps do **not** appear to require any paid tier, per today's
-direct test — a genuine cost saving over what I'd have assumed going in, though see the
-non-gallery caveat below before quoting this as blanket fact.
+setup for both a gallery SaaS app and a fully custom non-gallery app do **not** require any paid
+tier, tested directly both ways — a genuine cost saving over what the plan originally assumed for
+the non-gallery case specifically. What remains untestable in this lab (no real third-party
+tenant) is whether an actual provisioning *run*, once past setup, hits a P1 gate somewhere
+further downstream — flagged as open, not claimed either way.
 
 ## What I'd do differently
 
@@ -133,21 +153,21 @@ Run `GET /subscribedSkus` first, before anything else — I built the whole exer
 tenant-is-Free premise from prior context and only checked it directly at the end. It happened to
 hold up, but that's exactly the kind of assumption this skill exists to stop.
 
-I'd also test a **non-gallery (custom) SAML/SCIM app**, not just a gallery one, in a follow-up.
-CURRICULUM's original Recalled note was specifically about non-gallery apps needing P1 — Salesforce
-being a gallery app with a pre-built template doesn't actually test that claim at all. The gallery
-result and the non-gallery claim are two different things that got conflated in the original plan.
+I did go back and test a **non-gallery (custom) SAML/SCIM app** in a same-day follow-up once the
+gap was pointed out — CURRICULUM's original Recalled note was specifically about non-gallery apps
+needing P1, and the Salesforce gallery-template result on its own didn't actually test that claim.
+Should have run both app types in the same pass rather than treating the gallery result as
+sufficient the first time; the retraction below exists because of that gap, not despite closing
+it quickly.
 
 ## Open questions
 
-- **Whether Entra Free blocks an actual SCIM provisioning run (not just setup) is untested.**
-  Needs a real third-party SaaS tenant this lab doesn't have. Filed as genuinely open, not assumed
-  either way.
-- **The non-gallery SAML/SCIM licensing claim from CURRICULUM.md is still untested.** This
-  exercise tested a gallery app; the P1 claim was specifically about non-gallery custom apps.
-- **Whether to delete the test Salesforce enterprise app object.** It's inert (no user/group
-  assignments, `appRoleAssignmentRequired: true`, placeholder endpoints) but it's a real directory
-  object now. Raymond's call, not assumed.
+- **Whether Entra Free blocks an actual SCIM provisioning run (not just setup) is untested, for
+  either app type.** Needs a real third-party SaaS tenant this lab doesn't have. Filed as
+  genuinely open, not assumed either way.
+- **Whether to delete the two test enterprise app objects** (`Salesforce`, `A3-nongallery-test`).
+  Both are inert (no user/group assignments, `appRoleAssignmentRequired: true`, placeholder or
+  non-resolving endpoints) but are real directory objects now. Raymond's call, not assumed.
 - **Security Defaults' "cannot scope/exclude" claim rests on the absence of a property in the
   schema (`GET` returns no per-user field), not on an attempted-and-refused exclusion.** A
   positive test — e.g. checking whether any per-user MFA-registration exemption exists anywhere in

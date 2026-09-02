@@ -136,27 +136,28 @@ Protection, each with a *different* HTTP status/error-code shape (403/`Forbidden
 403/`AccessDenied`, 400/`AadPremiumLicenseRequired` respectively). Security Defaults confirmed
 enabled tenant-wide with no scoping property on the object at all.
 
-**Genuine surprise: gallery-app federated SAML SSO and SCIM provisioning *setup* hit no Free-tier
-gate.** Tested against Salesforce from the gallery — SAML saved cleanly with a real live signing
-cert; SCIM's admin-credentials screen showed no upsell, and "Test connection" failed on
-Salesforce's own invalid-credentials check, not an Entra refusal. This corrects the plan's working
-assumption, but only partly — that assumption (`CURRICULUM.md` step 3) was specifically about
-**non-gallery** custom SAML/SCIM apps, which this exercise did not test at all.
+**Genuine surprise, tested both ways: neither gallery-app nor non-gallery-app SAML SSO or SCIM
+provisioning *setup* hits any Free-tier gate.** Tested against Salesforce (gallery) and a
+from-scratch custom app (`A3-nongallery-test`) — both SAML configs saved cleanly with real live
+signing certs; both provisioning admin-credentials screens showed no upsell, and "Test connection"
+failed on the target's own error (Salesforce's `InvalidCredentials`; the custom connector's
+`CredentialValidationUnavailable`, a real network attempt against a nonexistent endpoint) — never
+an Entra refusal. **This retracts, not just extends, `CURRICULUM.md`'s original Recalled note**
+that non-gallery SAML/SCIM needs P1 — that specific claim was tested directly and did not hold.
 
-## Decision owed: is A3 step 3 answered enough to open the trial?
+## Decision owed: B2's placement, one residual risk left
 
-`CURRICULUM.md`'s calendar table gates opening the P1/P2 trial on "A3 step 3 has answered the
-SAML/SCIM licensing question" — see line ~430, now marked **PARTIALLY DONE**. What's actually
-known: gallery apps are free for both SSO and provisioning setup. What's still unknown: whether a
-**non-gallery** custom app (the case the original plan's Recalled note was actually about) hits a
-P1 wall that the gallery template's pre-built connector skips. This changes whether B2 (SAML/SCIM
-against one application) sits inside or outside the 30-day trial window.
+`CURRICULUM.md`'s calendar table (line ~430) is updated to reflect the above — A3 step 3 is
+substantively answered for *setup*, both app types. What's still genuinely untested: whether an
+actual provisioning *run* (past "Test connection," which is B2's real deliverable — deliberate
+failure injection against a live sync) hits a P1 gate that setup alone doesn't surface. No live
+third-party tenant exists in this lab to test that directly.
 
-**Not decided:** whether to (a) run one more quick capture — add a non-gallery custom SAML app
-and repeat the same SSO/provisioning attempt, closing the actual gap, before opening the trial, or
-(b) treat the gallery result as good enough signal and default B2 to running outside the trial
-window (the safer assumption if the non-gallery case turns out to need P1 after all), or (c) some
-other call Raymond wants to make himself. Genuinely his to decide, not inferred.
+**Not decided:** whether to (a) run B2 outside the trial window on the strength of today's setup
+results, accepting the residual risk that the live-sync step might need P1 after all and force a
+rerun inside a trial later, or (b) keep B2 inside the trial as a safety margin despite today's
+evidence, since a 30-day trial with no second chance (per the calendar's own fixed constraint) is
+an expensive place to discover the answer is "needs P1" too late. Genuinely Raymond's call.
 
 ## Decision owed before Phase B starts
 
@@ -183,7 +184,6 @@ other call Raymond wants to make himself. Genuinely his to decide, not inferred.
 
 ## Next exercise
 
-**Depends on the decision above.** Either close the non-gallery SAML/SCIM gap first (quick, no
-license, same Graph Explorer/admin-center pattern as A3), or — if Raymond decides gallery-app
-evidence is sufficient — open the P1/P2 trial and start **B1** (Conditional Access, report-only to
-enforced) per `CURRICULUM.md`. Not yet chosen.
+**A3 is done, including the non-gallery follow-up.** Next is opening the P1/P2 trial and starting
+**B1** (Conditional Access, report-only to enforced) per `CURRICULUM.md` — gated only on the B2
+placement decision above, which doesn't block B1 itself starting.

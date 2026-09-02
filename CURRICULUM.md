@@ -214,12 +214,17 @@ the right order. It needs no license of its own and produces a genuinely differe
    what it cannot express — the inability to scope, exclude, or stage is exactly why organizations
    move to Conditional Access, and being able to articulate that from the Free side is a better
    answer than reciting CA features.
-3. **Resolve the SAML/SCIM licensing question before Phase B.** My understanding — **Recalled,
+3. **Resolve the SAML/SCIM licensing question before Phase B.** ~~My understanding — **Recalled,
    not verified** — is that SCIM automatic user provisioning requires P1, and that SAML SSO for
-   non-gallery apps does too, while some gallery apps offer basic SSO on Free. Do not plan
-   around my recollection. Attempt one gallery-app SAML config and one SCIM provisioning setup on
-   Free and capture what happens. The answer determines whether Exercise B2 has to live inside the
-   trial window or can run outside it — which is worth a real capture, not a guess.
+   non-gallery apps does too, while some gallery apps offer basic SSO on Free.~~ **Retracted
+   2026-09-02, tested directly, not just superseded:** neither claim held. Federated SAML SSO
+   configures and saves cleanly on Free for both a gallery app (Salesforce) and a fully custom
+   non-gallery app, each confirmed live at the `servicePrincipal` object level with a real
+   auto-generated signing certificate. SCIM provisioning setup likewise hits no license gate for
+   either app type through the "Test connection" step — the only wall hit, both times, was this
+   lab having no real third-party tenant to connect to, not a Microsoft licensing refusal. Whether
+   an actual provisioning *run* past that point would hit a gate is still genuinely untested. Full
+   account in `exercises/2026-09-02-a3-entra-free-ceiling/report.md`.
 4. Write the licensing decision up as a recommendation: what a 100-user org actually needs to buy
    to enforce the controls the Skechers req names, and what it gets for free.
 
@@ -287,8 +292,13 @@ different hypotheses. Split them if the telemetry phase produces anything substa
 **Hypothesis:** an end-to-end SSO and provisioning flow can be built and then deliberately broken
 in ways that produce distinguishable, diagnosable failures.
 
-**Placement depends on A3 step 3.** If SCIM turns out to need P1, this runs inside the trial and
-should come before B3. If Free covers it, pull it out of the window entirely and run it in Phase A.
+**Placement, updated 2026-09-02 per A3's result:** SAML SSO and SCIM provisioning *setup* need no
+license for either a gallery or non-gallery app, tested directly both ways — genuine grounds to
+run this outside the trial window. The one thing A3 could not test is whether an actual
+provisioning *run* (this exercise's real deliverable — deliberate failure injection against a
+live sync) hits a gate that setup alone doesn't. Raymond's call whether that residual risk is
+worth still keeping B2 inside the trial as a safety margin, or running it in Phase A on the
+strength of what's already confirmed — see `CARRYOVER.md`.
 
 **What you do:** substantially as the original plan had it — the technical content there was
 sound. Two changes:
