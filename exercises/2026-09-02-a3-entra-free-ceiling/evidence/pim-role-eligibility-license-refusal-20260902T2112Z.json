@@ -1,0 +1,22 @@
+GET https://graph.microsoft.com/v1.0/roleManagement/directory/roleEligibilityScheduleRequests
+Host: Graph Explorer, signed in as breakglass@raytakosharkygmail.onmicrosoft.com
+UTC timestamp: 2026-09-02T21:12:56Z
+
+400 Bad Request:
+{
+    "error": {
+        "code": "AadPremiumLicenseRequired",
+        "message": "The tenant needs to have Microsoft Entra ID P2 or Microsoft Entra ID Governance license.",
+        "innerError": {
+            "date": "2026-09-02T21:12:56",
+            "request-id": "271abda8-5f8e-4793-9b4a-2b210657f980",
+            "client-request-id": "9d73f995-a094-1ca8-f2d4-1cd9dbcaaf12"
+        }
+    }
+}
+
+Third distinct refusal shape captured this exercise:
+- riskyUsers:            403 Forbidden    / code "Forbidden"     / generic message
+- conditionalAccess POST: 403 Forbidden   / code "AccessDenied"  / generic + upgrade nudge
+- PIM roleEligibility:    400 Bad Request / code "AadPremiumLicenseRequired" / names exact licenses
+No consistent HTTP status or error code across these three premium-feature refusals.

@@ -1,8 +1,8 @@
 # Carryover
 
-Open items only, as of **2026-09-02**, at the close of two exercises —
-`exercises/2026-09-02-dc01-eval-license-status` and
-`exercises/2026-09-02-a2-gpo-surface-and-domain-root-link`. Overwritten at each session close per
+Open items only, as of **2026-09-02**, at the close of three exercises —
+`exercises/2026-09-02-dc01-eval-license-status`, `exercises/2026-09-02-a2-gpo-surface-and-domain-root-link`,
+and `exercises/2026-09-02-a3-entra-free-ceiling`. Overwritten at each session close per
 `.claude/skills/tech-compass/SKILL.md` — resolved work lives in `report.md` files,
 `evidence-log.md` files, and `verified-claims.md`, not here.
 
@@ -128,6 +128,36 @@ before/after the exercise asked for.
   real narrative rework, not mechanical cut-and-paste. Drop step 14 / consultation point 10
   (GitHub setup) when this happens — now lives in `README.md`.
 
+## A3 done: the Entra ID Free ceiling, measured
+
+Full report in `exercises/2026-09-02-a3-entra-free-ceiling/report.md`. Captured, with real error
+bodies, that Entra Free refuses Conditional Access (write only — read is open), PIM, and Identity
+Protection, each with a *different* HTTP status/error-code shape (403/`Forbidden`,
+403/`AccessDenied`, 400/`AadPremiumLicenseRequired` respectively). Security Defaults confirmed
+enabled tenant-wide with no scoping property on the object at all.
+
+**Genuine surprise: gallery-app federated SAML SSO and SCIM provisioning *setup* hit no Free-tier
+gate.** Tested against Salesforce from the gallery — SAML saved cleanly with a real live signing
+cert; SCIM's admin-credentials screen showed no upsell, and "Test connection" failed on
+Salesforce's own invalid-credentials check, not an Entra refusal. This corrects the plan's working
+assumption, but only partly — that assumption (`CURRICULUM.md` step 3) was specifically about
+**non-gallery** custom SAML/SCIM apps, which this exercise did not test at all.
+
+## Decision owed: is A3 step 3 answered enough to open the trial?
+
+`CURRICULUM.md`'s calendar table gates opening the P1/P2 trial on "A3 step 3 has answered the
+SAML/SCIM licensing question" — see line ~430, now marked **PARTIALLY DONE**. What's actually
+known: gallery apps are free for both SSO and provisioning setup. What's still unknown: whether a
+**non-gallery** custom app (the case the original plan's Recalled note was actually about) hits a
+P1 wall that the gallery template's pre-built connector skips. This changes whether B2 (SAML/SCIM
+against one application) sits inside or outside the 30-day trial window.
+
+**Not decided:** whether to (a) run one more quick capture — add a non-gallery custom SAML app
+and repeat the same SSO/provisioning attempt, closing the actual gap, before opening the trial, or
+(b) treat the gallery result as good enough signal and default B2 to running outside the trial
+window (the safer assumption if the non-gallery case turns out to need P1 after all), or (c) some
+other call Raymond wants to make himself. Genuinely his to decide, not inferred.
+
 ## Decision owed before Phase B starts
 
 - **The published break-glass account**, `breakglass@raytakosharkygmail.onmicrosoft.com` —
@@ -153,5 +183,7 @@ before/after the exercise asked for.
 
 ## Next exercise
 
-**A3 — the Entra ID Free ceiling, measured.** Per `CURRICULUM.md`. Needs no license, no new VM,
-same as A1/A2.
+**Depends on the decision above.** Either close the non-gallery SAML/SCIM gap first (quick, no
+license, same Graph Explorer/admin-center pattern as A3), or — if Raymond decides gallery-app
+evidence is sufficient — open the P1/P2 trial and start **B1** (Conditional Access, report-only to
+enforced) per `CURRICULUM.md`. Not yet chosen.

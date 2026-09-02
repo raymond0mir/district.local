@@ -1,0 +1,31 @@
+Portal flow (Recalled — screenshots only, not machine output):
+Same Salesforce enterprise app. Provisioning > Get started > New provisioning configuration.
+"Admin credentials" form appeared directly — no licensing/upsell message, no gate before this
+point. Entered junk values (username "test", password/secret token masked, Tenant URL
+"https://test.my.salesforce.com") and clicked "Test connection."
+
+Result:
+  Error code: InvalidCredentials
+  Error details: "Your Salesforce.com credentials are invalid. Please provide a current
+  Salesforce.com administrative user name, password and security token"
+
+This is Salesforce's own API rejecting fake credentials, not an Entra licensing refusal — the
+wall hit here is "no real Salesforce tenant to test against," not a Free-tier gate.
+
+Follow-up Graph capture (Captured):
+GET https://graph.microsoft.com/v1.0/servicePrincipals/0234a7ac-df3e-4941-8c80-d039fb7053ff/synchronization/jobs
+Host: Graph Explorer, signed in as breakglass@raytakosharkygmail.onmicrosoft.com
+UTC timestamp: 2026-09-02T21:2xZ
+
+200 OK:
+{
+  "@odata.context": "https://graph.microsoft.com/v1.0/$metadata#servicePrincipals('0234a7ac-df3e-4941-8c80-d039fb7053ff')/synchronization/jobs",
+  "value": []
+}
+
+Finding: no synchronization job object was created — the provisioning wizard never gets past the
+"Test connection" step without a valid target-app credential, so whether Entra Free would block
+job creation or an actual sync run further downstream is genuinely untested, not confirmed
+either way. What IS confirmed: no license gate appears before or during the admin-credentials
+step. This is a genuine limit of what this lab can test without a real third-party SaaS tenant to
+provision into, not a licensing finding — record it as an open question, not a result.

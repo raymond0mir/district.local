@@ -1,0 +1,21 @@
+GET https://graph.microsoft.com/v1.0/identityProtection/riskyUsers
+Host: Graph Explorer, signed in as breakglass@raytakosharkygmail.onmicrosoft.com
+UTC timestamp: 2026-09-02T21:09:35Z
+
+403 Forbidden:
+{
+    "error": {
+        "code": "Forbidden",
+        "message": "Your tenant is not licensed for this feature.",
+        "innerError": {
+            "date": "2026-09-02T21:09:35",
+            "request-id": "1732552e-36a8-4f8a-be01-08f41793860c",
+            "client-request-id": "e96ce90a-8b25-5d57-9177-e038ac03a9d4"
+        }
+    }
+}
+
+Distinct error shape from the consent-scope 403s seen on other queries this session
+(code "AccessDenied", message "required scopes are missing in the token") — this one is a clean,
+unambiguous license-tier refusal: code "Forbidden", message states the licensing reason directly.
+Identity Protection (riskyUsers) requires Entra ID P2; this tenant is Free.

@@ -1,0 +1,13 @@
+GET https://graph.microsoft.com/v1.0/identity/conditionalAccess/policies
+Host: Graph Explorer, signed in as breakglass@raytakosharkygmail.onmicrosoft.com
+UTC timestamp: 2026-09-02T21:11Z (approx, per message order)
+
+200 OK:
+{
+    "@odata.context": "https://graph.microsoft.com/v1.0/$metadata#identity/conditionalAccess/policies",
+    "@microsoft.graph.tips": "Use $select to choose only the properties your app needs, as this can lead to performance improvements. For example: GET identity/conditionalAccess/policies?$select=conditions,createdDateTime",
+    "value": []
+}
+
+Reading the (empty) CA policies collection is not blocked on Free — no licensing refusal on this
+GET, unlike identityProtection/riskyUsers. Whether create/write is blocked is the next query.

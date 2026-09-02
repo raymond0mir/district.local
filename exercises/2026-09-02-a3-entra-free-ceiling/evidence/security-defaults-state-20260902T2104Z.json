@@ -1,0 +1,32 @@
+GET https://graph.microsoft.com/v1.0/policies/identitySecurityDefaultsEnforcementPolicy
+Host: Graph Explorer, signed in as breakglass@raytakosharkygmail.onmicrosoft.com
+UTC timestamp: 2026-09-02T21:04Z (first attempt) / re-run after sign-out/sign-in token refresh
+
+First attempt — 403 Forbidden:
+{
+    "error": {
+        "code": "AccessDenied",
+        "message": "You cannot perform the requested operation, required scopes are missing in the token.",
+        "innerError": {
+            "date": "2026-09-02T21:04:54",
+            "request-id": "941739a6-a2fa-496c-b7ba-1f8bbbe3fb04",
+            "client-request-id": "7748749c-c67d-07eb-01fe-11d7d28dac75"
+        }
+    }
+}
+
+Modify Permissions tab showed Policy.Read.All and Policy.ReadWrite.SecurityDefaults both already
+in "Unconsent" state (i.e. already tenant-consented) despite the 403 — a stale session token, not
+a real missing-consent gap. Fixed by signing out of Graph Explorer and back in as breakglass.
+
+Retry after sign-out/sign-in — 200 OK:
+{
+    "@odata.context": "https://graph.microsoft.com/v1.0/$metadata#policies/identitySecurityDefaultsEnforcementPolicy/$entity",
+    "@microsoft.graph.tips": "Use $select to choose only the properties your app needs, as this can lead to performance improvements. For example: GET policies/identitySecurityDefaultsEnforcementPolicy?$select=isEnabled,description",
+    "id": "00000000-0000-0000-0000-000000000005",
+    "displayName": "Security Defaults",
+    "description": "Security defaults is a set of basic identity security mechanisms recommended by Microsoft. When enabled, these recommendations will be automatically enforced in your organization. Administrators and users will be better protected from common identity related attacks.",
+    "isEnabled": true,
+    "controlTypes": [],
+    "securityDefaultsUpsell": null
+}

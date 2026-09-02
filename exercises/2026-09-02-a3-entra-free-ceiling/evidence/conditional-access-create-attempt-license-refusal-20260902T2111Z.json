@@ -1,0 +1,36 @@
+POST https://graph.microsoft.com/v1.0/identity/conditionalAccess/policies
+Host: Graph Explorer, signed in as breakglass@raytakosharkygmail.onmicrosoft.com
+UTC timestamp: 2026-09-02T21:11:39Z
+
+Request body:
+{
+  "displayName": "A3-test-policy-DO-NOT-ENABLE",
+  "state": "disabled",
+  "conditions": {
+    "applications": { "includeApplications": ["All"] },
+    "users": { "includeUsers": ["None"] }
+  },
+  "grantControls": {
+    "operator": "OR",
+    "builtInControls": ["mfa"]
+  }
+}
+
+403 Forbidden:
+{
+    "error": {
+        "code": "AccessDenied",
+        "message": "Your tenant is not licensed for this feature. Please upgrade your subscription to access it.",
+        "innerError": {
+            "date": "2026-09-02T21:11:39",
+            "request-id": "2e23abc4-3027-4fc7-8f56-a2b8ce53d0b0",
+            "client-request-id": "cab3fd9b-539f-a82d-9745-6661ac6826ae"
+        }
+    }
+}
+
+Confirms an asymmetry: GET on the (empty) conditionalAccess/policies collection succeeds (200,
+see conditional-access-list-empty-20260902T2111Z.json) but POST to create a policy is refused on
+licensing grounds, regardless of the policy body content (this one was built inert: state
+"disabled", includeUsers "None" — refused before that mattered). Conditional Access requires
+Entra ID P1; this tenant is Free.

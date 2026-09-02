@@ -427,7 +427,7 @@ What's fixed, and what floats:
 | Fixed | Why |
 |---|---|
 | ~~A1 before anything that builds or installs~~ **DONE 2026-09-02** | Was 91.06% `Data%` vs an 85% gate; now 70.86%. `VFree` still 2.00 GiB and structurally unfixable without new hardware |
-| A3 step 3 before the trial opens | It decides whether B2 is inside or outside the window |
+| ~~A3 step 3 before the trial opens~~ **PARTIALLY DONE 2026-09-02** | Gallery-app SAML and SCIM setup both hit no Free-tier gate — but the original claim was about *non-gallery* apps, untested. See `CARRYOVER.md` for the still-open decision on B2's placement |
 | B1 → B2 → B3 contiguous | One 30-day trial, no second chance |
 | `svc-entraconnect` rotated before ~2026-10-13 | Live sync; opaque failure mode |
 | C1 after the trial | Doesn't need it |

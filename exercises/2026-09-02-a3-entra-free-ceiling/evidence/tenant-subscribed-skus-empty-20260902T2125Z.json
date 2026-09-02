@@ -1,0 +1,17 @@
+GET https://graph.microsoft.com/v1.0/subscribedSkus
+Host: Graph Explorer, signed in as breakglass@raytakosharkygmail.onmicrosoft.com
+UTC timestamp: 2026-09-02T2125Z (approx, per message order)
+
+200 OK:
+{
+    "@odata.context": "https://graph.microsoft.com/v1.0/$metadata#subscribedSkus",
+    "@microsoft.graph.tips": "Use $select to choose only the properties your app needs, as this can lead to performance improvements. For example: GET subscribedSkus?$select=accountId,accountName",
+    "value": []
+}
+
+No subscribed SKUs at all — consistent with an unlicensed/Entra ID Free tenant (Free has no
+assignable license SKU; it's the unlicensed default, not something that appears in this
+collection). This is an absence-of-evidence signal, not a direct "tenant tier: Free" label from
+Graph — stated that precisely rather than overclaimed. Combined with every refusal captured this
+exercise naming specific premium licenses (P1/P2/Governance) that this tenant plainly does not
+have, it corroborates the Free-tier premise the whole exercise rests on.

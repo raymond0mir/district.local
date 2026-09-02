@@ -1,0 +1,45 @@
+Portal flow (Recalled — screenshots only, not machine output):
+Entra admin center, signed in as breakglass@raytakosharkygmail.onmicrosoft.com.
+Enterprise applications > New application > gallery search "Salesforce" > Create.
+Single sign-on > SAML > Basic SAML Configuration > Edit > filled placeholder values:
+  Identifier:  https://a3test.district.local/saml
+  Reply URL:   https://a3test.district.local/saml/acs
+  Sign on URL: https://a3test.district.local/login
+Clicked Save. Result: success, no licensing error, no upsell shown at any step.
+
+Follow-up Graph capture (Captured — this is what actually confirms the state):
+GET https://graph.microsoft.com/v1.0/servicePrincipals?$filter=displayName eq 'Salesforce'
+Host: Graph Explorer, signed in as breakglass@raytakosharkygmail.onmicrosoft.com
+UTC timestamp: 2026-09-02T21:2xZ (queried shortly after the portal save)
+
+200 OK (relevant fields only, full response is long):
+{
+  "id": "0234a7ac-df3e-4941-8c80-d039fb7053ff",
+  "appDisplayName": "Salesforce",
+  "preferredSingleSignOnMode": "saml",
+  "loginUrl": "https://a3test.district.local/login",
+  "replyUrls": ["https://a3test.district.local/saml/acs"],
+  "servicePrincipalNames": [
+    "https://a3test.district.local/saml",
+    "c1f11389-d107-4472-a2c5-bfa98a6d50b2"
+  ],
+  "samlSingleSignOnSettings": { "relayState": "" },
+  "keyCredentials": [
+    {
+      "displayName": "CN=Microsoft Azure Federated SSO Certificate",
+      "type": "AsymmetricX509Cert",
+      "usage": "Sign",
+      "startDateTime": "2026-09-02T21:20:16Z",
+      "endDateTime": "2029-09-02T21:20:15Z"
+    }
+  ]
+}
+
+Finding: federated SAML SSO for a gallery app (Salesforce) configures and saves cleanly on
+Entra ID Free, with a real auto-generated signing certificate and a live servicePrincipal object
+reflecting preferredSingleSignOnMode: "saml". No license refusal encountered at any point in this
+flow — contrary to CURRICULUM.md's Recalled assumption that "SAML SSO for non-gallery apps"
+requires P1 (that assumption was specifically about non-gallery apps, and is not contradicted by
+this result, but the broader intuition that SAML SSO generally needs a premium tier is). This
+matches Microsoft's documented Free-tier allowance of federated SSO for a limited number of
+gallery apps, now demonstrated directly rather than read off a comparison table.
