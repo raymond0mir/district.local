@@ -122,8 +122,11 @@ left intact rather than half-replaced. Bounded — the admin panel is reachable 
 tunnel to a lab-internal container, and vault items are encrypted client-side under a master
 password this token does not grant — but it is an unhardened admin credential guarding a secrets
 store. Hash it interactively, or remove the token and disable the admin panel entirely, which for
-a single-user instance is arguably better. *Evidence:*
-`exercises/2026-09-03-vaultwarden-secrets-store/evidence/06-backup-and-verified-restore.md`.
+a single-user instance is arguably better. **A copy of the token now also lives inside the vault
+itself, 2026-09-03 — this does not change the on-disk exposure**, since the file was read, not
+edited, this exercise. *Evidence:*
+`exercises/2026-09-03-vaultwarden-secrets-store/evidence/06-backup-and-verified-restore.md`,
+`exercises/2026-09-03-vaultwarden-credential-migration/evidence/02-cipher-count-verification.txt`.
 
 **Container 103 runs with AppArmor confinement disabled.** `lxc.apparmor.profile: unconfined` was
 needed to start Docker's containers inside an unprivileged LXC — `nesting=1,keyctl=1` alone is not

@@ -1,0 +1,9 @@
+Command: date -u; pct exec 103 -- sqlite3 /var/lib/docker/volumes/vw-data/_data/db.sqlite3 "SELECT COUNT(*) FROM ciphers;"; pct exec 103 -- sqlite3 /var/lib/docker/volumes/vw-data/_data/db.sqlite3 "SELECT type, COUNT(*) FROM ciphers GROUP BY type;"
+Host: Proxmox console (pct exec into container 103)
+UTC timestamp: 2026-09-03 23:39:10
+
+Thu Sep  3 11:39:10 PM UTC 2026
+3
+Error: in prepare, no such column: type
+  SELECT type, COUNT(*) FROM ciphers GROUP BY type;
+         ^--- error here
