@@ -1,8 +1,8 @@
 # Carryover
 
-Open items only, as of **2026-09-02**, at the close of four exercises today —
-`exercises/2026-09-02-dc01-eval-license-status`, `exercises/2026-09-02-a2-gpo-surface-and-domain-root-link`,
-and `exercises/2026-09-02-a3-entra-free-ceiling` (plus its same-day non-gallery follow-up).
+Open items only, as of **2026-09-03**, at the close of two exercises that day —
+`exercises/2026-09-03-breakglass-rotation` and `exercises/2026-09-03-vaultwarden-secrets-store`.
+Items below carried forward from 2026-09-02's four exercises remain open unless marked otherwise.
 Overwritten at each session close per `.claude/skills/tech-compass/SKILL.md` — resolved work
 lives in `report.md` files, `evidence-log.md` files, and `verified-claims.md`, not here.
 
@@ -47,7 +47,7 @@ carried over from its counterpart.
 **Every capture block should self-timestamp** with `date -u` on the host; snapshot names and
 exercise directories should be derived the same way (the host runs America/Los_Angeles).
 
-**Git state at close:** commit `24c29d3` on `main`, pushed to
+**Git state at close:** commit `b1b41d7` on `main`, pushed to
 `git@github.com:raymond0mir/district.local.git`, working tree clean. Push key is
 `~/.ssh/id_ed25519_github`. Run a credential scan before any commit — a literal password reached
 report prose once, on 2026-08-31.
@@ -233,7 +233,17 @@ B1 can now safely make the new account load-bearing for Conditional Access.
 
 ## Next exercise
 
-**A3 is done, including the non-gallery follow-up.** Next is opening the P1/P2 trial and starting
-**B1** (Conditional Access, report-only to enforced) per `CURRICULUM.md` — gated only on the B2
-placement decision above, which doesn't block B1 itself starting. Consider the break-glass
-rotation decision before B1 makes that account load-bearing.
+**B1 is unblocked.** The break-glass rotation that gated it is done — the account B1 would make
+load-bearing for Conditional Access is now a native, unpublished, verified one. Next is opening
+the P1/P2 trial and starting **B1** (Conditional Access, report-only to enforced) per
+`CURRICULUM.md`. The B2 placement decision above is still owed but does not block B1 starting.
+
+**Three things worth doing before or alongside B1, in rough priority order:**
+
+1. **Move real credentials into Vaultwarden.** It was built for exactly this and is still empty —
+   the new break-glass password, `svc-entraconnect`'s, and the vault's own admin token all live
+   outside it. Until that happens, 09-03's two exercises aren't actually connected to each other.
+2. **DC01's license runway ends ~2026-09-12.** Rearm again (4 left after that), activate, or
+   rebuild — the decision has been deferred three times now and the window is under two weeks.
+3. **Harden or remove Vaultwarden's `ADMIN_TOKEN`** — see `EXPOSURES.md`; it needs an interactive
+   `vaultwarden hash`, or delete the token and drop the admin panel entirely.
