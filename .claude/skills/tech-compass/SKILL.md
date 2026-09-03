@@ -122,6 +122,7 @@ Apply these rules to every output: chat replies, command blocks, evidence-logs, 
 - Use imperative verbs for steps.
 - Limit noun clusters to three nouns.
 - Write lists as single-action steps.
+- Use a bullet list instead of a sentence joined by semicolons.
 - Omit greetings, polite phrasing, and closing summaries.
 - Use the defined terms above. Do not substitute synonyms.
 
