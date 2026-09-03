@@ -183,6 +183,14 @@ full analysis in `exercises/2026-09-02-dc01-eval-license-status/report.md`.
 
 ## Recently closed (for contrast, not action)
 
+- **The published break-glass account (`breakglass@raytakosharkygmail.onmicrosoft.com`), and two
+  more Global Administrators nobody had accounted for, all rotated out 2026-09-03.** A new native
+  break-glass account now holds Global Administrator, its identity deliberately kept out of every
+  published artifact. Reading the full role-membership list to confirm its assignment surfaced
+  `labadmin` and a guest `#EXT#` account (`R M`) — both inherited from the October 2025 baseline,
+  neither previously documented anywhere in this repo. All three legacy admins are de-privileged
+  and disabled (objects retained). Full account, including the naming near-miss caught mid-exercise
+  and the consult points with Raymond, in `exercises/2026-09-03-breakglass-rotation/report.md`.
 - `bhound` — an enabled BloodHound-capstone throwaway holding a live shadow-credentials path via
   Key Admins — was disabled and removed from the group, 2026-09-01.
 - A second, forgotten instance of the `OneShotDelegation` scheduled task on VM 102 was found

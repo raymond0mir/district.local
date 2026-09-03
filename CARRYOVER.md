@@ -175,13 +175,25 @@ too late. Genuinely Raymond's call.
   (GitHub setup) when this happens — now lives in `README.md`.
 - **The two A3 test enterprise app objects** — see above, revisit best practice next session.
 
-## Decision owed before Phase B starts
+## Resolved 2026-09-03: break-glass rotation, plus a bigger finding than planned
 
-- **The published break-glass account**, `breakglass@raytakosharkygmail.onmicrosoft.com` —
-  captured deliberately as evidence across several reports, not a leak, but `CURRICULUM.md`
-  exercise B1 would make it load-bearing for Conditional Access. **Rotate the identity
-  (recommended)**, create and verify the replacement before touching the published one. Not yet
-  decided or executed.
+`breakglass@raytakosharkygmail.onmicrosoft.com` is rotated out. A new native, cloud-only Global
+Administrator exists in its place — **its UPN and display name are deliberately not written
+anywhere in this repo**, including in this file; that's a decision Raymond made this session, not
+an oversight. Verified from its own signed-in session (not just from another admin's view): holds
+Global Administrator per `/me/memberOf`, and proved it by creating and deleting a real user object.
+
+**The rotation surfaced two more Global Administrators nobody currently working on this lab had
+accounted for**, found while reading the full role-membership list (a step the plan already
+needed for an unrelated reason): `labadmin@raytakosharkygmail.onmicrosoft.com` and a guest
+`#EXT#` account (`R M`). Raymond confirmed both predate these sessions — inherited from the
+October 2025 paired-build baseline. Consulted before touching either; both are now de-privileged
+and sign-in-disabled, same as `breakglass` itself. **Exactly one Global Administrator remains in
+the tenant.** Full account, including a naming near-miss caught mid-exercise (a validation error
+pushed toward falling back to an obvious `emergencyaccess2@...` name, caught and renamed before
+any role was attached), in `exercises/2026-09-03-breakglass-rotation/report.md`.
+
+B1 can now safely make the new account load-bearing for Conditional Access.
 
 ## Still open from before this session
 
