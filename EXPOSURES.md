@@ -105,10 +105,47 @@ recovery: a drive failure takes both. *Evidence:*
 `exercises/2026-09-02-thin-pool-headroom-reclaim/evidence/storage-config-iso-inventory-vm105-config-20260902T1551Z.txt`,
 `exercises/2026-09-02-thin-pool-headroom-reclaim/evidence/vzdump-vm105-to-local-verified-20260902T1555Z.txt`.
 
-**The restore path has never been verified.** The one archive that exists passed `zstd -t`
-(exit 0, decompressed 27.13 GiB), which proves the file is not corrupt. It does not prove a
-restore produces a bootable VM. There is now 21.95 GiB of pool margin to test this in, and it was
-not tested. *Evidence:* `exercises/2026-09-02-thin-pool-headroom-reclaim/evidence/vzdump-vm105-to-local-verified-20260902T1555Z.txt`.
+**The restore path has never been verified *for any VM*.** The one VM archive that exists passed
+`zstd -t` (exit 0, decompressed 27.13 GiB), which proves the file is not corrupt. It does not prove
+a restore produces a bootable VM. There is now 21.95 GiB of pool margin to test this in, and it was
+not tested. **Partially addressed 2026-09-03, but only outside the VM estate:** the Vaultwarden
+container's backup *was* restore-verified three ways (integrity check, expected row count, and a
+throwaway instance booting on the restored data), so the technique is now demonstrated in this lab
+— it simply has never been applied to a VM. *Evidence:*
+`exercises/2026-09-02-thin-pool-headroom-reclaim/evidence/vzdump-vm105-to-local-verified-20260902T1555Z.txt`,
+`exercises/2026-09-03-vaultwarden-secrets-store/evidence/06-backup-and-verified-restore.md`.
+
+**Vaultwarden's `ADMIN_TOKEN` is plain text** in `/root/vaultwarden.env` inside container 103;
+Vaultwarden flags this at every startup and wants an Argon2 PHC string. The 2026-09-03 hashing
+attempt failed because `vaultwarden hash` will not read a piped password, and the plain value was
+left intact rather than half-replaced. Bounded — the admin panel is reachable only through an SSH
+tunnel to a lab-internal container, and vault items are encrypted client-side under a master
+password this token does not grant — but it is an unhardened admin credential guarding a secrets
+store. Hash it interactively, or remove the token and disable the admin panel entirely, which for
+a single-user instance is arguably better. *Evidence:*
+`exercises/2026-09-03-vaultwarden-secrets-store/evidence/06-backup-and-verified-restore.md`.
+
+**Container 103 runs with AppArmor confinement disabled.** `lxc.apparmor.profile: unconfined` was
+needed to start Docker's containers inside an unprivileged LXC — `nesting=1,keyctl=1` alone is not
+enough, and Proxmox warns the setting *overrides* nesting rather than supplementing it. Still
+UID-mapped, so not host root, but it is the lab's only guest without AppArmor and it holds the
+secrets store. Whether a narrower profile would work was never investigated. *Evidence:*
+`exercises/2026-09-03-vaultwarden-secrets-store/evidence/02-docker-in-lxc-apparmor-block.md`.
+
+**The Vaultwarden backups share a disk with everything they protect**, and the schedule is
+unwitnessed. `/var/lib/vz/dump/vaultwarden` is on `pve-root` — same NVMe as the thin pool, the
+identical limitation recorded above for the lab's other archive, so one drive failure takes the
+vault and its backups together. The reasoned fix (copy to the spare USB stick) is unimplemented.
+The daily 03:00 cron entry exists but has never been observed firing;
+`/var/log/vaultwarden-backup.log` is the check. *Evidence:*
+`exercises/2026-09-03-vaultwarden-secrets-store/evidence/06-backup-and-verified-restore.md`.
+
+**The host's new `vmbr1` address is persisted but unproven.** `10.0.0.5/24` was added at runtime
+and written to `/etc/network/interfaces`, but `ifreload` was skipped with VM 100 and pfSense live.
+If the stanza is wrong, the first symptom is Vaultwarden unreachable after the next host reboot.
+Note the topology change too: the host is now a layer-3 participant on the lab subnet, so pfSense
+is no longer the only path between host side and lab side. *Evidence:*
+`exercises/2026-09-03-vaultwarden-secrets-store/evidence/04-host-had-no-route-to-its-own-lab-subnet.md`.
 
 **VM 104 (pfSense) still has zero snapshots**, after all three were pruned during the 08-31
 thin-pool crisis response. If a firewall change goes wrong there is no rollback point for the

@@ -151,6 +151,27 @@ too late. Genuinely Raymond's call.
 
 ---
 
+## Also done 2026-09-03: a self-hosted secrets store, and the first verified restore
+
+Vaultwarden 1.37.2 in Docker inside **LXC container 103** (Debian 12, unprivileged,
+`10.0.0.20/24` on `vmbr1`) behind a Caddy TLS reverse proxy — **the lab's first container**, every
+prior guest being a full VM. Access: `ssh -L 8443:10.0.0.20:443 root@192.168.1.100` then
+`https://localhost:8443`, one-time trust exception for Caddy's internal CA. No standing inbound
+exposure. Signups closed. Backups daily 03:00 to `/var/lib/vz/dump/vaultwarden`, and **the restore
+was actually verified** — integrity check, expected row count, and a throwaway instance booting on
+the restored data — a first for this lab.
+
+**Open on it, all detailed in `EXPOSURES.md`:** `ADMIN_TOKEN` still plain text (`vaultwarden hash`
+won't take a piped password); container 103 runs `lxc.apparmor.profile: unconfined`; backups share
+a disk with what they protect; cron never seen firing. **And nothing is stored in the vault yet** —
+the new break-glass password, `svc-entraconnect`'s, and the admin token all still live outside it.
+
+**Topology change to carry forward:** `vmbr1` had no host-side IPv4 address, so the host could not
+reach `10.0.0.0/24` at all. It now holds `10.0.0.5/24`, persisted but not `ifreload`-applied, so
+unproven until the next reboot. pfSense is no longer the sole path between host side and lab side.
+
+Full account in `exercises/2026-09-03-vaultwarden-secrets-store/report.md`.
+
 ## Immediate, still open from A1
 
 - **VM 102 is stopped and Entra Connect is not syncing.** `qm start 102` before anything
