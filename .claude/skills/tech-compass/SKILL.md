@@ -8,18 +8,24 @@ description: Capture lab evidence and write after-action reports for the distric
 Reports for district.local are portfolio work. Readers use them to decide whether Raymond can do identity engineering. An unverified claim in a report is worse than no report. It invites an interview question with no answer.
 
 Canonical copy: `.claude/skills/tech-compass/SKILL.md` in the repo. If a plugin copy differs, the repo copy wins.
+Copy a changed `SKILL.md` or `references/` file to the plugin copy in the same session.
 
 ## Terms
 
 Use these words for these meanings. Do not substitute synonyms.
 
-- **Captured**: a file in `evidence/` backs the claim.
-- **Recalled**: a person remembers the claim. No file backs it.
+- **Captured**: a file in `evidence/` holds the machine output that backs the claim.
+- **Recalled**: no machine output backs the claim. A memory, a screenshot, and scrollback are each Recalled. A screenshot is a file, and it is still Recalled.
 - **Inherited**: the claim comes from the October 2025 build or its imported baseline. No file backs it.
 - **Confirmed**: a ledger row with a live evidence path.
-- **Retired**: a Confirmed row whose evidence file is gone or whose state changed.
+- **Retired**: a Confirmed row moved out of Confirmed, with the reason recorded. Four reasons apply:
+  - the evidence file is gone
+  - the state changed, and a newer row supersedes this one
+  - the claim was wrong when it was written
+  - the row miscited its evidence file
 - **Ledger**: `verified-claims.md` at the repo root.
 - **Carryover**: `CARRYOVER.md` at the repo root.
+- **Lab state**: the carryover block that holds VM inventory, VM state, and pool readings.
 - **Exposures**: `EXPOSURES.md` at the repo root.
 - **Host shell**: the Proxmox host shell, opened in the Proxmox web console.
 
@@ -58,9 +64,9 @@ lvs -a -o+data_percent,metadata_percent
 free -h
 ```
 
-If thin pool Data% is 85 or higher, prune snapshots before any state change. Record the readings in The setup.
+If thin pool Data% is 85 or higher, stop. Ask Raymond to name the snapshots to prune. Record the readings in The setup.
 
-**Live state.** Read carryover for VM inventory, VM state, and pool readings. Do not take state from this file or from memory.
+**Live state.** Read carryover's Lab state block for VM inventory, VM state, and pool readings. Do not take state from this file or from memory.
 
 **Snapshots.** Keep the `clean-install` baseline for each VM. Keep the last few distinct states for each VM. Retire an exercise's before/after snapshot after Raymond confirms the after-state. Run `qm delsnapshot` only after Raymond names the snapshot and says go.
 
@@ -77,7 +83,7 @@ exercises/YYYY-MM-DD-slug/
   report.md
 verified-claims.md  ledger
 EXPOSURES.md        open risks, each cited to an evidence file; doubles as the exercise queue
-CARRYOVER.md        open items only; overwritten at every close
+CARRYOVER.md        Lab state, open items, next steps; overwritten at every close
 CURRICULUM.md       exercise plan
 ```
 
@@ -101,6 +107,24 @@ Use these eight sections in this order. Include every section.
 
 Write one exercise per report. Two hypotheses make two reports. Keep repo chores out of exercise reports. A retrospective report says so in its first section.
 
+## Evidence-log structure
+
+Write `evidence-log.md` during the session, not at the close. It is the running record.
+
+Use these six sections in this order. Include every section.
+
+```
+# [Exercise name] — evidence log
+## Captured                      one entry per evidence file: what it proves, the file name
+## Not captured, and why         each claim the session could not capture; name the blocker
+## Where Raymond was consulted   the question, his decision, his reason; quote real exchanges
+## Corrections                   wrong statements caught in session, including Claude's own
+## Open questions                unresolved at close
+## Not started                   planned work the session did not reach
+```
+
+The evidence-log and the report share two sections. The evidence-log is the source. The report quotes it. When the two disagree, correct the report.
+
 ## Claims
 
 Label every factual claim while drafting: Captured, Recalled, or Inherited. Resolve every label before finishing. Check the ledger before you label a claim Inherited or Recalled.
@@ -108,7 +132,11 @@ Label every factual claim while drafting: Captured, Recalled, or Inherited. Reso
 - Recalled: re-run and capture, or move the claim to Open questions.
 - Inherited: re-run first. These claims carry the highest value.
 
-When a capture retires an Inherited claim, add a Confirmed row: claim, evidence file, exercise, date. When a Confirmed row's evidence file disappears or its state changes, move the row to Retired with the reason. Retract a wrong claim on the record, in the ledger and in the report. Never fix a wrong claim by silent edit. This includes Claude's own errors. State them in the evidence-log when caught.
+Add a Confirmed row for every Captured claim: claim, evidence file, exercise, date. This is the normal path. A capture that retires an Inherited or Recalled claim also adds a Confirmed row. Retire the old row in the same edit.
+
+Move a Confirmed row to Retired when any of the four reasons in Terms applies. Write the reason in the row.
+
+A retraction is a Retired row. Never fix a wrong claim by silent edit. Retract on the record, in the ledger and in the report. This includes Claude's own errors. State them in the evidence-log when caught.
 
 ## Output style
 
@@ -132,7 +160,7 @@ Apply these rules to every output: chat replies, command blocks, evidence-logs, 
 - Search the ledger by claim when you label a claim. Do not read the ledger whole.
 - Do not re-read a file that is already in context.
 - Start a new session for each exercise. Close the session after the report.
-- Keep carryover under 400 words. Carryover holds open items and next steps only. Resolved work lives in reports, evidence-logs, the ledger, and exposures.
+- Keep carryover under 400 words. Carryover holds one Lab state block, open items, and next steps. Resolved work lives in reports, evidence-logs, the ledger, and exposures.
 - Do not restate the capture contract in carryover, the README, or reports. Link to this file.
 - Put standing command gotchas in `references/gotchas.md`, not in carryover.
 
@@ -147,7 +175,7 @@ Apply these rules to every output: chat replies, command blocks, evidence-logs, 
 
 ## Portfolio rules
 
-- The repo is public. Run a credential scan before every commit. A literal password reached report prose on 2026-08-31.
+- The repo is public. Run the credential scan before every commit. Follow `references/credential-scan.md`. A literal password reached report prose on 2026-08-31.
 - Keep Raymond's personal situation out of every repo artifact: legal, medical, leave, benefits, salary, and money pressure. Express a real constraint as the lab fact it produces: a deadline, a license limit, a sequencing dependency.
 - Do not write the current tenant Global Administrator's name in any repo artifact. Raymond supplies it in session.
 - The permission-sprawl thesis leads the series: access provisioned by copying a named user, and standing grants nobody removes. Connect an exercise to it when the link is real. Do not force it.
@@ -157,10 +185,11 @@ Apply these rules to every output: chat replies, command blocks, evidence-logs, 
 
 ## Session close
 
-1. Write `evidence-log.md`.
+1. Finish `evidence-log.md`.
 2. Write `report.md`.
 3. Update the ledger.
 4. Update exposures.
-5. Overwrite carryover.
-6. Run the credential scan.
-7. Commit only when Raymond asks.
+5. Update `references/gotchas.md`. Add each new standing behavior. Correct each line the session disproved. Sync the plugin copy.
+6. Overwrite carryover.
+7. Run the credential scan. Follow `references/credential-scan.md`.
+8. Commit only when Raymond asks.

@@ -2,6 +2,8 @@
 
 Standing behaviors captured in past exercises. Read before the first command on DC01 or in the tenant. Each line is Captured unless marked Recalled. Source exercises are named.
 
+Write the condition that makes each line true. A behavior that depends on a license tier, a build, or a service state says so. Update this file at every session close.
+
 ## qm guest exec (DC01, VM 102)
 
 - No TTY. A prompt for input hangs until timeout and orphans a process on the guest. Found 2026-09-02.
@@ -20,7 +22,7 @@ Standing behaviors captured in past exercises. Read before the first command on 
 ## Graph Explorer and Entra
 
 - A stale session token returns 403 on a scope that is already consented. Modify Permissions shows "Unconsent". Sign out and sign in. Do not re-consent.
-- Sign-in logs are unavailable on Entra Free. `GET /me` as the user is the proven fallback.
+- Sign-in logs (`GET /auditLogs/signIns`) need a paid tier. On Entra Free the call returns `Authentication_RequestFromNonPremiumTenantOrB2CTenant`. The call works while the P2 trial runs. `GET /me` as the user is the proven fallback on Free. Source: `exercises/2026-09-02-entra-connect-upn-signin-test`.
 - The tenant's original Global Administrator is a Microsoft Account. Graph directory endpoints reject it. Use the current native Global Administrator, whose name Raymond supplies in session.
 
 ## Proxmox host
