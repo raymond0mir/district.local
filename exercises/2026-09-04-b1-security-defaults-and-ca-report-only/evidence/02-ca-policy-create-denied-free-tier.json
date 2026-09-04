@@ -1,0 +1,20 @@
+POST https://graph.microsoft.com/v1.0/identity/conditionalAccess/policies
+Host: Graph Explorer, signed in as the break-glass Global Administrator account
+UTC timestamp: 2026-09-04T02:31:54Z (from the response's own innerError.date)
+
+Request body: CA policy "B1 - Require MFA for all users (report-only)", state
+enabledForReportingButNotEnforced, includeUsers All / excludeUsers <break-glass object ID>,
+includeApplications All, grantControls mfa.
+
+Response body:
+{
+    "error": {
+        "code": "AccessDenied",
+        "message": "Your tenant is not licensed for this feature. Please upgrade your subscription to access it.",
+        "innerError": {
+            "date": "2026-09-04T02:31:54",
+            "request-id": "236282e0-1c55-4220-a6ab-e6833da84aec",
+            "client-request-id": "2976519d-c026-10ce-3b83-8ec5e15ec50c"
+        }
+    }
+}
