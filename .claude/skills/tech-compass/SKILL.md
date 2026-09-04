@@ -78,14 +78,23 @@ If thin pool Data% is 85 or higher, stop. Ask Raymond to name the snapshots to p
 
 ```
 exercises/YYYY-MM-DD-slug/
-  evidence/         one file per thread, named for what it proves
-  evidence-log.md   what was captured, what was not, and why
-  report.md
-verified-claims.md  ledger
-EXPOSURES.md        open risks, each cited to an evidence file; doubles as the exercise queue
-CARRYOVER.md        Lab state, open items, next steps; overwritten at every close
-CURRICULUM.md       exercise plan
+  evidence/           one file per thread, named for what it proves
+  evidence-log.md     the running record; see Evidence-log structure
+  report.md           the portfolio artifact; see Report structure
+verified-claims.md    ledger
+EXPOSURES.md          open risks, each cited to an evidence file; doubles as the exercise queue
+CARRYOVER.md          Lab state, open items, next steps; overwritten at every close
+CURRICULUM.md         exercise plan
+README.md             repo entry point, written for a public reader
+.gitignore            excludes local editor state
+.claude/skills/tech-compass/
+  SKILL.md            this file, the canonical copy
+  references/
+    gotchas.md          standing command behaviors
+    credential-scan.md  the pre-commit scan
 ```
+
+This block lists every tracked path. Update it when a path is added or removed.
 
 Derive the exercise date and snapshot names from `date -u`. The host clock runs America/Los_Angeles.
 
