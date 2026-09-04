@@ -1,0 +1,23 @@
+qm guest exec 100 --timeout 30 -- powershell.exe -NonInteractive -Command "Get-ADGroupMember -Identity 'Domain Admins' | ForEach-Object { Get-ADUser -Identity \$_.SamAccountName -Properties Enabled } | Select-Object SamAccountName,Enabled | ConvertTo-Json"
+Host: Proxmox host shell, guest exec against DC01 (VM 100)
+UTC timestamp: not captured — no `date -u` was run alongside this command, same gap noted in
+`dc01-sysadmin-deny-interactive-logon-secedit.txt`. Ran shortly before that capture, same session
+window, before 2026-09-04T00:29:37Z.
+
+Output:
+[
+    {
+        "SamAccountName":  "Administrator",
+        "Enabled":  false
+    },
+    {
+        "SamAccountName":  "sysadmin",
+        "Enabled":  true
+    }
+]
+
+Note: this contradicts Raymond's stated recollection in session that `sysadmin` was the disabled
+account. `Administrator` is the one disabled (matches the 2026-09-01 rotation already in the
+ledger). `sysadmin` is enabled and holds Domain Admins. Recalled-vs-Captured mismatch, not a real
+lockout at this step — the actual lockout cause is the separate deny-logon finding in
+`dc01-sysadmin-deny-interactive-logon-secedit.txt`.

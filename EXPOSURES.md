@@ -3,7 +3,7 @@
 A standing list of what's actually still wrong or open in `district.local`, built only from
 captured facts in `verified-claims.md` and the exercises' own evidence files — nothing here is
 inferred or remembered without a citation. Doubles as the queue for what the next exercise
-should be. Updated as of 2026-09-02; check `verified-claims.md` for anything more recent before
+should be. Updated as of 2026-09-04; check `verified-claims.md` for anything more recent before
 trusting a line here.
 
 ## Identity and access
@@ -39,6 +39,20 @@ membership. *Evidence:* `exercises/2026-08-31-dc01-constrained-admin-path/eviden
 surface on a domain controller. *Evidence:*
 `exercises/2026-09-01-entra-connect-connector-account/evidence/secure-admin-ws-scope-fix.json`
 (the RSoP count).
+
+**`SeDenyInteractiveLogonRight` on DC01 explicitly denies the entire Domain Admins group console
+logon.** Surfaced 2026-09-04 chasing an unrelated password-reset blocker: `sysadmin` holds Domain
+Admins and is enabled, yet console sign-in still failed with the generic "sign-in method isn't
+allowed" error. A `secedit /export /areas USER_RIGHTS` capture found the real cause — an explicit
+deny, which overrides `sysadmin`'s separate allow via `BUILTIN\Administrators` nesting. Likely
+sourced from `District Lockdown`, the same GPO named above as unread, but the exact source line is
+not yet confirmed — this finding narrows that gap without closing it. **Practical effect right
+now: no account can interactively log into DC01's console.** `Administrator` is separately
+disabled; every Domain Admins member is denied by this policy. `qm guest exec`, running as SYSTEM
+rather than an interactive logon, is unaffected and remains the only working administrative path
+to DC01. Not fixed — deferred to a future exercise, Raymond's call. *Evidence:*
+`exercises/2026-09-04-b1-conditional-access-report-only/evidence/dc01-sysadmin-deny-interactive-logon-secedit.txt`,
+`exercises/2026-09-04-b1-conditional-access-report-only/evidence/dc01-domain-admins-membership-enabled-status.txt`.
 
 **Resolved 2026-09-02 (A2).** `Secure Admin WS`'s domain-root link with the Deny-Apply exception is
 gone. Relinked to `OU=Workstations` and `OU=Servers/OU=Application Servers` (with VM 102 moved
@@ -81,6 +95,13 @@ hardware ceiling is 2x what is installed. *Evidence:*
 `exercises/2026-09-02-thin-pool-headroom-reclaim/evidence/destroy-vm105-pool-reclaimed-20260902T1607Z.txt`,
 `exercises/2026-09-02-thin-pool-headroom-reclaim/evidence/host-hardware-and-root-usage-20260902T1548Z.txt`,
 `exercises/2026-09-02-thin-pool-headroom-reclaim/evidence/vm102-shutdown-and-snapshot-names-20260902T1533Z.txt`.
+**Partially reduced 2026-09-04, not resolved:** VM 101 was dropped 4096→3072 MB and VM 102
+3072→2048 MB (routine sizing defaults, not a deliberate rebalancing exercise) while bringing both
+online for B1 setup. Commitment is now 10000+3072+2048+2048 = 17168 MB, roughly **16.77 GiB on a
+15 GiB host — still over by about 1.77 GiB**, down from 3.77 GiB. Available RAM was still as low
+as 1.2Gi with all four VMs running concurrently. The underlying problem (DC01's 10 GB allocation
+untested, no deliberate rebalancing) is unchanged. *Evidence:*
+`exercises/2026-09-04-b1-conditional-access-report-only/evidence-log.md`.
 
 **The volume group cannot be extended, and no amount of reclaim changes that.** `VFree` is
 2.00 GiB on the sole PV (`/dev/nvme0n1p3`, 237.47 GiB) and it did **not** move when 28.13 GiB was
@@ -245,3 +266,7 @@ full analysis in `exercises/2026-09-02-dc01-eval-license-status/report.md`.
   group, which is the wrong denominator for thin provisioning.
 - VM 101's purpose is no longer a Recalled claim — `qm list` names it **`win11-client01`**,
   a stopped Windows 11 client with a 64 GB boot disk.
+- VM 101's domain state is now Captured, closing the gap the line above left open. It is
+  Entra-joined (`trustType: AzureAd`, not hybrid) under `jsmith`, confirmed via Graph 2026-09-04,
+  with a real Windows Hello for Business method registered against the device automatically during
+  join. `exercises/2026-09-04-b1-conditional-access-report-only/evidence-log.md`.

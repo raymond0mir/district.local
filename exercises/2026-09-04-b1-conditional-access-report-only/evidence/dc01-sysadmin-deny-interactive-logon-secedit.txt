@@ -1,0 +1,20 @@
+qm guest exec 100 --timeout 30 -- powershell.exe -NonInteractive -Command 'Get-ADUser -Identity sysadmin -Properties SmartcardLogonRequired,userAccountControl,LockedOut,AccountExpirationDate | Select-Object SamAccountName,SmartcardLogonRequired,userAccountControl,LockedOut,AccountExpirationDate | ConvertTo-Json; secedit /export /areas USER_RIGHTS /cfg C:\Windows\Temp\secpol_check.cfg; Get-Content C:\Windows\Temp\secpol_check.cfg | Select-String 'SeInteractiveLogonRight|SeDenyInteractiveLogonRight'"
+Host: Proxmox host shell, guest exec against DC01 (VM 100)
+UTC timestamp: not captured — no `date -u` was run alongside this command, a process gap this
+session. Bounded approximately: before jsmith's on-prem password reset, itself before the Graph
+capture at 2026-09-04T00:29:37Z. Treat as "2026-09-04, shortly before 00:29Z," not exact.
+
+Output:
+{
+    "SamAccountName":  "sysadmin",
+    "SmartcardLogonRequired":  false,
+    "userAccountControl":  512,
+    "LockedOut":  false,
+    "AccountExpirationDate":  null
+}
+
+The task has completed successfully.
+See log %windir%\security\logs\scesrv.log for detail info.
+
+SeInteractiveLogonRight = *S-1-5-32-544,*S-1-5-32-549,*S-1-5-32-550,*S-1-5-32-551,*S-1-5-9
+SeDenyInteractiveLogonRight = Domain Admins

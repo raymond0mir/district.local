@@ -1,7 +1,7 @@
 # Carryover
 
-Open items only, as of 2026-09-03, closing three exercises: breakglass rotation, Vaultwarden
-secrets store, Vaultwarden credential migration.
+Open items only, as of 2026-09-04, closing exercise `2026-09-04-b1-conditional-access-report-only`
+(setup phase — VM 101 characterized and Entra-joined; CA policy work itself not started).
 
 Read the tech-compass skill, then this file, then `EXPOSURES.md`. Check `verified-claims.md`
 before labeling a claim Inherited or Recalled. Gotchas live in
@@ -9,63 +9,40 @@ before labeling a claim Inherited or Recalled. Gotchas live in
 
 ## Lab state
 
-VM 100 (DC01) running, rearmed 2026-09-02. VM 104 (pfsense-fw) running. VM 102 stopped — Entra
-Connect not syncing. VM 101 stopped. VM 105 destroyed. Container 103 (Vaultwarden) running, holds
-3 real credentials. Thin pool 72.11%, under the 85% gate. Host RAM available 3.5Gi (2026-09-03
-23:32 UTC). VM state last independently checked ~17:14 UTC 2026-09-02; this session touched only
-container 103.
+VM 100 (DC01) running. VM 101 (`win11-client01`) running, 3072 MB, Entra-joined as `jsmith`. VM
+102 (`entraconnect01`) running, 2048 MB, synced. VM 104 (`pfsense-fw`) running. Container 103
+(Vaultwarden) running. All four VMs plus the container running concurrently — new for this lab.
+Host RAM available as low as 1.2Gi at last check (2026-09-04, ~00:3xZ). Thin pool 72.13%, under
+the 85% gate. Commitment now roughly 16.77 GiB on a 15 GiB host — down from 3.77 GiB over to about
+1.77 GiB over, still not resolved. See `EXPOSURES.md`.
+
+## No console login path on DC01
+
+`SeDenyInteractiveLogonRight = Domain Admins` blocks every Domain Admins member; `Administrator`
+is separately disabled. No account can interactively log into DC01's console right now. `qm guest
+exec` (SYSTEM, non-interactive) is unaffected and is the only working administrative path. Source
+GPO unconfirmed, likely `District Lockdown`. Deferred by Raymond's decision — see `EXPOSURES.md`.
 
 ## Time-sensitive
 
-- DC01's eval license grace ends ~2026-09-12. 5 of 6 rearms remain. Decide: rearm, activate, or
-  rebuild.
-- `svc-entraconnect`'s password expires ~2026-10-13. Rotate or set a policy exemption.
-- `districtsafetyphoto.com` verification window (flagged 2026-08-31) nearly elapsed.
+- DC01's eval license grace ends ~2026-09-12. 5 of 6 rearms remain.
+- `svc-entraconnect`'s password expires ~2026-10-13.
+- `districtsafetyphoto.com` verification window nearly elapsed.
 
 ## Next exercise
 
-B1 unblocked: Conditional Access, report-only to enforced, per `CURRICULUM.md`.
-B2 placement still owed, not blocking: run outside the P1/P2 trial on A3's setup-only evidence, or
-keep it inside the trial as a safety margin. Raymond's call.
+B1 steps 1-3, fresh session: Security Defaults baseline, then CA policies in report-only (require
+MFA, block legacy auth, require compliant/hybrid device, require phishing-resistant auth for a
+named app — Windows Hello for Business is already provisioned on VM 101), then the break-glass
+exclusion. That last step needs the current tenant Global Administrator's UPN — Raymond supplies
+it in session, not written here.
 
-## Vaultwarden, still open
+## Also open, not blocking
 
-- `ADMIN_TOKEN` stays plain text in `/root/vaultwarden.env`; a vault copy now exists too. Hash it
-  or remove the token.
-- Container 103 runs AppArmor unconfined.
-- Backups share a disk with what they protect. Cron unwitnessed.
-- `vmbr1`'s host address (`10.0.0.5/24`) persisted, unproven until the next reboot.
-
-## Infrastructure
-
-- Restore path never verified for any VM (Vaultwarden's container backup is the lab's only
-  verified restore).
-- Host RAM committed 18.77Gi against 15Gi installed; whether DC01 needs 10000 MB is untested.
-- 21.93 GiB of pool consumption unattributed, likely `clean-install`/`win11-ootb` snapshots
-  (never `lvchange -K -ay`'d to check). pfSense has zero snapshots.
-
-## Findings not yet acted on
-
-- `Default Domain Policy` sets `LockoutBadCount = 0` — no lockout threshold in the domain.
-- `District Lockdown`'s Restricted Groups setting targets nonexistent group "Admins" (inert).
-- AD Recycle Bin not enabled, never independently captured.
-- Two A3 test app objects (`Salesforce`, `A3-nongallery-test`) — decide delete or keep.
-
-## Loose threads
-
-- DC01 shutdowns not fully explained: 9/1 1:46:15 PM (no `wlms.exe` entry) and whether 8/31
-  09:38:11 was also license-driven.
-- A `pveproxy` `root@pam` auth 45s before DC01's 09-02 crash, not Raymond, unchecked.
-- Two unreviewed items: `CURRICULUM.md`'s step-4 tattoo observation (before-half only) and the
-  Entra Connect wizard's Filtering step.
-- `jsmith` is the only restamped account taken end-to-end.
-
-## Deferred by Raymond's decision
-
-- Hardware: run lean, no purchases. Dell Latitude 5420, `DIMM B` empty, one M.2 slot.
-- B5: split the `entra-connect-connector-account` report in two. Needs narrative rework.
+Two A3 test app objects (`Salesforce`, `A3-nongallery-test`) in Enterprise Applications — decide
+delete or keep.
 
 ## Git state
 
-Uncommitted: `verified-claims.md`, new exercise dir. Commit only when Raymond asks. Last commit
-`2867893` on `main`, pushed.
+Uncommitted: `EXPOSURES.md`, `verified-claims.md`, new exercise directory
+`2026-09-04-b1-conditional-access-report-only`. Commit only when Raymond asks.

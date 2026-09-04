@@ -1,0 +1,32 @@
+GET https://graph.microsoft.com/v1.0/users/jsmith@raytakosharkygmail.onmicrosoft.com/authentication/methods
+Host: Graph Explorer, signed in as the new native break-glass account
+UTC timestamp: 2026-09-04T00:38Z (from the response's own createdDateTime on the WHfB method; this
+is a Graph capture, no separate `date -u` line applies)
+
+Response body:
+{
+    "@odata.context": "https://graph.microsoft.com/v1.0/$metadata#users('jsmith%40raytakosharkygmail.onmicrosoft.com')/authentication/methods",
+    "value": [
+        {
+            "@odata.type": "#microsoft.graph.passwordAuthenticationMethod",
+            "id": "28c10230-6103-485e-b985-444c60001490",
+            "password": null,
+            "createdDateTime": "2026-09-04T00:29:37Z"
+        },
+        {
+            "@odata.type": "#microsoft.graph.microsoftAuthenticatorAuthenticationMethod",
+            "id": "8f1a44cb-70fb-4e30-914f-bb33bbc4348b",
+            "displayName": "iPhone",
+            "deviceTag": "SoftwareTokenActivated",
+            "phoneAppVersion": "6.8.53",
+            "createdDateTime": null
+        },
+        {
+            "@odata.type": "#microsoft.graph.windowsHelloForBusinessAuthenticationMethod",
+            "id": "UZnz-ZcNOZVURZNyO1xwLeNgbMwupw1YF8v59d_P8_41",
+            "displayName": "DESKTOP-O860UU9",
+            "createdDateTime": "2026-09-04T00:37:56Z",
+            "keyStrength": "normal"
+        }
+    ]
+}

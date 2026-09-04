@@ -1,0 +1,66 @@
+GET https://graph.microsoft.com/v1.0/users/jsmith@raytakosharkygmail.onmicrosoft.com/registeredDevices
+Host: Graph Explorer, signed in as the new native break-glass account
+UTC timestamp: 2026-09-04T00:35:33Z (from the response's own createdDateTime; this is a Graph
+capture, no separate `date -u` line applies)
+
+Response body:
+{
+    "@odata.context": "https://graph.microsoft.com/v1.0/$metadata#directoryObjects",
+    "value": [
+        {
+            "@odata.type": "#microsoft.graph.device",
+            "id": "ab0b0c98-1818-4c59-abfa-5d8643baf399",
+            "deletedDateTime": null,
+            "accountEnabled": true,
+            "approximateLastSignInDateTime": "2026-09-04T00:35:33Z",
+            "complianceExpirationDateTime": null,
+            "createdDateTime": "2026-09-04T00:35:33Z",
+            "deviceCategory": null,
+            "deviceId": "7b564046-16ba-4d3d-8baf-6745b6e93267",
+            "deviceMetadata": null,
+            "deviceOwnership": null,
+            "deviceVersion": 2,
+            "displayName": "DESKTOP-O860UU9",
+            "domainName": null,
+            "enrollmentProfileName": null,
+            "enrollmentType": null,
+            "externalSourceName": null,
+            "isCompliant": null,
+            "isManaged": null,
+            "isRooted": null,
+            "managementType": null,
+            "manufacturer": null,
+            "mdmAppId": null,
+            "model": null,
+            "onPremisesLastSyncDateTime": null,
+            "onPremisesSyncEnabled": null,
+            "operatingSystem": "Windows",
+            "operatingSystemVersion": "10.0.26200.6584",
+            "physicalIds": [
+                "[USER-GID]:03b0f0f4-1230-42c1-983c-9bb5ecb1a2c8:6825879493007366",
+                "[GID]:g:6825879493007366",
+                "[USER-HWID]:03b0f0f4-1230-42c1-983c-9bb5ecb1a2c8:6825856201639648",
+                "[HWID]:h:6825856201639648"
+            ],
+            "profileType": "RegisteredDevice",
+            "registrationDateTime": "2026-09-04T00:35:33Z",
+            "sourceType": null,
+            "systemLabels": [],
+            "trustType": "AzureAd",
+            "extensionAttributes": {
+                "extensionAttribute1": null, "extensionAttribute2": null, "extensionAttribute3": null,
+                "extensionAttribute4": null, "extensionAttribute5": null, "extensionAttribute6": null,
+                "extensionAttribute7": null, "extensionAttribute8": null, "extensionAttribute9": null,
+                "extensionAttribute10": null, "extensionAttribute11": null, "extensionAttribute12": null,
+                "extensionAttribute13": null, "extensionAttribute14": null, "extensionAttribute15": null
+            },
+            "alternativeSecurityIds": [
+                {
+                    "type": 2,
+                    "identityProvider": null,
+                    "key": "WAA1ADAAOQA6ADwAUwBIAEEAMQAtAFQAUAAtAFAAVQBCAEsARQBZAD4AMgA4AEQAMQBCAEUAOABGADUAMgBEAEEARgBEADgANABCADYARgAwAEMANwA1ADMANAA3AEUAMAAyAEYAMwBBAEMANABCADkAMQBEADcARgBzAEsAUQAxAFgAcwAxAEgANgB0AEkAcABDAFQAWABMAE8ARwBBAEIATgB0AE4AcAB6AEkAMwA1AEgAYgBjAEoASABzAFUAOABnAEcASQBuAEgAeQBBAD0A"
+                }
+            ]
+        }
+    ]
+}
