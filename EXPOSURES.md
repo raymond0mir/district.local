@@ -33,6 +33,18 @@ debt: `sysadmin` currently has legitimate standing access (Domain Admins, added 
 clearing it isn't urgent, but it's worth remembering the flag exists independent of current group
 membership. *Evidence:* `exercises/2026-08-31-dc01-constrained-admin-path/evidence/sysadmin-admincount-recheck-t-plus-5h40m.json`.
 
+**Three Conditional Access policies now run report-only in the tenant, with no verified
+break-glass exclusion behind them yet.** Each excludes the current break-glass account by object
+ID, but two attempts to confirm the exclusion against real sign-in activity produced no new log
+entry, even after a fresh MFA sign-in. Do not enforce any of the three until this resolves.
+*Evidence:* `exercises/2026-09-04-b1-security-defaults-and-ca-report-only/evidence/09-signin-log-predates-policies.json`,
+report's Open questions.
+
+**Certificate-based authentication is disabled tenant-wide, and no trusted certificate authority
+is registered.** B1's fourth report-only policy (phishing-resistant auth against Salesforce) is
+blocked on this — both the method and a CA need setting up, not just a flag flip. *Evidence:*
+`exercises/2026-09-04-b1-security-defaults-and-ca-report-only/evidence/08-cba-disabled-no-ca-configured.json`.
+
 **Two of the five GPOs applying to DC01 have never been fully read.** `Default Domain Policy` and
 `District Lockdown` are both in DC01's effective RSoP but weren't examined in the same detail as
 `Secure Admin WS`, `DC - Secure LDAP`, and `Default Domain Controllers Policy` — an unread policy
@@ -270,3 +282,10 @@ full analysis in `exercises/2026-09-02-dc01-eval-license-status/report.md`.
   Entra-joined (`trustType: AzureAd`, not hybrid) under `jsmith`, confirmed via Graph 2026-09-04,
   with a real Windows Hello for Business method registered against the device automatically during
   join. `exercises/2026-09-04-b1-conditional-access-report-only/evidence-log.md`.
+- The Microsoft Entra ID P2 trial, blocked since B1's first attempt, is now active
+  (`AAD_PREMIUM_P2 Enabled`, 100 units). CURRICULUM.md's B1-B2-B3 sequencing now runs against a
+  real 30-day clock. Three of B1's four report-only CA policies exist; see the new entry above for
+  what's still open on them. `exercises/2026-09-04-b1-security-defaults-and-ca-report-only/report.md`.
+- CURRICULUM.md named a rotated-out, disabled account (`breakglass@raytakosharkygmail.onmicrosoft.com`)
+  as B1's exclusion target. Caught before any policy used it, corrected in CURRICULUM.md
+  2026-09-04. `exercises/2026-09-04-b1-security-defaults-and-ca-report-only/evidence-log.md`.

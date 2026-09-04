@@ -1,0 +1,11 @@
+GET https://graph.microsoft.com/v1.0/users/breakglass@raytakosharkygmail.onmicrosoft.com?$select=id,displayName,accountEnabled
+Host: Graph Explorer, signed in as the current break-glass Global Administrator account
+UTC timestamp: not returned by the response body; not independently captured this call
+
+Response body:
+{
+    "@odata.context": "https://graph.microsoft.com/v1.0/$metadata#users(id,displayName,accountEnabled)/$entity",
+    "id": "de938dc8-feb7-4140-9a01-8e32649b8fd6",
+    "displayName": "breakglass",
+    "accountEnabled": false
+}

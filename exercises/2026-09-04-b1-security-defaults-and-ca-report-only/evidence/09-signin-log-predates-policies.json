@@ -1,0 +1,21 @@
+GET https://graph.microsoft.com/v1.0/auditLogs/signIns?$filter=userId eq '<current break-glass object ID, redacted>'&$top=5&$orderby=createdDateTime desc
+Host: Graph Explorer, signed in as the current break-glass Global Administrator account
+UTC timestamp: not independently captured this call
+
+Response body (trimmed; userPrincipalName and userDisplayName redacted per the portfolio rule
+against publishing the current Global Administrator's identity):
+
+5 sign-ins returned, all predating the three report-only policies created this session
+(365bdd23 at 14:10:14Z, 75882b6a at 14:11:55Z, d9a6a116 at 14:12:50Z):
+
+| createdDateTime      | appDisplayName  | conditionalAccessStatus | appliedConditionalAccessPolicies |
+|----------------------|-----------------|--------------------------|-----------------------------------|
+| 2026-09-04T13:53:21Z | Signup Client   | notApplied               | SecurityDefaults (result: success) |
+| 2026-09-04T13:53:07Z | Signup          | notApplied               | SecurityDefaults (result: success) |
+| 2026-09-04T13:51:09Z | Signup Client   | notApplied               | SecurityDefaults (result: success) |
+| 2026-09-04T13:50:40Z | Signup          | notApplied               | SecurityDefaults (result: success) |
+| 2026-09-04T13:50:15Z | Azure Portal    | notApplied               | SecurityDefaults (result: success) |
+
+None of the three new CA policies appear in any `appliedConditionalAccessPolicies` array. Not
+evidence of exclusion working or failing — these sign-ins happened before the policies existed.
+Finding: the log is not useful until a sign-in occurs after 14:12:50Z.

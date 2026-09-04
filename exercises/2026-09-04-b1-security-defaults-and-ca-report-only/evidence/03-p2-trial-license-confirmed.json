@@ -1,0 +1,21 @@
+GET https://graph.microsoft.com/v1.0/subscribedSkus?$select=skuPartNumber,capabilityStatus,prepaidUnits,consumedUnits
+Host: Graph Explorer, signed in as the break-glass Global Administrator account
+UTC timestamp: not returned by the response body; not independently captured this call
+
+Response body:
+{
+    "@odata.context": "https://graph.microsoft.com/v1.0/$metadata#subscribedSkus(skuPartNumber,capabilityStatus,prepaidUnits,consumedUnits)",
+    "value": [
+        {
+            "skuPartNumber": "AAD_PREMIUM_P2",
+            "capabilityStatus": "Enabled",
+            "consumedUnits": 0,
+            "prepaidUnits": {
+                "enabled": 100,
+                "suspended": 0,
+                "warning": 0,
+                "lockedOut": 0
+            }
+        }
+    ]
+}

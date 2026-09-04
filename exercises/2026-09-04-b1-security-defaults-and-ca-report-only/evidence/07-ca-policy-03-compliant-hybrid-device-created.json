@@ -1,0 +1,56 @@
+POST https://graph.microsoft.com/v1.0/identity/conditionalAccess/policies
+Host: Graph Explorer, signed in as the current break-glass Global Administrator account
+UTC timestamp: 2026-09-04T14:12:50Z (from the response's own createdDateTime)
+
+Request body: CA policy "B1 - Require compliant or hybrid joined device (report-only)", state
+enabledForReportingButNotEnforced, includeUsers All / excludeUsers <current break-glass object
+ID, redacted>, includeApplications All, grantControls compliantDevice + domainJoinedDevice.
+
+Response body:
+{
+    "@odata.context": "https://graph.microsoft.com/v1.0/$metadata#identity/conditionalAccess/policies/$entity",
+    "id": "d9a6a116-0c05-4894-af2c-a2990ef44593",
+    "templateId": null,
+    "displayName": "B1 - Require compliant or hybrid joined device (report-only)",
+    "createdDateTime": "2026-09-04T14:12:50.1583029Z",
+    "modifiedDateTime": null,
+    "state": "enabledForReportingButNotEnforced",
+    "deletedDateTime": null,
+    "sessionControls": null,
+    "conditions": {
+        "userRiskLevels": [],
+        "signInRiskLevels": [],
+        "clientAppTypes": ["all"],
+        "servicePrincipalRiskLevels": [],
+        "insiderRiskLevels": null,
+        "platforms": null,
+        "locations": null,
+        "devices": null,
+        "clientApplications": null,
+        "authenticationFlows": null,
+        "applications": {
+            "includeApplications": ["All"],
+            "excludeApplications": [],
+            "includeUserActions": [],
+            "includeAuthenticationContextClassReferences": [],
+            "applicationFilter": null
+        },
+        "users": {
+            "includeUsers": ["All"],
+            "excludeUsers": ["<current break-glass object ID, redacted>"],
+            "includeGroups": [],
+            "excludeGroups": [],
+            "includeRoles": [],
+            "excludeRoles": [],
+            "includeGuestsOrExternalUsers": null,
+            "excludeGuestsOrExternalUsers": null
+        }
+    },
+    "grantControls": {
+        "operator": "OR",
+        "builtInControls": ["compliantDevice", "domainJoinedDevice"],
+        "customAuthenticationFactors": [],
+        "termsOfUse": [],
+        "authenticationStrength": null
+    }
+}

@@ -267,9 +267,11 @@ Raymond's call. Certificate-based authentication is the no-hardware fallback, an
 2. Policies in report-only: require MFA for all cloud apps; block legacy auth; require compliant
    or hybrid-joined device; require phishing-resistant auth for a named sensitive app.
 3. **Exclusions are the exercise.** A break-glass account must be excluded from every policy
-   before any of them enforce. `breakglass@raytakosharkygmail.onmicrosoft.com` already exists and
-   is already the account Graph directory endpoints accept — it is the natural exclusion. Capture
-   the exclusion, and capture the verification that it works, *before* enforcing anything. The
+   before any of them enforce. `breakglass@raytakosharkygmail.onmicrosoft.com` is **stale** —
+   rotated out 2026-09-03, disabled, no longer Global Administrator (`verified-claims.md:106`,
+   `:131`). Use the current break-glass account instead; Raymond supplies its object ID in
+   session, since its UPN stays unpublished. Capture the exclusion, and capture the verification
+   that it works, *before* enforcing anything. The
    sequencing lesson from `sysadmin` applies directly here: the failure mode is not the control,
    it is enforcing the control before the break-glass path is proven.
 4. Let report-only run and gather real sign-ins. `jsmith` has a registered MFA method and a

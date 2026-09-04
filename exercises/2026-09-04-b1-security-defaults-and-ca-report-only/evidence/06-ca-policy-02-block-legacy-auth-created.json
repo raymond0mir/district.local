@@ -1,0 +1,57 @@
+POST https://graph.microsoft.com/v1.0/identity/conditionalAccess/policies
+Host: Graph Explorer, signed in as the current break-glass Global Administrator account
+UTC timestamp: 2026-09-04T14:11:55Z (from the response's own createdDateTime)
+
+Request body: CA policy "B1 - Block legacy authentication (report-only)", state
+enabledForReportingButNotEnforced, includeUsers All / excludeUsers <current break-glass object
+ID, redacted>, includeApplications All, clientAppTypes exchangeActiveSync + other, grantControls
+block.
+
+Response body:
+{
+    "@odata.context": "https://graph.microsoft.com/v1.0/$metadata#identity/conditionalAccess/policies/$entity",
+    "id": "75882b6a-a9ba-4d97-bbb4-72d29277ebf4",
+    "templateId": null,
+    "displayName": "B1 - Block legacy authentication (report-only)",
+    "createdDateTime": "2026-09-04T14:11:55.4826926Z",
+    "modifiedDateTime": null,
+    "state": "enabledForReportingButNotEnforced",
+    "deletedDateTime": null,
+    "sessionControls": null,
+    "conditions": {
+        "userRiskLevels": [],
+        "signInRiskLevels": [],
+        "clientAppTypes": ["exchangeActiveSync", "other"],
+        "servicePrincipalRiskLevels": [],
+        "insiderRiskLevels": null,
+        "platforms": null,
+        "locations": null,
+        "devices": null,
+        "clientApplications": null,
+        "authenticationFlows": null,
+        "applications": {
+            "includeApplications": ["All"],
+            "excludeApplications": [],
+            "includeUserActions": [],
+            "includeAuthenticationContextClassReferences": [],
+            "applicationFilter": null
+        },
+        "users": {
+            "includeUsers": ["All"],
+            "excludeUsers": ["<current break-glass object ID, redacted>"],
+            "includeGroups": [],
+            "excludeGroups": [],
+            "includeRoles": [],
+            "excludeRoles": [],
+            "includeGuestsOrExternalUsers": null,
+            "excludeGuestsOrExternalUsers": null
+        }
+    },
+    "grantControls": {
+        "operator": "OR",
+        "builtInControls": ["block"],
+        "customAuthenticationFactors": [],
+        "termsOfUse": [],
+        "authenticationStrength": null
+    }
+}

@@ -1,0 +1,56 @@
+POST https://graph.microsoft.com/v1.0/identity/conditionalAccess/policies
+Host: Graph Explorer, signed in as the current break-glass Global Administrator account
+UTC timestamp: 2026-09-04T14:10:14Z (from the response's own createdDateTime)
+
+Request body: CA policy "B1 - Require MFA for all users (report-only)", state
+enabledForReportingButNotEnforced, includeUsers All / excludeUsers <current break-glass object
+ID, redacted>, includeApplications All, grantControls mfa.
+
+Response body:
+{
+    "@odata.context": "https://graph.microsoft.com/v1.0/$metadata#identity/conditionalAccess/policies/$entity",
+    "id": "365bdd23-d0e0-49a7-8131-f63b98ea6115",
+    "templateId": null,
+    "displayName": "B1 - Require MFA for all users (report-only)",
+    "createdDateTime": "2026-09-04T14:10:14.8404599Z",
+    "modifiedDateTime": null,
+    "state": "enabledForReportingButNotEnforced",
+    "deletedDateTime": null,
+    "sessionControls": null,
+    "conditions": {
+        "userRiskLevels": [],
+        "signInRiskLevels": [],
+        "clientAppTypes": ["all"],
+        "servicePrincipalRiskLevels": [],
+        "insiderRiskLevels": null,
+        "platforms": null,
+        "locations": null,
+        "devices": null,
+        "clientApplications": null,
+        "authenticationFlows": null,
+        "applications": {
+            "includeApplications": ["All"],
+            "excludeApplications": [],
+            "includeUserActions": [],
+            "includeAuthenticationContextClassReferences": [],
+            "applicationFilter": null
+        },
+        "users": {
+            "includeUsers": ["All"],
+            "excludeUsers": ["<current break-glass object ID, redacted>"],
+            "includeGroups": [],
+            "excludeGroups": [],
+            "includeRoles": [],
+            "excludeRoles": [],
+            "includeGuestsOrExternalUsers": null,
+            "excludeGuestsOrExternalUsers": null
+        }
+    },
+    "grantControls": {
+        "operator": "OR",
+        "builtInControls": ["mfa"],
+        "customAuthenticationFactors": [],
+        "termsOfUse": [],
+        "authenticationStrength": null
+    }
+}

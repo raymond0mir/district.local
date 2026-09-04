@@ -1,0 +1,27 @@
+GET https://graph.microsoft.com/v1.0/policies/authenticationMethodsPolicy/authenticationMethodConfigurations/X509Certificate
+Host: Graph Explorer, signed in as the current break-glass Global Administrator account
+UTC timestamp: not returned by the response body; not independently captured this call
+
+Response body (trimmed to the fields that matter):
+{
+    "id": "X509Certificate",
+    "state": "disabled",
+    "excludeTargets": [],
+    "certificateAuthorityScopes": [],
+    "crlValidationConfiguration": {
+        "state": "disabled",
+        "exemptedCertificateAuthoritiesSubjectKeyIdentifiers": []
+    },
+    "includeTargets": [
+        {
+            "targetType": "group",
+            "id": "all_users",
+            "isRegistrationRequired": false
+        }
+    ]
+}
+
+Finding: the authentication method is disabled, and no certificate authority is registered
+(`certificateAuthorityScopes` empty). Enabling the method alone would not make CBA usable — a
+trusted CA still needs to be configured and its root/CRL info uploaded before any user could
+authenticate with a certificate.
