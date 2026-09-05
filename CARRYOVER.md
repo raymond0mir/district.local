@@ -47,5 +47,15 @@ accounts for telemetry, undecided since 2026-09-04.
 
 ## Git state
 
-Uncommitted: this exercise's directory, `verified-claims.md`, `EXPOSURES.md`, this file, and
-`references/gotchas.md` plus its plugin copy. Commit only when Raymond asks.
+Clean as of 2026-09-05. Everything named above was committed as `05a801d` ("B1: disable
+Security Defaults, enforce two CA policies, verify live", 2026-09-05 12:18:18 -0700): this
+exercise's directory, `verified-claims.md`, `EXPOSURES.md`, this file, and
+`references/gotchas.md`. `git status --porcelain -uall` returns nothing. The local
+`origin/main` ref also sits at `05a801d` with nothing ahead of it, so the commit appears pushed
+— but that ref was read without a `git fetch`, so it is the last known remote position, not a
+live one.
+
+The plugin copy of the skill is outside the repo and cannot be committed. It was compared
+against the repo copy 2026-09-05: `diff -rq` reports no differences, so the two-copy rule holds.
+
+Commit only when Raymond asks.
