@@ -1,42 +1,37 @@
 # Carryover
 
 Open items only, as of 2026-09-05, closing exercise
-`2026-09-05-b1-breakglass-exclusion-verification` (break-glass exclusion verified on all three
-policies; B1 step 1 closed).
+`2026-09-05-b1-security-defaults-transition` (Security Defaults disabled; `365bdd23` and
+`75882b6a` enforced for real; `d9a6a116` held report-only by decision; enforcement verified
+live).
 
 Read the tech-compass skill, then this file, then `EXPOSURES.md`. Check `verified-claims.md`
 before labeling a claim Inherited or Recalled. Gotchas live in
 `.claude/skills/tech-compass/references/gotchas.md`. Read them before the next tenant or host
-command; nine lines were added this session.
+command; three lines were added this session.
 
 ## Lab state
 
-Captured 2026-09-05T16:17:01Z: thin pool Data% 61.62, Meta% 3.27, 10Gi available. VMs 100, 101 and
-102 stopped, VM 104 running.
-
-VM 101 was started for the contrast sign-in and stopped again at 2026-09-05T16:51:16Z, leaving
-11Gi available. All four VMs are back to their opening state. Nothing else moved.
-
-`qm shutdown 101` failed first: VM 101 sets `agent: 1` but runs no working guest agent, so it takes
-no scripted administrative path at all. See `EXPOSURES.md` and the gotchas file.
+Confirmed 2026-09-05T19:16:42Z: VMs 100, 101, 102 stopped. VM 104 running. Matches the lab's
+standard opening state. Pool Data% last read 66.28% at 18:45:01Z, under the 85% gate.
 
 ## B1 next steps
 
-1. Step 1 is done. All three exclusions are verified by machine output. Do not re-run it.
-2. The next gate is the Security Defaults transition, not enforcement. Security Defaults is the
-   only control enforcing MFA here, it accepts no exclusions, and it must be disabled before any CA
-   policy can enforce. Plan the order and the window length first. See `EXPOSURES.md`.
-3. `d9a6a116` would block VM 101 today (`reportOnlyFailure`, Azure AD joined and not compliant).
-   Decide before enforcing: enroll in Intune, change the grant, or scope the policy.
-4. `75882b6a`'s exclusion is verified but its block has never been exercised. A legacy-auth attempt
-   is the only test.
-5. Step 4 (telemetry volume) still needs more than one user's single session.
-6. The fourth policy stays blocked on certificate-based auth and a trusted CA, both absent.
+1. Security Defaults transition is done. `365bdd23` (MFA for all) and `75882b6a` (block
+   legacy auth) genuinely enforce. Do not re-run this.
+2. `d9a6a116` (compliant or hybrid device) stays report-only by deliberate decision — it would
+   block VM 101 if enforced. Decide: enroll VM 101 in Intune, change the grant, or scope the
+   policy. Not yet decided.
+3. `75882b6a` is enforced but its block itself is unexercised. A legacy-auth attempt is the
+   only real test.
+4. Step 4 (telemetry volume) still needs more than one user's single session.
+5. The fourth policy stays blocked on certificate-based auth and a trusted CA, both absent.
 
 ## No console login path on DC01
 
-Unchanged. `SeDenyInteractiveLogonRight = Domain Admins` blocks every member; `Administrator` is
-disabled. `qm guest exec` remains the only administrative path. Deferred by Raymond's decision.
+Unchanged. `SeDenyInteractiveLogonRight = Domain Admins` blocks every member; `Administrator`
+is disabled. `qm guest exec` remains the only administrative path. Deferred by Raymond's
+decision.
 
 ## Time-sensitive
 

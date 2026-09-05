@@ -33,17 +33,6 @@ debt: `sysadmin` currently has legitimate standing access (Domain Admins, added 
 clearing it isn't urgent, but it's worth remembering the flag exists independent of current group
 membership. *Evidence:* `exercises/2026-08-31-dc01-constrained-admin-path/evidence/sysadmin-admincount-recheck-t-plus-5h40m.json`.
 
-**Security Defaults is the only control enforcing MFA in this tenant, and turning it off is the
-next required step.** `isEnabled: true` as of 2026-09-05, with three Conditional Access policies
-running report-only beside it. The break-glass sign-in record names
-`authenticationRequirementPolicies: [{requirementProvider: "securityDefaults"}]`, so every MFA
-prompt this tenant has issued came from Security Defaults and no CA policy has ever enforced a
-control. Security Defaults accepts no exclusions, including for the break-glass account. Enforcing
-any CA policy requires disabling Security Defaults first, and between those two acts the tenant has
-no MFA floor. The order and duration of that transition have not been planned. *Evidence:*
-`exercises/2026-09-05-b1-breakglass-exclusion-verification/evidence/02-policy-conditions-and-security-defaults-state.md`,
-`exercises/2026-09-05-b1-breakglass-exclusion-verification/evidence/06-breakglass-exclusion-captured-directly.md`.
-
 **Policy `d9a6a116` (require compliant or hybrid joined device) would block the lab's only client
 if enforced today.** `jsmith`'s 2026-09-05 sign-in from VM 101 returned `reportOnlyFailure`. VM 101
 is Azure AD joined, not hybrid joined, and `isCompliant: false`; the policy grants on
@@ -54,19 +43,12 @@ misconfiguration to fix blindly — the decision is whether to enroll the device
 the grant, or scope the policy. *Evidence:*
 `exercises/2026-09-05-b1-breakglass-exclusion-verification/evidence/05-non-excluded-user-contrast-jsmith.md`.
 
-**Policy `75882b6a` (block legacy authentication) has never been exercised against a legacy-auth
-client.** Its break-glass exclusion is verified, but its control is not. No legacy-auth sign-in has
-ever been attempted in this tenant, so whether the block works is unknown. *Evidence:*
-`exercises/2026-09-05-b1-breakglass-exclusion-verification/evidence/06-breakglass-exclusion-captured-directly.md`, that exercise's Open
-questions.
-
-**The sign-in log's write latency is unmeasured, and two sessions have now drawn conclusions from a
-single empty read.** On 2026-09-04 a break-glass sign-in was recorded as producing no log entry,
-called unexplained, and left as a blocker; the entries existed. On 2026-09-05 a successful VM 101
-sign-in was absent from one read and present in a later one. Neither session measured the interval.
-Until it is measured, an empty sign-in-log read is not evidence of anything. *Evidence:*
-`exercises/2026-09-05-b1-breakglass-exclusion-verification/evidence/01-breakglass-signins-after-policy-creation.md`,
-`exercises/2026-09-05-b1-breakglass-exclusion-verification/evidence-log.md`.
+**Policy `75882b6a` (block legacy authentication) now genuinely enforces, but has never been
+exercised against a legacy-auth client.** Enforced 2026-09-05, alongside `365bdd23` (MFA for all
+users), after Security Defaults was disabled. Its break-glass exclusion is verified and a
+non-legacy sign-in correctly returns `notApplied`, but no legacy-auth sign-in has ever been
+attempted in this tenant, so whether the block actually stops one is still unknown. *Evidence:*
+`exercises/2026-09-05-b1-security-defaults-transition/evidence/08-enforcement-verified-live.md`.
 
 **One Entra-joined client silently acquires tokens for a wide consumer and Copilot surface under
 the user's identity.** Twelve non-interactive token acquisitions in twenty seconds on 2026-09-05,
@@ -304,6 +286,17 @@ full analysis in `exercises/2026-09-02-dc01-eval-license-status/report.md`.
 
 ## Recently closed (for contrast, not action)
 
+- **Security Defaults is disabled and two of B1's three CA policies genuinely enforce,
+  2026-09-05.** Open since B1's first policy was created report-only. A live-API ordering test
+  found the platform rejects enabling a CA policy while Security Defaults is on, so a zero-gap
+  transition does not exist here; Security Defaults was disabled and `365bdd23`/`75882b6a`
+  enforced back to back, 14 seconds apart. `d9a6a116` deliberately held report-only, since it
+  would block VM 101. Enforcement verified on a live sign-in, not just asserted from policy
+  state. `exercises/2026-09-05-b1-security-defaults-transition/report.md`.
+- **The sign-in log's write latency, unmeasured since 2026-09-04, is now bounded, 2026-09-05.**
+  Two prior sessions each drew a conclusion from a single empty read. This session measured
+  it directly: a sign-in absent at +5m4s, present by +10m52s. Not an exact figure, but no
+  longer an assumption. `exercises/2026-09-05-b1-security-defaults-transition/evidence/07-signin-log-latency-bounded-and-whfb-entry.md`.
 - **The break-glass exclusion behind B1's three report-only policies is verified, 2026-09-05.**
   Open since 2026-09-04, when a single sign-in-log read returned nothing and the session recorded
   the gap as unexplained. The entries existed. Reading the same sign-in on the Graph **beta**
