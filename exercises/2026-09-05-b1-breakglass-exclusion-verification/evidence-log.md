@@ -56,6 +56,11 @@ Exercise date derived from the host clock: `date -u` returned 2026-09-05T16:08:1
   the portfolio rule, and extended it to the public IP address and geocoordinates on its own
   judgment, flagging the extension in session. He did not object.
 
+- **VM 101's guest agent gap, found at session close.** `qm shutdown 101` failed on `guest-ping`
+  and left the VM running. `qm config 101` returns `agent: 1`, so the host expects an agent the
+  guest does not run. VM 101 takes no `qm guest exec`. Raymond stopped it from the VM console.
+  `evidence/07-vm101-has-no-working-guest-agent.txt`
+
 ## Corrections
 
 - **Claude's own error, caught and retracted the same session.** Evidence file 02 states that no

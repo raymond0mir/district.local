@@ -1,0 +1,51 @@
+Command: date -u; qm shutdown 101; sleep 20; qm status 101; free -h
+Host: Proxmox host shell, Proxmox web console
+UTC timestamp: 2026-09-05T16:31:52Z
+
+Sat Sep  5 04:31:52 PM UTC 2026
+QEMU Guest Agent is not running - VM 101 qmp command 'guest-ping' failed - got timeout
+VM quit/powerdown failed - got timeout
+status: running
+               total        used        free      shared  buff/cache   available
+Mem:            15Gi       7.0Gi       7.8Gi        55Mi       612Mi       8.0Gi
+Swap:          8.0Gi       988Ki       8.0Gi
+
+---
+
+Command: date -u; qm status 101; qm config 101 | grep -E '^(agent|name|memory)'; free -h
+Host: Proxmox host shell, Proxmox web console
+UTC timestamp: 2026-09-05T16:51:16Z
+
+Sat Sep  5 04:51:16 PM UTC 2026
+status: stopped
+agent: 1
+memory: 3072
+name: win11-client01
+               total        used        free      shared  buff/cache   available
+Mem:            15Gi       4.0Gi       10Gi       52Mi       610Mi        11Gi
+Swap:          8.0Gi       988Ki       8.0Gi
+
+---
+
+What this proves
+
+VM 101's configuration sets `agent: 1`, so Proxmox routes `qm shutdown` through the QEMU guest
+agent. The guest does not run it. `guest-ping` timed out and the powerdown request failed.
+
+Consequence: VM 101 is not reachable by `qm guest exec`. DC01 (VM 100) and entraconnect01 (VM 102)
+are. The lab's only client therefore has no scripted administrative path, and every action on it
+must go through the noVNC console by hand.
+
+The second reading confirms VM 101 stopped and 11Gi available.
+
+Which mechanism stopped VM 101 between 16:31:52Z and 16:51:16Z is Recalled, not Captured. Raymond
+stated in session: "i shut it down from the vm console". That is a shutdown performed inside
+Windows through noVNC, not a late ACPI delivery. No machine output records the shutdown path, so
+this line is his account, and it is the only account available.
+
+This makes the point sharper rather than softer: the only way to stop VM 101 cleanly was a human at
+the console. The host could not do it.
+
+Not captured: whether the guest agent is absent, installed but disabled, or installed but failed.
+`qm config` reports the host side only. Reading the guest side needs console access, which is the
+same path the missing agent forces.

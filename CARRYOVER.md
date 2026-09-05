@@ -6,16 +6,19 @@ policies; B1 step 1 closed).
 
 Read the tech-compass skill, then this file, then `EXPOSURES.md`. Check `verified-claims.md`
 before labeling a claim Inherited or Recalled. Gotchas live in
-`.claude/skills/tech-compass/references/gotchas.md`. Read them before the next tenant command;
-eight lines were added this session.
+`.claude/skills/tech-compass/references/gotchas.md`. Read them before the next tenant or host
+command; nine lines were added this session.
 
 ## Lab state
 
 Captured 2026-09-05T16:17:01Z: thin pool Data% 61.62, Meta% 3.27, 10Gi available. VMs 100, 101 and
 102 stopped, VM 104 running.
 
-**Changed since that reading: VM 101 was started and is still running.** Decide shutdown at the
-start of the next session. Nothing else moved.
+VM 101 was started for the contrast sign-in and stopped again at 2026-09-05T16:51:16Z, leaving
+11Gi available. All four VMs are back to their opening state. Nothing else moved.
+
+`qm shutdown 101` failed first: VM 101 sets `agent: 1` but runs no working guest agent, so it takes
+no scripted administrative path at all. See `EXPOSURES.md` and the gotchas file.
 
 ## B1 next steps
 

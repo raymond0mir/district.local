@@ -37,6 +37,7 @@ Write the condition that makes each line true. A behavior that depends on a lice
 
 - The host clock runs America/Los_Angeles. `qm listsnapshot` prints local time. Derive names from `date -u`.
 - The volume group has about 2 GiB free on one NVMe. `lvextend` on the thin pool has no room. Freed thin blocks return to the pool, not the volume group. Source: `exercises/2026-09-02-thin-pool-headroom-reclaim`.
+- VM 101 (`win11-client01`) sets `agent: 1` but runs no working guest agent. `qm shutdown 101` fails on `guest-ping` and leaves the VM running. `qm guest exec` does not reach it. Use the noVNC console. Do not reach for `qm stop` or `--forceStop`: VM 101 holds post-snapshot Entra join and Windows Hello state that the `win11-ootb` snapshot predates. Source: `exercises/2026-09-05-b1-breakglass-exclusion-verification`.
 - Do not add the spare SD card or USB stick as a physical volume in the `pve` group. A thin pool can span physical volumes, so one unplugged device can corrupt the whole pool. Use removable media as a `vzdump` target instead. Decision 2026-09-02.
 - Docker inside an unprivileged LXC needs `lxc.apparmor.profile: unconfined`. `nesting=1,keyctl=1` alone is not enough. Source: `exercises/2026-09-03-vaultwarden-secrets-store`.
 - `docker restart` does not re-read `--env-file`. Recreate the container to apply env changes. A bind-mounted Caddyfile is re-read on restart.

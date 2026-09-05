@@ -221,6 +221,16 @@ Note the topology change too: the host is now a layer-3 participant on the lab s
 is no longer the only path between host side and lab side. *Evidence:*
 `exercises/2026-09-03-vaultwarden-secrets-store/evidence/04-host-had-no-route-to-its-own-lab-subnet.md`.
 
+**VM 101 has no working QEMU guest agent, so the lab's only client has no scripted
+administrative path.** Its config sets `agent: 1`, so Proxmox routes `qm shutdown` through the
+agent, and the guest does not answer: `guest-ping` timed out and the powerdown request failed with
+the VM left running. DC01 and VM 102 both answer `qm guest exec`; VM 101 does not. Every action on
+it must go through the noVNC console by hand, which also means a graceful shutdown depends on a
+human being at the console. Not a security exposure on its own, but it makes VM 101 the one guest
+that cannot be driven, captured, or cleanly stopped from the host. Whether the agent is absent,
+disabled, or failed is not determined. *Evidence:*
+`exercises/2026-09-05-b1-breakglass-exclusion-verification/evidence/07-vm101-has-no-working-guest-agent.txt`.
+
 **VM 104 (pfSense) still has zero snapshots**, after all three were pruned during the 08-31
 thin-pool crisis response. If a firewall change goes wrong there is no rollback point for the
 router — and unlike on 08-31, there is now both pool headroom and a working backup target, so
