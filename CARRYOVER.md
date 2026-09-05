@@ -1,50 +1,53 @@
 # Carryover
 
-Open items only, as of 2026-09-04, closing exercise
-`2026-09-04-b1-security-defaults-and-ca-report-only` (P2 trial confirmed, 3 of 4 report-only
-policies created, exclusion verification unresolved).
+Open items only, as of 2026-09-05, closing exercise
+`2026-09-05-b1-breakglass-exclusion-verification` (break-glass exclusion verified on all three
+policies; B1 step 1 closed).
 
 Read the tech-compass skill, then this file, then `EXPOSURES.md`. Check `verified-claims.md`
 before labeling a claim Inherited or Recalled. Gotchas live in
-`.claude/skills/tech-compass/references/gotchas.md`.
+`.claude/skills/tech-compass/references/gotchas.md`. Read them before the next tenant command;
+eight lines were added this session.
 
 ## Lab state
 
-Unchanged from last close: all four VMs stopped, thin pool 61.62%, 12Gi RAM available. No VM was
-touched this session — B1's CA work is tenant-level, via Graph Explorer.
+Captured 2026-09-05T16:17:01Z: thin pool Data% 61.62, Meta% 3.27, 10Gi available. VMs 100, 101 and
+102 stopped, VM 104 running.
+
+**Changed since that reading: VM 101 was started and is still running.** Decide shutdown at the
+start of the next session. Nothing else moved.
 
 ## B1 next steps
 
-1. Resolve exclusion verification first, before trusting any of the three report-only policies.
-   Two attempts at pulling the break-glass account's sign-in log after a confirmed MFA sign-in
-   returned no new entry — unexplained, not just slow. See report's Open questions.
-2. CBA setup is its own prerequisite for the fourth policy (phishing-resistant auth, Salesforce):
-   a trusted CA plus enabling the method, both currently absent.
-3. Steps 4-5 (report-only telemetry, reading which policies fired) need real sign-in volume first
-   — not a same-session task.
-4. Step 6 (enforcement) waits on all of the above.
+1. Step 1 is done. All three exclusions are verified by machine output. Do not re-run it.
+2. The next gate is the Security Defaults transition, not enforcement. Security Defaults is the
+   only control enforcing MFA here, it accepts no exclusions, and it must be disabled before any CA
+   policy can enforce. Plan the order and the window length first. See `EXPOSURES.md`.
+3. `d9a6a116` would block VM 101 today (`reportOnlyFailure`, Azure AD joined and not compliant).
+   Decide before enforcing: enroll in Intune, change the grant, or scope the policy.
+4. `75882b6a`'s exclusion is verified but its block has never been exercised. A legacy-auth attempt
+   is the only test.
+5. Step 4 (telemetry volume) still needs more than one user's single session.
+6. The fourth policy stays blocked on certificate-based auth and a trusted CA, both absent.
 
 ## No console login path on DC01
 
-`SeDenyInteractiveLogonRight = Domain Admins` blocks every Domain Admins member; `Administrator`
-is separately disabled. `qm guest exec` (SYSTEM, non-interactive) remains the only working
-administrative path. Deferred by Raymond's decision — see `EXPOSURES.md`.
+Unchanged. `SeDenyInteractiveLogonRight = Domain Admins` blocks every member; `Administrator` is
+disabled. `qm guest exec` remains the only administrative path. Deferred by Raymond's decision.
 
 ## Time-sensitive
 
-- P2 trial is active, 30-day clock running; exact start timestamp not captured (Recalled only).
-  B1, B2, B3 must complete inside this window per CURRICULUM.md.
-- DC01's eval license grace ends ~2026-09-12. 5 of 6 rearms remain.
-- `svc-entraconnect`'s password expires ~2026-10-13.
+- P2 trial active, 30-day clock, exact start Recalled. B1-B2-B3 must fit inside it.
+- DC01 eval license grace ends ~2026-09-12. 5 of 6 rearms remain.
+- `svc-entraconnect` password expires ~2026-10-13.
 - `districtsafetyphoto.com` verification window nearly elapsed.
 
 ## Also open, not blocking
 
-`A3-nongallery-test` app object in Enterprise Applications — decide delete or keep. `Salesforce`
-is now in active use as B1's sensitive-app target, no longer undecided.
+`A3-nongallery-test` app object: delete or keep, undecided. Whether to onboard more restamped
+accounts for telemetry, undecided since 2026-09-04.
 
 ## Git state
 
-Uncommitted: today's evidence log, report, evidence files, `verified-claims.md` and
-`EXPOSURES.md` updates, and a `CURRICULUM.md` correction (stale break-glass account reference).
-Commit only when Raymond asks.
+Uncommitted: this exercise's directory, `verified-claims.md`, `EXPOSURES.md`, this file, and
+`references/gotchas.md` plus its plugin copy. Commit only when Raymond asks.

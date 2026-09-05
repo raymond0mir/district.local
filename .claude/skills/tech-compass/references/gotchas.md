@@ -24,6 +24,14 @@ Write the condition that makes each line true. A behavior that depends on a lice
 - A stale session token returns 403 on a scope that is already consented. Modify Permissions shows "Unconsent". Sign out and sign in. Do not re-consent.
 - Sign-in logs (`GET /auditLogs/signIns`) need a paid tier. On Entra Free the call returns `Authentication_RequestFromNonPremiumTenantOrB2CTenant`. The call works while the P2 trial runs. `GET /me` as the user is the proven fallback on Free. Source: `exercises/2026-09-02-entra-connect-upn-signin-test`.
 - The tenant's original Global Administrator is a Microsoft Account. Graph directory endpoints reject it. Use the current native Global Administrator, whose name Raymond supplies in session.
+- `GET /auditLogs/signIns` on **v1.0** returns interactive user sign-ins and successful federated sign-ins only. Non-interactive events need `beta` with `$filter=signInEventTypes/any(t: t eq 'nonInteractiveUser')`. Source: `exercises/2026-09-05-b1-breakglass-exclusion-verification`.
+- Use `beta` for any Conditional Access question. Only beta returns `conditionsSatisfied`, `conditionsNotSatisfied`, `includeRulesSatisfied`, and `excludeRulesSatisfied`. On v1.0 a `reportOnlyNotApplied` result names no cause, so an exclusion can only be inferred. Source: `exercises/2026-09-05-b1-breakglass-exclusion-verification`.
+- Conditional Access evaluates the user condition before the client app type. An exclusion short-circuits evaluation, so a break-glass exclusion on a block-legacy-auth policy is verifiable from an ordinary browser sign-in. Source: `exercises/2026-09-05-b1-breakglass-exclusion-verification`.
+- A failed sign-in returns `appliedConditionalAccessPolicies: []`. Credential validation precedes policy evaluation. Test an exclusion with a sign-in that succeeds. Source: `exercises/2026-09-05-b1-breakglass-exclusion-verification`.
+- Desktop single sign-on issues tokens through the primary refresh token and lands in the non-interactive stream. A Windows client browsing to a cloud app produces no interactive log entry. Source: `exercises/2026-09-05-b1-breakglass-exclusion-verification`.
+- Sign-in log writes lag. An empty read is not evidence. Re-read at a later time before concluding anything from nothing. Latency not measured. Source: `exercises/2026-09-05-b1-breakglass-exclusion-verification`.
+- Documented, not lab-captured: sign-ins that obtain a refresh token with FIDO2 keys log as non-interactive since 2025-04-11. Relevant if phishing-resistant auth is built. Source: Microsoft Learn, "What are interactive user sign-ins in Microsoft Entra".
+- An Entra-side password reset is not the operation for a synced account. Check `onPremisesSyncEnabled` first. Source: `exercises/2026-09-05-b1-breakglass-exclusion-verification`.
 
 ## Proxmox host
 

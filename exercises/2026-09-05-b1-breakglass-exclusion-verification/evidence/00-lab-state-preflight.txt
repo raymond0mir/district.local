@@ -1,0 +1,42 @@
+Command: date -u; qm status 100; qm status 101; qm status 102; qm status 104; lvs -a -o+data_percent,metadata_percent; free -h
+Host: Proxmox host shell, Proxmox web console
+UTC timestamp: 2026-09-05T16:17:01Z
+
+Sat Sep  5 04:17:01 PM UTC 2026
+status: stopped     (VM 100, DC01)
+status: stopped     (VM 101, win11-client01)
+status: stopped     (VM 102, entraconnect01)
+status: running     (VM 104, pfSense)
+
+  LV                                                     VG  Attr       LSize    Pool Origin                        Data%  Meta%
+  data                                                   pve twi-aotz-- <155.23g                                    61.62  3.27
+  [data_tdata]                                           pve Twi-ao---- <155.23g
+  [data_tmeta]                                           pve ewi-ao----   <1.44g
+  [lvol0_pmspare]                                        pve ewi-------   <1.44g
+  root                                                   pve -wi-ao----  <69.37g
+  snap_vm-100-disk-0_clean-install                       pve Vri---tz-k    4.00m data vm-100-disk-0
+  snap_vm-100-disk-0_pre-secure-admin-ws-relink-20260902 pve Vri---tz-k    4.00m data vm-100-disk-0
+  snap_vm-100-disk-1_clean-install                       pve Vri---tz-k   60.00g data vm-100-disk-1
+  snap_vm-100-disk-1_pre-secure-admin-ws-relink-20260902 pve Vri---tz-k   60.00g data vm-100-disk-1
+  snap_vm-101-disk-0_win11-ootb                          pve Vri---tz-k    4.00m data
+  snap_vm-101-disk-1_win11-ootb                          pve Vri---tz-k   64.00g data
+  snap_vm-101-disk-2_win11-ootb                          pve Vri---tz-k    4.00m data
+  swap                                                   pve -wi-ao----    8.00g
+  vm-100-disk-0                                          pve Vwi-a-tz--    4.00m data                               14.06
+  vm-100-disk-1                                          pve Vwi-a-tz--   60.00g data                               43.36
+  vm-100-state-clean-install                             pve Vwi---tz--   <8.49g data
+  vm-101-disk-0                                          pve Vwi-a-tz--    4.00m data snap_vm-101-disk-0_win11-ootb 14.06
+  vm-101-disk-1                                          pve Vwi-a-tz--   64.00g data snap_vm-101-disk-1_win11-ootb 30.62
+  vm-101-disk-2                                          pve Vwi-a-tz--    4.00m data snap_vm-101-disk-2_win11-ootb  1.56
+  vm-101-state-win11-ootb                                pve Vwi-a-tz--   <8.49g data                               43.63
+  vm-102-disk-0                                          pve Vwi-a-tz--    4.00m data                               14.06
+  vm-102-disk-1                                          pve Vwi-a-tz--   60.00g data                               31.03
+  vm-104-disk-0                                          pve Vwi-aotz--   20.00g data                               18.51
+
+               total        used        free      shared  buff/cache   available
+Mem:            15Gi       4.0Gi        10Gi        51Mi       599Mi        10Gi
+Swap:          8.0Gi       988Ki       8.0Gi
+
+Gate: thin pool Data% 61.62 is below the 85 stop threshold. Meta% 3.27. Proceed.
+Note: 10Gi available against DC01's 10000 MB allocation. DC01 and VM 102 cannot both start
+without resizing DC01 first. This is the over-commitment recorded in EXPOSURES.md.

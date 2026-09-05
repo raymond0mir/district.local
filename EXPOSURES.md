@@ -3,7 +3,7 @@
 A standing list of what's actually still wrong or open in `district.local`, built only from
 captured facts in `verified-claims.md` and the exercises' own evidence files — nothing here is
 inferred or remembered without a citation. Doubles as the queue for what the next exercise
-should be. Updated as of 2026-09-04; check `verified-claims.md` for anything more recent before
+should be. Updated as of 2026-09-05; check `verified-claims.md` for anything more recent before
 trusting a line here.
 
 ## Identity and access
@@ -33,12 +33,50 @@ debt: `sysadmin` currently has legitimate standing access (Domain Admins, added 
 clearing it isn't urgent, but it's worth remembering the flag exists independent of current group
 membership. *Evidence:* `exercises/2026-08-31-dc01-constrained-admin-path/evidence/sysadmin-admincount-recheck-t-plus-5h40m.json`.
 
-**Three Conditional Access policies now run report-only in the tenant, with no verified
-break-glass exclusion behind them yet.** Each excludes the current break-glass account by object
-ID, but two attempts to confirm the exclusion against real sign-in activity produced no new log
-entry, even after a fresh MFA sign-in. Do not enforce any of the three until this resolves.
-*Evidence:* `exercises/2026-09-04-b1-security-defaults-and-ca-report-only/evidence/09-signin-log-predates-policies.json`,
-report's Open questions.
+**Security Defaults is the only control enforcing MFA in this tenant, and turning it off is the
+next required step.** `isEnabled: true` as of 2026-09-05, with three Conditional Access policies
+running report-only beside it. The break-glass sign-in record names
+`authenticationRequirementPolicies: [{requirementProvider: "securityDefaults"}]`, so every MFA
+prompt this tenant has issued came from Security Defaults and no CA policy has ever enforced a
+control. Security Defaults accepts no exclusions, including for the break-glass account. Enforcing
+any CA policy requires disabling Security Defaults first, and between those two acts the tenant has
+no MFA floor. The order and duration of that transition have not been planned. *Evidence:*
+`exercises/2026-09-05-b1-breakglass-exclusion-verification/evidence/02-policy-conditions-and-security-defaults-state.md`,
+`exercises/2026-09-05-b1-breakglass-exclusion-verification/evidence/06-breakglass-exclusion-captured-directly.md`.
+
+**Policy `d9a6a116` (require compliant or hybrid joined device) would block the lab's only client
+if enforced today.** `jsmith`'s 2026-09-05 sign-in from VM 101 returned `reportOnlyFailure`. VM 101
+is Azure AD joined, not hybrid joined, and `isCompliant: false`; the policy grants on
+`compliantDevice` or `domainJoinedDevice`, and `domainJoinedDevice` means hybrid joined. Neither
+term can be satisfied by this device as built. This is the report-only telemetry CURRICULUM.md's B1
+hypothesis predicted: a scoping assumption found wrong before enforcement made it expensive. Not a
+misconfiguration to fix blindly — the decision is whether to enroll the device in Intune, change
+the grant, or scope the policy. *Evidence:*
+`exercises/2026-09-05-b1-breakglass-exclusion-verification/evidence/05-non-excluded-user-contrast-jsmith.md`.
+
+**Policy `75882b6a` (block legacy authentication) has never been exercised against a legacy-auth
+client.** Its break-glass exclusion is verified, but its control is not. No legacy-auth sign-in has
+ever been attempted in this tenant, so whether the block works is unknown. *Evidence:*
+`exercises/2026-09-05-b1-breakglass-exclusion-verification/evidence/06-breakglass-exclusion-captured-directly.md`, that exercise's Open
+questions.
+
+**The sign-in log's write latency is unmeasured, and two sessions have now drawn conclusions from a
+single empty read.** On 2026-09-04 a break-glass sign-in was recorded as producing no log entry,
+called unexplained, and left as a blocker; the entries existed. On 2026-09-05 a successful VM 101
+sign-in was absent from one read and present in a later one. Neither session measured the interval.
+Until it is measured, an empty sign-in-log read is not evidence of anything. *Evidence:*
+`exercises/2026-09-05-b1-breakglass-exclusion-verification/evidence/01-breakglass-signins-after-policy-creation.md`,
+`exercises/2026-09-05-b1-breakglass-exclusion-verification/evidence-log.md`.
+
+**One Entra-joined client silently acquires tokens for a wide consumer and Copilot surface under
+the user's identity.** Twelve non-interactive token acquisitions in twenty seconds on 2026-09-05,
+to Edge Sync, Microsoft Text Understanding, Microsoft People Cards Service, Olympus, OCaaS Client
+Interaction Service, Windows Store for Business, Microsoft Device Directory Service, Microsoft
+Activity Feed Service and Microsoft Graph, plus OneDrive, Bing, Microsoft News Feed, Office 365
+Exchange Online and Windows Search on 2026-09-04. All through the primary refresh token, none
+visible in the interactive sign-in log. Not a misconfiguration; it is the real token surface of one
+device join, and it is invisible to anyone reading only the interactive log. *Evidence:*
+`exercises/2026-09-05-b1-breakglass-exclusion-verification/evidence/05-non-excluded-user-contrast-jsmith.md`.
 
 **Certificate-based authentication is disabled tenant-wide, and no trusted certificate authority
 is registered.** B1's fourth report-only policy (phishing-resistant auth against Salesforce) is
@@ -255,6 +293,16 @@ license-driven (unconfirmed — the event-log query didn't reach back that far).
 full analysis in `exercises/2026-09-02-dc01-eval-license-status/report.md`.
 
 ## Recently closed (for contrast, not action)
+
+- **The break-glass exclusion behind B1's three report-only policies is verified, 2026-09-05.**
+  Open since 2026-09-04, when a single sign-in-log read returned nothing and the session recorded
+  the gap as unexplained. The entries existed. Reading the same sign-in on the Graph **beta**
+  endpoint returns `conditionsNotSatisfied: "users"` and `excludeRulesSatisfied: [{users, userId}]`
+  on all three policies, which v1.0 does not report. A contrast sign-in by `jsmith` from VM 101,
+  using a Windows Hello PIN rather than a password reset, ruled out the competing explanation that
+  report-only policies never apply to anyone here. Full account, including a mid-exercise retraction
+  of Claude's own wrong claim about the legacy-auth policy, in
+  `exercises/2026-09-05-b1-breakglass-exclusion-verification/report.md`.
 
 - **The published break-glass account (`breakglass@raytakosharkygmail.onmicrosoft.com`), and two
   more Global Administrators nobody had accounted for, all rotated out 2026-09-03.** A new native
