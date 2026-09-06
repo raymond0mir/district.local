@@ -59,6 +59,6 @@ policy runs after B4. C2 (AD CS): no report; blocker in `CURRICULUM.md`.
 
 ## Repository and git
 
-`main` is 4 commits ahead of `origin/main`. **Nothing is pushed.**
+`origin/main` reached `e7a64bb` on 2026-09-06. Run `git status` for anything after it.
 `validate.py` baseline: 1 ERROR, 11 WARN, 24 INFO. Re-run it.
 Pass 4 of the credential scan has never run; it needs the Vaultwarden strings.
