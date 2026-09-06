@@ -1,61 +1,64 @@
 # Carryover
 
-Open items only, as of 2026-09-06T00:15Z.
+Open items, 2026-09-06T18:45Z.
 
-Read `EXPOSURES.md` next. The skill holds the contract. Gotchas live in
-`.claude/skills/tech-compass/references/gotchas.md`.
+Read `EXPOSURES.md` next. The skill holds the contract; gotchas live in its `references/`.
 
 ## Lab state
 
-Read 2026-09-05T23:55:32Z: pool `Data%` 78.42, metadata 3.84, under the 85% gate with about
-10.2 GiB of margin. Host memory 6.6Gi available.
-Running: VM 100 (DC01), VM 104 (pfSense), VM 107 (CA01), container 106 (rootca-offline).
-Stopped: VM 101, VM 102, container 103. This is **not** the lab's standard opening state.
-Snapshot `pre-adcs-config` on VM 107 is a valid rollback point. All `certutil` orphans are cleared.
+Read 2026-09-06T16:55:54Z: pool `Data%` 79.28, metadata 3.87, under the 85% gate. Host memory
+6.7Gi available.
+Running: VM 100 (DC01), VM 104, VM 107 (CA01), container 106. Stopped: VM 101, VM 102,
+container 103. **Not** the standard opening state. `pre-adcs-config` on VM 107 is a valid
+rollback point.
 
-## Run order, revised 2026-09-05
+## B4 — finish these three reads first
 
-`CURRICULUM.md` governs the order. Next three:
+`report.md` is marked Draft and names the gap. Do not publish it first.
 
-1. Capture the P2 trial start date. `GET /beta/directory/subscriptions`. The clock is Recalled.
-2. B1's fourth policy, using Windows Hello for Business under the built-in phishing-resistant
-   strength. `jsmith` holds a registered method.
-3. **B4 — PIM.** The only P2-gated exercise. Expiry deletes eligible assignments and PIM
+All three filter on `principalId eq '03ee6546-f113-4ec5-ba9d-e57381b0c928'`, under
+`/v1.0/roleManagement/directory/`.
+
+1. The unactioned expiry. `roleAssignments` and `roleAssignmentScheduleInstances`, both empty.
+2. `roleEligibilityScheduleInstances`. Eligibility must survive the expiry. If it did not, the
+   control is single-use.
+3. The PT4H over-limit request, re-run as `adm-jsmith` from a clean state. Unresolved: no
+   response was captured, and the endpoint cannot tell a refusal from an attempt never sent.
+   Body in `evidence/12`.
+
+Then fold the results into `report.md`, add ledger rows, and drop the Draft marker.
+
+## Decisions owed
+
+1. Does routine tenant work move to `adm-jsmith`? That exposure closes on habit, not
    configuration.
+2. `districtsafetyphoto.com`: verify, or drop? Recommended drop; window nearly gone.
+3. DC01 before about 2026-11-01: rearm chain, or rebuild? Recommended rearm only.
+4. `CURRICULUM.md`'s B4 text still frames the exercise as turning just-in-time access on. The
+   defaults capture disproves that.
+5. `evidence/04` carries Raymond's personal address, inside the original Global Administrator's
+   UPN. The redaction rule covers the current one only. PII decision still deferred.
 
-## Decisions owed, deferred by Raymond 2026-09-05
+Answered 2026-09-06: no hard portfolio date, so C1 stays behind C2. B1's fourth policy and B4
+swapped, because only B4's evidence dies at expiry.
 
-1. B4 needs a cloud-native account for the eligible role. Break-glass stays active and outside
-   PIM. `jsmith` is synced. Create an account, or name an existing one.
-2. Does B1 close with `d9a6a116` held report-only, or does VM 101's device path get resolved
-   first?
-3. DC01 before about 2026-11-01: rearm chain only, or a rebuild on licensed media?
-4. `districtsafetyphoto.com`: verify it, or drop it?
-5. Is there a date the portfolio must be presentable? It reorders C1 against B4 and the README.
 
-## Repository tooling
-
-`validate.py` runs. Baseline: 1 ERROR, 11 WARN, 24 INFO in `validation.json`.
-Decisions and build order: `CONSIDERATIONS.md`. Read it before touching `SKILL.md`.
-
-## AD CS, paused, now Exercise C2
-
-No report. No longer a B1 dependency. Runs after the trial. Do not resume before B4. The blocker,
-its two untested hypotheses, and the console-account lead are in `CURRICULUM.md` under C2 and in
-`exercises/2026-09-05-adcs-issuing-ca-build/evidence-log.md`.
 
 ## Time-sensitive
 
-- DC01 rearm due about 2026-09-12, then about every 10 days. 5 rearms left.
+- DC01 rearm due about 2026-09-12, then every 10 days. 5 rearms left.
 - DC01 relicensed or replaced before about 2026-11-01. That date ends the lab.
 - CA01 licence grace ends about 2026-09-15. Rearm count not captured.
-- P2 trial ends about 2026-10-04, derived from a Recalled start.
+- P2 trial ends 2026-10-04T00:00:00Z. **Captured**, no longer derived.
 - `svc-entraconnect` password expires about 2026-10-13.
 
-## B1, still open
+## Still open elsewhere
 
-`d9a6a116` report-only by decision. `75882b6a`'s block unexercised. Telemetry rests on one user.
+B1: `d9a6a116` report-only, `75882b6a`'s block unexercised, telemetry on one user. B1's fourth
+policy runs after B4. C2 (AD CS): no report; blocker in `CURRICULUM.md`.
 
-## Git state
+## Repository and git
 
-Two commits ahead of `origin/main` at `982869e`. **Nothing is pushed.**
+`main` is 4 commits ahead of `origin/main`. **Nothing is pushed.**
+`validate.py` baseline: 1 ERROR, 11 WARN, 24 INFO. Re-run it.
+Pass 4 of the credential scan has never run; it needs the Vaultwarden strings.

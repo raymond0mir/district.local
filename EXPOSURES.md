@@ -3,10 +3,47 @@
 A standing list of what's actually still wrong or open in `district.local`, built only from
 captured facts in `verified-claims.md` and the exercises' own evidence files — nothing here is
 inferred or remembered without a citation. Doubles as the queue for what the next exercise
-should be. Updated as of 2026-09-05; check `verified-claims.md` for anything more recent before
+should be. Updated as of 2026-09-06; check `verified-claims.md` for anything more recent before
 trusting a line here.
 
 ## Identity and access
+
+**The tenant has one working administrator, and it is the break-glass account.** `roleAssignments`
+returns two rows: Global Administrator on the current native break-glass account, and Directory
+Readers on `Microsoft.Azure.SyncFabric`. Every other administrative identity is disabled,
+including the original Microsoft Account Global Administrator. Raymond confirmed 2026-09-06 that
+he signs in as this account for routine tenant work, which makes it a break-glass account in name
+only. A break-glass account in daily use provides no recovery path distinct from the account most
+likely to be compromised. `adm-jsmith` was created 2026-09-06 as the intended working
+administrator, holding User Administrator as eligible-not-active behind approval. The exposure
+closes when routine work moves to that account, not when the account exists. *Evidence:*
+`exercises/2026-09-06-b4-pim-eligible-role/evidence/03-active-directory-role-assignments.md`,
+`exercises/2026-09-06-b4-pim-eligible-role/evidence/04-tenant-user-inventory-and-empty-eligibility.md`.
+
+**`sysadmin` is synced into Entra while holding on-premises `Domain Admins` with `adminCount` 1.**
+The same object is enabled in the tenant and is a member of `Domain Admins` on `district.local`.
+Microsoft advises against synchronising privileged on-premises accounts into Entra, because a
+tenant-side compromise then reaches a Tier 0 on-premises identity. That guidance is documented,
+not lab-captured. The account currently holds no Entra directory role, so the present risk is the
+synchronised object itself rather than a cloud grant. *Evidence:*
+`exercises/2026-09-06-b4-pim-eligible-role/evidence/01-preflight-and-dc01-standing-state.md`,
+`exercises/2026-09-06-b4-pim-eligible-role/evidence/04-tenant-user-inventory-and-empty-eligibility.md`.
+
+**No group in this tenant can be governed by PIM for Groups.** All nine groups are synced from
+`district.local` and all have `isAssignableToRole` null. The property cannot be set after a group
+exists; a `PATCH` returns `Request_BadRequest`. Governing a group requires building a new
+cloud-only role-assignable group and moving membership to it. This is a design limit, not a
+misconfiguration, and it means the on-premises tier groups have no cloud governance path as
+built. *Evidence:* `exercises/2026-09-06-b4-pim-eligible-role/evidence/06-licence-confirmed-and-group-surface.md`,
+`exercises/2026-09-06-b4-pim-eligible-role/evidence/07-pim-for-groups-refusal.md`.
+
+**PIM's defaults do not include human approval.** An untouched role management policy requires
+MFA, requires a justification, and caps activation at PT8H, but sets `isApprovalRequired` false
+with no approvers. A tenant that enables PIM and changes nothing gets an audit trail, not a
+control. This was corrected for User Administrator on 2026-09-06. Every other Entra role in this
+tenant still carries the default. *Evidence:*
+`exercises/2026-09-06-b4-pim-eligible-role/evidence/10-activation-policy-defaults.md`,
+`exercises/2026-09-06-b4-pim-eligible-role/evidence/11-approval-required-and-window-tightened.md`.
 
 **`Key Admins` and `Enterprise Key Admins` hold domain-wide write rights over
 `msDS-KeyCredentialLink`** — the shadow-credentials attribute. Any current or future member of
