@@ -275,6 +275,13 @@ Exercise date derived from `date -u` on the Proxmox host: 2026-09-05T21:09:59Z.
   `certutil` processes reported an empty `MainWindowTitle`, and the blocked process holds an
   established LDAP socket. The empty `MainWindowTitle` was visible in the first process read and
   should have weakened the theory a turn earlier than it did.
+- **`evidence/09` cited a report.md that has never existed.** Its note read "its full syntax is
+  in report.md with the generator intact." No report has been written for this exercise, so the
+  citation pointed at nothing, and a reader following it would have found the account-creation
+  syntax nowhere. Corrected in the file 2026-09-06 to say what is true: the full syntax is not
+  captured in this repo and exists only in session scrollback, which is Recalled. Caught while
+  running the credential scan over the exercise directory, which had never been scanned because
+  it had never been tracked.
 - **Redirecting a hung process's output to a file yielded nothing.** `Start-Process` with
   `-RedirectStandardOutput` produced a zero-byte file after 40 seconds, because the C runtime
   block-buffers a redirected handle. Claude flagged the risk before running it. Recorded as a

@@ -3,7 +3,11 @@ Host: Proxmox host shell (Proxmox web console)
 UTC: 2026-09-05T21:47:35Z
 Note: the generated password was redacted by Raymond before pasting. The value never entered the
 session and is not recorded anywhere in this repo. The account-creation command is summarised
-above for the same reason; its full syntax is in report.md with the generator intact.
+above for the same reason. Its full syntax is not recorded in this repo either. It exists only in
+session scrollback, which is Recalled, so it is not citable. Reconstruct it into report.md when
+the report is written: generator intact, no value.
+Corrected 2026-09-06. The original line claimed the syntax was already in report.md. No report.md
+existed for this exercise when that line was written, and none exists now.
 
 Sat Sep  5 09:47:35 PM UTC 2026
 --- dc01 status ---
