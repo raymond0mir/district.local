@@ -2,8 +2,7 @@
 
 Open items only, as of 2026-09-06T00:15Z.
 
-Read the tech-compass skill, then this file, then `EXPOSURES.md`. Check `verified-claims.md`
-before labeling a claim Inherited or Recalled. Gotchas live in
+Read `EXPOSURES.md` next. The skill holds the contract. Gotchas live in
 `.claude/skills/tech-compass/references/gotchas.md`.
 
 ## Lab state
@@ -34,6 +33,11 @@ Snapshot `pre-adcs-config` on VM 107 is a valid rollback point. All `certutil` o
 4. `districtsafetyphoto.com`: verify it, or drop it?
 5. Is there a date the portfolio must be presentable? It reorders C1 against B4 and the README.
 
+## Repository tooling
+
+`validate.py` runs. Baseline: 1 ERROR, 11 WARN, 24 INFO in `validation.json`.
+Decisions and build order: `CONSIDERATIONS.md`. Read it before touching `SKILL.md`.
+
 ## AD CS, paused, now Exercise C2
 
 No report. No longer a B1 dependency. Runs after the trial. Do not resume before B4. The blocker,
@@ -54,4 +58,4 @@ its two untested hypotheses, and the console-account lead are in `CURRICULUM.md`
 
 ## Git state
 
-The 2026-09-05 reorder is committed and **not pushed**. `origin/main` is at `982869e`.
+Two commits ahead of `origin/main` at `982869e`. **Nothing is pushed.**

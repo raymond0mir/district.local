@@ -1,0 +1,226 @@
+{
+  "commit": "da5839fd3ddf873058a3aabd0aeaad1a67db6d87",
+  "counts": {
+    "ERROR": 1,
+    "INFO": 24,
+    "WARN": 11
+  },
+  "findings": [
+    {
+      "check": "report-section-missing",
+      "message": "report is missing the required section: What the box said",
+      "path": "exercises/2026-08-31-member-server-build/report.md",
+      "severity": "ERROR"
+    },
+    {
+      "check": "no-report",
+      "message": "exercise has no report.md",
+      "path": "exercises/2026-09-05-adcs-issuing-ca-build",
+      "severity": "WARN"
+    },
+    {
+      "check": "evidence-log-grandfathered",
+      "message": "predates the six-section schema, kept as a historical record",
+      "path": "exercises/2026-09-01-entra-connect-connector-account/evidence-log.md",
+      "severity": "INFO"
+    },
+    {
+      "check": "evidence-log-grandfathered",
+      "message": "predates the six-section schema, kept as a historical record",
+      "path": "exercises/2026-09-02-a2-gpo-surface-and-domain-root-link/evidence-log.md",
+      "severity": "INFO"
+    },
+    {
+      "check": "evidence-log-grandfathered",
+      "message": "predates the six-section schema, kept as a historical record",
+      "path": "exercises/2026-09-02-a3-entra-free-ceiling/evidence-log.md",
+      "severity": "INFO"
+    },
+    {
+      "check": "evidence-log-grandfathered",
+      "message": "predates the six-section schema, kept as a historical record",
+      "path": "exercises/2026-09-02-dc01-eval-license-status/evidence-log.md",
+      "severity": "INFO"
+    },
+    {
+      "check": "evidence-log-grandfathered",
+      "message": "predates the six-section schema, kept as a historical record",
+      "path": "exercises/2026-09-02-entra-connect-upn-signin-test/evidence-log.md",
+      "severity": "INFO"
+    },
+    {
+      "check": "evidence-log-grandfathered",
+      "message": "predates the six-section schema, kept as a historical record",
+      "path": "exercises/2026-09-02-thin-pool-headroom-reclaim/evidence-log.md",
+      "severity": "INFO"
+    },
+    {
+      "check": "evidence-log-grandfathered",
+      "message": "predates the six-section schema, kept as a historical record",
+      "path": "exercises/2026-09-03-breakglass-rotation/evidence-log.md",
+      "severity": "INFO"
+    },
+    {
+      "check": "evidence-log-grandfathered",
+      "message": "predates the six-section schema, kept as a historical record",
+      "path": "exercises/2026-09-03-vaultwarden-credential-migration/evidence-log.md",
+      "severity": "INFO"
+    },
+    {
+      "check": "evidence-log-grandfathered",
+      "message": "predates the six-section schema, kept as a historical record",
+      "path": "exercises/2026-09-03-vaultwarden-secrets-store/evidence-log.md",
+      "severity": "INFO"
+    },
+    {
+      "check": "evidence-log-grandfathered",
+      "message": "predates the six-section schema, kept as a historical record",
+      "path": "exercises/2026-09-04-b1-conditional-access-report-only/evidence-log.md",
+      "severity": "INFO"
+    },
+    {
+      "check": "evidence-log-grandfathered",
+      "message": "predates the six-section schema, kept as a historical record",
+      "path": "exercises/2026-09-04-b1-security-defaults-and-ca-report-only/evidence-log.md",
+      "severity": "INFO"
+    },
+    {
+      "check": "capture-header-grandfathered",
+      "message": "captures predate the capture-header convention",
+      "path": "exercises/2026-08-31-dc01-constrained-admin-path",
+      "severity": "INFO"
+    },
+    {
+      "check": "capture-header-grandfathered",
+      "message": "captures predate the capture-header convention",
+      "path": "exercises/2026-08-31-dc01-unexpected-shutdown",
+      "severity": "INFO"
+    },
+    {
+      "check": "capture-header-grandfathered",
+      "message": "captures predate the capture-header convention",
+      "path": "exercises/2026-08-31-entra-connect-install",
+      "severity": "INFO"
+    },
+    {
+      "check": "capture-header-grandfathered",
+      "message": "captures predate the capture-header convention",
+      "path": "exercises/2026-08-31-hybrid-identity-upn-baseline",
+      "severity": "INFO"
+    },
+    {
+      "check": "capture-header-grandfathered",
+      "message": "captures predate the capture-header convention",
+      "path": "exercises/2026-08-31-iam-access-sprawl-baseline",
+      "severity": "INFO"
+    },
+    {
+      "check": "capture-header-grandfathered",
+      "message": "captures predate the capture-header convention",
+      "path": "exercises/2026-08-31-member-server-build",
+      "severity": "INFO"
+    },
+    {
+      "check": "capture-header-grandfathered",
+      "message": "captures predate the capture-header convention",
+      "path": "exercises/2026-09-01-entra-connect-connector-account",
+      "severity": "INFO"
+    },
+    {
+      "check": "evidence-header",
+      "message": "capture header has no host",
+      "path": "exercises/2026-09-02-a2-gpo-surface-and-domain-root-link/evidence/admins-group-existence-check-20260902T1701Z.txt",
+      "severity": "WARN"
+    },
+    {
+      "check": "evidence-header",
+      "message": "capture header has no host",
+      "path": "exercises/2026-09-02-a2-gpo-surface-and-domain-root-link/evidence/gpo-origin-timestamps-and-full-reports-20260902T1656Z.txt",
+      "severity": "WARN"
+    },
+    {
+      "check": "evidence-header",
+      "message": "capture header has no host",
+      "path": "exercises/2026-09-02-a2-gpo-surface-and-domain-root-link/evidence/gpresult-and-secedit-verified-20260902T1700Z.txt",
+      "severity": "WARN"
+    },
+    {
+      "check": "evidence-no-exitcode",
+      "message": "guest exec capture has no exitcode field",
+      "path": "exercises/2026-09-02-a2-gpo-surface-and-domain-root-link/evidence/relink-execution-and-recovery-20260902T1711-1714Z.txt",
+      "severity": "WARN"
+    },
+    {
+      "check": "evidence-header",
+      "message": "capture header has no UTC timestamp",
+      "path": "exercises/2026-09-03-breakglass-rotation/evidence/02-role-assignment-and-verification.md",
+      "severity": "WARN"
+    },
+    {
+      "check": "evidence-header",
+      "message": "capture header has no host, UTC timestamp",
+      "path": "exercises/2026-09-03-breakglass-rotation/evidence/03-legacy-admin-cleanup.md",
+      "severity": "WARN"
+    },
+    {
+      "check": "evidence-header",
+      "message": "capture header has no host, UTC timestamp",
+      "path": "exercises/2026-09-04-b1-security-defaults-and-ca-report-only/evidence/00-lab-state-preflight.txt",
+      "severity": "WARN"
+    },
+    {
+      "check": "evidence-header",
+      "message": "capture header has no UTC timestamp",
+      "path": "exercises/2026-09-05-b1-security-defaults-transition/evidence/06-signin-log-latency-measurement.md",
+      "severity": "WARN"
+    },
+    {
+      "check": "evidence-header",
+      "message": "capture header has no UTC timestamp",
+      "path": "exercises/2026-09-05-b1-security-defaults-transition/evidence/07-signin-log-latency-bounded-and-whfb-entry.md",
+      "severity": "WARN"
+    },
+    {
+      "check": "evidence-header",
+      "message": "capture header has no UTC timestamp",
+      "path": "exercises/2026-09-05-b1-security-defaults-transition/evidence/08-enforcement-verified-live.md",
+      "severity": "WARN"
+    },
+    {
+      "check": "evidence-log-nested-historical",
+      "message": "evidence-log sits inside evidence/, the layout of that era",
+      "path": "exercises/2026-08-31-dc01-constrained-admin-path/evidence/evidence-log.md",
+      "severity": "INFO"
+    },
+    {
+      "check": "evidence-log-nested-historical",
+      "message": "evidence-log sits inside evidence/, the layout of that era",
+      "path": "exercises/2026-08-31-dc01-unexpected-shutdown/evidence/evidence-log.md",
+      "severity": "INFO"
+    },
+    {
+      "check": "evidence-log-nested-historical",
+      "message": "evidence-log sits inside evidence/, the layout of that era",
+      "path": "exercises/2026-08-31-entra-connect-install/evidence/evidence-log.md",
+      "severity": "INFO"
+    },
+    {
+      "check": "evidence-log-nested-historical",
+      "message": "evidence-log sits inside evidence/, the layout of that era",
+      "path": "exercises/2026-08-31-hybrid-identity-upn-baseline/evidence/evidence-log.md",
+      "severity": "INFO"
+    },
+    {
+      "check": "evidence-log-nested-historical",
+      "message": "evidence-log sits inside evidence/, the layout of that era",
+      "path": "exercises/2026-08-31-iam-access-sprawl-baseline/evidence/evidence-log.md",
+      "severity": "INFO"
+    },
+    {
+      "check": "evidence-log-nested-historical",
+      "message": "evidence-log sits inside evidence/, the layout of that era",
+      "path": "exercises/2026-08-31-member-server-build/evidence/evidence-log.md",
+      "severity": "INFO"
+    }
+  ]
+}

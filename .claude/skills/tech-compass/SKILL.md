@@ -85,6 +85,9 @@ verified-claims.md    ledger
 EXPOSURES.md          open risks, each cited to an evidence file; doubles as the exercise queue
 CARRYOVER.md          Lab state, open items, next steps; overwritten at every close
 CURRICULUM.md         exercise plan
+CONSIDERATIONS.md     design decisions for the repository's own tooling
+validate.py           deterministic repository checks; binary answers only
+validation.json       the last validate.py run, overwritten each run
 README.md             repo entry point, written for a public reader
 .gitignore            excludes local editor state
 .claude/skills/tech-compass/
