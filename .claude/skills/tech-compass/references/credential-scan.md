@@ -14,6 +14,20 @@ git grep -InE -i '(password|passwd|secret|api[_-]?key|client[_-]?secret|bearer|t
 
 Expect zero hits. A hit blocks the commit. Clear each hit before you continue.
 
+## Pass 1b: JSON-quoted keys
+
+```
+git grep -InE -i '"(password|passwd|secret|api[_-]?key|client[_-]?secret|bearer|token)"[[:space:]]*:[[:space:]]*"[^"]'
+```
+
+Expect hits only where the value is a redaction marker. Read every hit. A literal value blocks
+the commit.
+
+Pass 1 matches a bare key, as in `password: value`. It does not match a quoted key, as in
+`"password": "value"`, because the closing quote sits between the key and the colon. Graph
+evidence is JSON, so pass 1 alone does not cover it. Added 2026-09-06, found during
+`exercises/2026-09-06-b4-pim-eligible-role` while scanning a `passwordProfile` request body.
+
 ## Pass 2: PowerShell plaintext idioms
 
 ```
