@@ -1,0 +1,26 @@
+Command: date -u; qm guest exec 100 -- powershell.exe -NonInteractive -Command "Get-ADUser tmp-cainstall -Properties MemberOf,Enabled | ..."; qm guest exec 100 -- powershell.exe -NonInteractive -Command "Remove-ADGroupMember -Identity 'Enterprise Admins' -Members tmp-cainstall -Confirm:$false"; qm guest exec 100 -- powershell.exe -NonInteractive -Command "Get-ADGroupMember 'Enterprise Admins' | Select-Object -ExpandProperty SamAccountName"; qm guest exec 100 -- powershell.exe -NonInteractive -Command "Get-ADUser Administrator -Properties Enabled | Select-Object SamAccountName,Enabled | ConvertTo-Json -Compress"
+Host: Proxmox host shell (Proxmox web console), acting on VM 100
+UTC: 2026-09-05T23:59:05Z and 2026-09-06T00:02:17Z
+
+Decision: Raymond chose to remove the standing Enterprise Admins grant and re-add it only for
+a step that proves it needs the forest write.
+
+--- before ---
+{"SamAccountName":"tmp-cainstall","Enabled":true,"Groups":"Enterprise Admins"}
+
+--- remove ---
+removed
+
+--- after ---
+{"SamAccountName":"tmp-cainstall","Enabled":true,"PrimaryGroupID":513,"Groups":""}
+
+--- Enterprise Admins full membership after removal ---
+Administrator
+
+--- is that member enabled? (read 2026-09-06T00:02:17Z) ---
+{"SamAccountName":"Administrator","Enabled":false}
+
+Consequence captured: Enterprise Admins in district.local now holds exactly one member, and that
+member is disabled. No enabled account holds Enterprise Admins.
+The removal itself ran as SYSTEM through qm guest exec on DC01, so the same path can re-add the
+account without an interactive Enterprise Admins logon.

@@ -1,0 +1,33 @@
+Command: date -u; cat > /tmp/ca01.req <<'REQ' ... REQ; pct push 106 /tmp/ca01.req /root/ca/csr/ca01.req; pct exec 106 -- openssl req -in /root/ca/csr/ca01.req -noout -verify -subject; pct exec 106 -- openssl x509 -req -in /root/ca/csr/ca01.req -CA /root/ca/certs/root.cert.pem -CAkey /root/ca/private/root.key.pem -CAcreateserial -days 1825 -sha256 -extfile /root/ca/rootca.cnf -extensions v3_sub_ca -out /root/ca/certs/ca01.cert.pem; pct exec 106 -- openssl x509 -in /root/ca/certs/ca01.cert.pem -noout -subject -issuer -dates; pct exec 106 -- openssl x509 -in /root/ca/certs/ca01.cert.pem -noout -ext basicConstraints,keyUsage,subjectKeyIdentifier,authorityKeyIdentifier; pct exec 106 -- openssl verify -CAfile /root/ca/certs/root.cert.pem /root/ca/certs/ca01.cert.pem; pct exec 106 -- cat /root/ca/certs/ca01.cert.pem
+Host: Proxmox host shell (Proxmox web console), acting on container 106
+UTC: 2026-09-05T22:14:07Z
+Note: the CSR heredoc is elided above. Its verbatim content is evidence/ca01.req. The issued
+certificate is stored verbatim as evidence/ca01.cert.pem.
+
+Sat Sep  5 10:14:07 PM UTC 2026
+push exit=0
+--- verify the request ---
+Certificate request self-signature verify OK
+subject=DC = local, DC = district, CN = district.local Issuing CA
+--- sign it against the offline root ---
+Certificate request self-signature ok
+subject=DC = local, DC = district, CN = district.local Issuing CA
+sign exit=0
+--- inspect the issued certificate ---
+subject=DC = local, DC = district, CN = district.local Issuing CA
+issuer=O = district.local, CN = district.local Root CA
+notBefore=Sep  5 22:14:08 2026 GMT
+notAfter=Sep  4 22:14:08 2031 GMT
+--- extensions ---
+X509v3 Basic Constraints: critical
+    CA:TRUE, pathlen:0
+X509v3 Key Usage: critical
+    Certificate Sign, CRL Sign
+X509v3 Subject Key Identifier: 
+    B7:13:D8:86:24:A0:D2:2F:C1:64:28:38:03:80:71:E2:04:6D:4A:B7
+X509v3 Authority Key Identifier: 
+    95:64:33:9E:6C:1A:7F:45:F5:C6:9D:1D:50:C0:78:F9:FF:06:BB:82
+--- chain verifies? ---
+/root/ca/certs/ca01.cert.pem: OK
+--- issued certificate ---
+(stored verbatim as evidence/ca01.cert.pem)

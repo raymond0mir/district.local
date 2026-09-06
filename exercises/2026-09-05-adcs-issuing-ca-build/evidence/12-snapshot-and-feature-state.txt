@@ -1,0 +1,34 @@
+Command: date -u; qm snapshot 107 pre-adcs-config --description "Before Install-AdcsCertificationAuthority. Role binaries installed, domain joined, no CA configured."; echo "snapshot exit=$?"; qm guest exec 107 --timeout 60 -- powershell.exe -NonInteractive -Command "@{CBS=(Test-Path 'HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\Component Based Servicing\RebootPending'); WU=(Test-Path 'HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\WindowsUpdate\Auto Update\RebootRequired')} | ConvertTo-Json -Compress"; qm guest exec 107 --timeout 60 -- powershell.exe -NonInteractive -Command "Get-WindowsFeature ADCS-Cert-Authority | Select-Object Name,InstallState | ConvertTo-Json -Compress"; qm listsnapshot 107
+Host: Proxmox host shell (Proxmox web console)
+UTC: 2026-09-05T22:02:01Z
+Note: this ran BEFORE the AD CS configuration, which the console clock places at about
+2026-09-05T22:08Z. The snapshot therefore predates the change it was taken for.
+
+Sat Sep  5 10:02:01 PM UTC 2026
+--- snapshot before CA config ---
+snapshotting 'drive-scsi0' (local-lvm:vm-107-disk-1)
+  WARNING: You have not turned on protection against thin pools running out of space.
+  WARNING: Set activation/thin_pool_autoextend_threshold below 100 to trigger automatic extension of thin pools before they get full.
+  Logical volume "snap_vm-107-disk-1_pre-adcs-config" created.
+  WARNING: Sum of all thin volume sizes (529.01 GiB) exceeds the size of thin pool pve/data and the size of whole volume group (237.47 GiB).
+snapshotting 'drive-efidisk0' (local-lvm:vm-107-disk-0)
+  WARNING: You have not turned on protection against thin pools running out of space.
+  WARNING: Set activation/thin_pool_autoextend_threshold below 100 to trigger automatic extension of thin pools before they get full.
+  Logical volume "snap_vm-107-disk-0_pre-adcs-config" created.
+  WARNING: Sum of all thin volume sizes (<529.02 GiB) exceeds the size of thin pool pve/data and the size of whole volume group (237.47 GiB).
+snapshot exit=0
+--- pending reboot? ---
+{
+   "exitcode" : 0,
+   "exited" : 1,
+   "out-data" : "{\"CBS\":false,\"WU\":false}\r\n"
+}
+--- adcs feature state ---
+{
+   "exitcode" : 0,
+   "exited" : 1,
+   "out-data" : "{\"Name\":\"ADCS-Cert-Authority\",\"InstallState\":1}\r\n"
+}
+--- snapshots ---
+`-> pre-adcs-config             2026-09-05 15:02:01     Before Install-AdcsCertificationAuthority. Role binaries installed, domain joined, no CA configured.
+ `-> current                                            You are here!

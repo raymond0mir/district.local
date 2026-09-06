@@ -1,0 +1,42 @@
+Command: date -u; qm guest exec 107 --timeout 60 -- powershell.exe -NonInteractive -Command "try { $o = [ADSI]'LDAP://CN=Public Key Services,CN=Services,CN=Configuration,DC=district,DC=local'; ($o.Children | ForEach-Object { $_.Name }) -join ', ' } catch { 'READ FAILED: ' + $_.Exception.Message }"; qm guest exec 107 --timeout 60 -- certutil.exe -dspublish -f C:\ca01.cer SubCA; qm guest exec 107 -- powershell.exe -NonInteractive -Command "(Get-Date).ToUniversalTime().ToString('o')"; qm guest exec 100 -- powershell.exe -NonInteractive -Command "(Get-Date).ToUniversalTime().ToString('o')"; qm guest exec 100 -- powershell.exe -NonInteractive -Command "Get-ItemProperty 'HKLM:\SYSTEM\CurrentControlSet\Services\NTDS\Parameters' | Select-Object LDAPServerIntegrity,LdapEnforceChannelBinding | ConvertTo-Json -Compress"; qm guest exec 100 --timeout 60 -- powershell.exe -NonInteractive -Command "Get-ADObject -SearchBase 'CN=Public Key Services,CN=Services,CN=Configuration,DC=district,DC=local' -Filter \"Name -like '*Issuing CA*' -or Name -like '*Root CA*'\" -SearchScope Subtree | ..."
+Host: Proxmox host shell (Proxmox web console), acting on VM 107 and VM 100
+UTC: 2026-09-06T00:10:29Z
+
+Both commands run as SYSTEM through the guest agent, so they authenticate to DC01 as the
+machine account CA01$.
+
+--- CA01 as SYSTEM: LDAP BIND and READ ---
+{
+   "exitcode" : 0,
+   "exited" : 1,
+   "out-data" : "AIA, CDP, Certificate Templates, Certification Authorities, Enrollment Services, KRA, OID\r\n"
+}
+The bind succeeds and the read returns all seven child containers. LDAP itself works from CA01.
+
+--- CA01 as SYSTEM: LDAP WRITE ---
+{
+   "exitcode" : -2147024891,
+   "exited" : 1,
+   "out-data" : "ldap:///CN=district.local Issuing CA,CN=AIA,CN=Public Key Services,CN=Services,CN=Configuration,DC=district,DC=local?cACertificate\r\n\r\nldap: 0x32: LDAP_INSUFFICIENT_RIGHTS: 00000005: SecErr: DSID-03152E29, problem 4003 (INSUFF_ACCESS_RIGHTS), data 0\r\nldap: 0x20: LDAP_NO_SUCH_OBJECT: 0000208D: NameErr: DSID-0310028D, problem 2001 (NO_OBJECT), data 0, best match of:\r\n\t'CN=AIA,CN=Public Key Services,CN=Services,CN=Configuration,DC=district,DC=local'\r\n\r\nCertUtil: -dsPublish command FAILED: 0x80070005 (WIN32: 5 ERROR_ACCESS_DENIED)\r\nCertUtil: Access is denied.\r\n"
+}
+The write is denied, and it is denied FAST. Exit code -2147024891 is 0x80070005.
+CA01$ can read the Public Key Services container and cannot write to it.
+
+--- clock skew CA01 vs DC01 (sequential reads, so this bounds skew rather than measuring it) ---
+CA01: 2026-09-06T00:10:36.5196965Z
+DC01: 2026-09-06T00:10:38.2098406Z
+Difference 1.69 s across two sequential guest-exec calls. Kerberos skew is not a factor.
+
+--- DC01: LDAP signing requirement ---
+{"ldapserverintegrity":2,"LdapEnforceChannelBinding":2}
+LDAPServerIntegrity 2 requires signing. LdapEnforceChannelBinding 2 always enforces.
+The successful ADSI read above signs by default, so this is not the blocker.
+
+--- DC01: CA objects that exist in AD ---
+[{"Name":"district.local Root CA","ObjectClass":"certificationAuthority","Parent":"CN=Certification Authorities"},
+ {"Name":"district.local Root CA","ObjectClass":"certificationAuthority","Parent":"CN=AIA"}]
+Only the offline root is published. No object exists for the issuing CA, in any container.
+No Enrollment Services object exists for it.
+
+--- DC01 health at the time of the test ---
+[{"Name":"ADWS","S":"Running"},{"Name":"DNS","S":"Running"},{"Name":"NTDS","S":"Running"}]

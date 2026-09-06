@@ -1,0 +1,42 @@
+Command: date -u; ROOT_B64=$(pct exec 106 -- openssl x509 -in /root/ca/certs/root.cert.pem -outform DER | base64 -w0); SUB_B64=$(pct exec 106 -- openssl x509 -in /root/ca/certs/ca01.cert.pem -outform DER | base64 -w0); echo "root b64 len=${#ROOT_B64} sub b64 len=${#SUB_B64}"; qm guest exec 100 --timeout 60 -- powershell.exe -NonInteractive -Command "[IO.File]::WriteAllBytes('C:\root.cer',[Convert]::FromBase64String('$ROOT_B64')); (Get-Item C:\root.cer).Length"; qm guest exec 100 --timeout 120 -- cmd.exe /c "certutil -dspublish -f C:\root.cer RootCA"; qm guest exec 107 --timeout 60 -- powershell.exe -NonInteractive -Command "[IO.File]::WriteAllBytes('C:\root.cer',[Convert]::FromBase64String('$ROOT_B64')); [IO.File]::WriteAllBytes('C:\ca01.cer',[Convert]::FromBase64String('$SUB_B64')); @{root=(Get-Item C:\root.cer).Length; sub=(Get-Item C:\ca01.cer).Length} | ConvertTo-Json -Compress"; qm guest exec 107 --timeout 60 -- cmd.exe /c "certutil -addstore -f Root C:\root.cer"; qm guest exec 107 --timeout 120 -- cmd.exe /c "certutil -installcert C:\ca01.cer"; qm guest exec 107 --timeout 120 -- powershell.exe -NonInteractive -Command "Start-Service CertSvc; Start-Sleep -Seconds 5; Get-Service CertSvc | Select-Object Name,@{n='Status';e={$_.Status.ToString()}} | ConvertTo-Json -Compress"
+Host: Proxmox host shell (Proxmox web console)
+UTC: 2026-09-05T22:17:29Z
+
+Sat Sep  5 10:17:29 PM UTC 2026
+root b64 len=1852 sub b64 len=1888
+--- write root to DC01 ---
+{
+   "exitcode" : 0,
+   "exited" : 1,
+   "out-data" : "1388\r\n"
+}
+--- publish root to AD ---
+{
+   "exitcode" : 0,
+   "exited" : 1,
+   "out-data" : "ldap:///CN=district.local Root CA,CN=Certification Authorities,CN=Public Key Services,CN=Services,CN=Configuration,DC=district,DC=local?cACertificate\r\n\r\nCertificate added to DS store.\r\n\r\nldap:///CN=district.local Root CA,CN=AIA,CN=Public Key Services,CN=Services,CN=Configuration,DC=district,DC=local?cACertificate\r\n\r\nCertificate added to DS store.\r\n\r\nCertUtil: -dsPublish command completed successfully.\r\n"
+}
+--- write both certs to CA01 ---
+{
+   "exitcode" : 0,
+   "exited" : 1,
+   "out-data" : "{\"sub\":1415,\"root\":1388}\r\n"
+}
+--- trust the root on CA01 ---
+{
+   "exitcode" : 0,
+   "exited" : 1,
+   "out-data" : "Root \"Trusted Root Certification Authorities\"\r\nSignature matches Public Key\r\nCertificate \"district.local Root CA\" added to store.\r\nCertUtil: -addstore command completed successfully.\r\n"
+}
+--- install the CA certificate ---
+timeout reached, returning pid
+{
+   "pid" : 3628
+}
+--- start the CA ---
+{
+   "err-data" : "Start-Service : Failed to start service 'Active Directory Certificate Services (CertSvc)'.\r\nAt line:1 char:1\r\n+ Start-Service CertSvc; Start-Sleep -Seconds 5; Get-Service CertSvc |  ...\r\n+ ~~~~~~~~~~~~~~~~~~~~~\r\n    + CategoryInfo          : OpenError: (System.ServiceProcess.ServiceController:ServiceController) [Start-Service],  \r\n   ServiceCommandException\r\n    + FullyQualifiedErrorId : StartServiceFailed,Microsoft.PowerShell.Commands.StartServiceCommand\r\n \r\n",
+   "exitcode" : 0,
+   "exited" : 1,
+   "out-data" : "{\"Name\":\"CertSvc\",\"Status\":\"Stopped\"}\r\n"
+}

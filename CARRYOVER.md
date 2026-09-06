@@ -1,61 +1,58 @@
 # Carryover
 
-Open items only, as of 2026-09-05, closing exercise
-`2026-09-05-b1-security-defaults-transition` (Security Defaults disabled; `365bdd23` and
-`75882b6a` enforced for real; `d9a6a116` held report-only by decision; enforcement verified
-live).
+Open items only, as of 2026-09-06T00:15Z. Exercise `2026-09-05-adcs-issuing-ca-build` is
+**paused mid-build** for a second time, not closed. No report written yet.
 
 Read the tech-compass skill, then this file, then `EXPOSURES.md`. Check `verified-claims.md`
 before labeling a claim Inherited or Recalled. Gotchas live in
-`.claude/skills/tech-compass/references/gotchas.md`. Read them before the next tenant or host
-command; three lines were added this session.
+`.claude/skills/tech-compass/references/gotchas.md`.
 
 ## Lab state
 
-Confirmed 2026-09-05T19:16:42Z: VMs 100, 101, 102 stopped. VM 104 running. Matches the lab's
-standard opening state. Pool Data% last read 66.28% at 18:45:01Z, under the 85% gate.
+Read 2026-09-05T23:55:32Z: pool `Data%` 78.42, metadata 3.84, under the 85% gate with about
+10.2 GiB of margin. Host memory 6.6Gi available.
+Running: VM 100 (DC01), VM 104 (pfSense), VM 107 (CA01), container 106 (rootca-offline).
+Stopped: VM 101, VM 102, container 103. This is **not** the lab's standard opening state.
+Snapshot `pre-adcs-config` on VM 107 is a valid rollback point. All `certutil` orphans are cleared.
 
-## B1 next steps
+## The blocker, now localised
 
-1. Security Defaults transition is done. `365bdd23` (MFA for all) and `75882b6a` (block
-   legacy auth) genuinely enforce. Do not re-run this.
-2. `d9a6a116` (compliant or hybrid device) stays report-only by deliberate decision — it would
-   block VM 101 if enforced. Decide: enroll VM 101 in Intune, change the grant, or scope the
-   policy. Not yet decided.
-3. `75882b6a` is enforced but its block itself is unexercised. A legacy-auth attempt is the
-   only real test.
-4. Step 4 (telemetry volume) still needs more than one user's single session.
-5. The fourth policy stays blocked on certificate-based auth and a trusted CA, both absent.
+`certutil -installcert C:\ca01.cer` blocks on an established LDAP connection to DC01:389.
+`CACertHash` stays null, `CertSvc` cannot start, and no AD object exists for the issuing CA.
+Cause: run under `qm guest exec`, `certutil` authenticates as `CA01$`, which is denied the
+Configuration-container write. `certutil -dspublish` from CA01 proves the denial and returns in
+under a second.
 
-## No console login path on DC01
+**Still unexplained:** why a denial that is fast in `dspublish` becomes an indefinite block in
+`-installcert`. Two hypotheses, untested: it retries or waits rather than failing, or it raises a
+credential prompt that cannot render in session 0.
 
-Unchanged. `SeDenyInteractiveLogonRight = Domain Admins` blocks every member; `Administrator`
-is disabled. `qm guest exec` remains the only administrative path. Deferred by Raymond's
-decision.
+**Next step.** Run `certutil -installcert C:\ca01.cer` at CA01's console, from an elevated prompt,
+as an account **without** Enterprise Admins. That separates the two hypotheses at no privilege
+cost. Then decide on a temporary re-grant.
+
+## Blocking that next step
+
+**No console logon to CA01 works.** The local `Administrator` password Raymond holds is rejected.
+`DISTRICT\tmp-cainstall` holds local administrator on CA01 and is untested as a console account.
+Try it first.
+
+`tmp-cainstall` is out of Enterprise Admins by decision. Enterprise Admins now holds only the
+disabled `Administrator`. Re-grant, if needed, runs as SYSTEM via `qm guest exec` on DC01.
 
 ## Time-sensitive
 
-- P2 trial active, 30-day clock, exact start Recalled. B1-B2-B3 must fit inside it.
-- DC01 eval license grace ends ~2026-09-12. 5 of 6 rearms remain.
-- `svc-entraconnect` password expires ~2026-10-13.
+- CA01 licence grace ends about 2026-09-15. DC01's ends about 2026-09-12, 5 of 6 rearms left.
+- P2 trial, 30-day clock, exact start Recalled.
+- `svc-entraconnect` password expires about 2026-10-13.
 - `districtsafetyphoto.com` verification window nearly elapsed.
 
-## Also open, not blocking
+## B1, still open
 
-`A3-nongallery-test` app object: delete or keep, undecided. Whether to onboard more restamped
-accounts for telemetry, undecided since 2026-09-04.
+Four items unchanged: `d9a6a116` report-only by decision, `75882b6a`'s block unexercised,
+telemetry resting on one user, and the fourth CA policy blocked on CBA.
 
 ## Git state
 
-Clean as of 2026-09-05. Everything named above was committed as `05a801d` ("B1: disable
-Security Defaults, enforce two CA policies, verify live", 2026-09-05 12:18:18 -0700): this
-exercise's directory, `verified-claims.md`, `EXPOSURES.md`, this file, and
-`references/gotchas.md`. `git status --porcelain -uall` returns nothing. The local
-`origin/main` ref also sits at `05a801d` with nothing ahead of it, so the commit appears pushed
-— but that ref was read without a `git fetch`, so it is the last known remote position, not a
-live one.
-
-The plugin copy of the skill is outside the repo and cannot be committed. It was compared
-against the repo copy 2026-09-05: `diff -rq` reports no differences, so the two-copy rule holds.
-
-Commit only when Raymond asks.
+Committed and pushed through `ffddbea`. This exercise's directory is uncommitted. Commit only
+when Raymond asks.

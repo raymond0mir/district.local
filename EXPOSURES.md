@@ -114,6 +114,49 @@ before — exactly the class of thing the imported October 2025 baseline is know
 *Evidence:*
 `exercises/2026-09-02-a2-gpo-surface-and-domain-root-link/evidence/admins-group-existence-check-20260902T1701Z.txt`.
 
+**No enabled account holds Enterprise Admins in `district.local`.** After `tmp-cainstall` was
+removed from the group 2026-09-05, `Get-ADGroupMember 'Enterprise Admins'` returns exactly one
+member, `Administrator`, and that account is `Enabled: false`. This is the deliberate result of
+retiring a standing grant, not an accident, and it is not a lockout: the removal itself ran as
+SYSTEM through `qm guest exec` on DC01, so the same path can re-add an account without an
+interactive Enterprise Admins logon. It is recorded because any forest-level write — publishing a
+certificate template, creating the AD CS Enrollment Services object, a schema change — now needs a
+deliberate, temporary re-grant, and because a lab with no usable forest-admin identity is a state
+worth knowing before it is discovered mid-task. *Evidence:*
+`exercises/2026-09-05-adcs-issuing-ca-build/evidence/19-tmp-cainstall-removed-from-enterprise-admins.txt`.
+
+**No console logon to CA01 currently works.** Raymond could not sign in at CA01's console with the
+password he holds for the local `Administrator` account, set during Windows setup 2026-09-05.
+Whether it was mistyped at setup, never recorded, or recorded wrongly is unknown. This matters
+beyond convenience: `qm guest exec` runs as SYSTEM and therefore authenticates to DC01 as `CA01$`,
+which is exactly the identity that the AD CS install is denied under, so the console is the only
+path that can carry a credential. `DISTRICT\tmp-cainstall` holds local administrator rights on
+CA01 through a machine-local group and is the untested alternative. Note the pattern: DC01 already
+has no working interactive logon path, recorded above; CA01 now makes two. *Evidence:*
+`exercises/2026-09-05-adcs-issuing-ca-build/evidence/21-ca01-ldap-read-succeeds-write-denied.txt`,
+`exercises/2026-09-05-adcs-issuing-ca-build/evidence/19-tmp-cainstall-removed-from-enterprise-admins.txt`.
+
+**The issuing CA is built, holds a valid certificate, and cannot start.** CA01 (VM 107) is
+domain-joined, has the AD CS role installed, and is configured as an Enterprise Subordinate CA
+(`CAType` 1) suspended awaiting its issuer certificate (`SetupStatus` `0x20d`). The certificate
+itself exists and verifies against the offline root. `certutil -installcert` blocks indefinitely
+on an established LDAP connection to DC01:389, `CACertHash` stays null, and `CertSvc` cannot
+start. The write it needs is denied to `CA01$`: `certutil -dspublish` from CA01 returns
+`LDAP_INSUFFICIENT_RIGHTS` / `0x80070005` in under a second. The fast denial does not by itself
+explain the indefinite block, and that gap is unclosed. Downstream: no Enrollment Services object
+exists for CA01, so nothing in the domain can enrol, and B1's fourth Conditional Access policy
+stays blocked on CBA. *Evidence:*
+`exercises/2026-09-05-adcs-issuing-ca-build/evidence/20-installcert-blocked-on-established-ldap-to-dc01.txt`,
+`exercises/2026-09-05-adcs-issuing-ca-build/evidence/21-ca01-ldap-read-succeeds-write-denied.txt`.
+
+**The root CA certificate is published to AD with no CRL distribution point, by decision.** Raymond
+chose Option A on 2026-09-05: no public HTTP endpoint, and therefore no working revocation. The
+root certificate carries `basicConstraints`, `keyUsage`, SKI and AKI, and no CDP. It is already
+published into `CN=Certification Authorities` and `CN=AIA`. Consequence, accepted deliberately:
+once certificate-based authentication is live, a revoked certificate will not be blocked. *Evidence:*
+`exercises/2026-09-05-adcs-issuing-ca-build/evidence/04-root-cert-extensions-and-vm-configs.txt`,
+`exercises/2026-09-05-adcs-issuing-ca-build/evidence/21-ca01-ldap-read-succeeds-write-denied.txt`.
+
 ## Infrastructure
 
 **Host RAM is over-committed by 3.77 GiB — a configuration problem, not a hardware ceiling.**
@@ -283,6 +326,15 @@ license-driven (unconfirmed — the event-log query didn't reach back that far).
 `exercises/2026-09-02-dc01-eval-license-status/evidence/system-eventlog-1074-6006-6008-41-1076-20260902T1644Z.txt`,
 `exercises/2026-09-02-dc01-eval-license-status/evidence/rearm-and-post-restart-verification-20260902T1650Z.txt`,
 full analysis in `exercises/2026-09-02-dc01-eval-license-status/report.md`.
+
+**CA01's licence grace ends about 2026-09-15.** A fresh Server 2022 evaluation install from this
+lab's media starts in OOB Grace with roughly 10 days, not the 180-day evaluation the media
+implies: `LicenseStatus` 2, `GracePeriodRemaining` 14396 minutes, read 2026-09-05T21:27Z. This is
+the same 10-day figure DC01 reached after `slmgr /rearm`. The lab now has two Windows Server
+guests on expiring grace periods, DC01's ending about 2026-09-12 and CA01's about 2026-09-15.
+Neither is rearmed indefinitely; DC01 has 5 of 6 rearms left. Decide whether to rearm, activate,
+or accept that the CA stops. *Evidence:*
+`exercises/2026-09-05-adcs-issuing-ca-build/evidence/06-ca01-post-install-state.txt`.
 
 ## Recently closed (for contrast, not action)
 

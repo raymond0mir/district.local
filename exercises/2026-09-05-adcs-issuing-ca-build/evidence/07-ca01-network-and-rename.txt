@@ -1,0 +1,28 @@
+Command: date -u; qm guest exec 107 --timeout 60 -- powershell.exe -NonInteractive -Command "New-NetIPAddress -InterfaceAlias 'Ethernet' -IPAddress 10.0.0.12 -PrefixLength 24 -DefaultGateway 10.0.0.1 | Select-Object IPAddress,PrefixLength | ConvertTo-Json -Compress"; qm guest exec 107 --timeout 60 -- powershell.exe -NonInteractive -Command "Set-DnsClientServerAddress -InterfaceAlias 'Ethernet' -ServerAddresses 10.0.0.10; Get-DnsClientServerAddress -InterfaceAlias 'Ethernet' -AddressFamily IPv4 | Select-Object InterfaceAlias,ServerAddresses | ConvertTo-Json -Compress"; qm guest exec 107 --timeout 60 -- powershell.exe -NonInteractive -Command "Rename-Computer -NewName CA01 -Force -PassThru | Select-Object HasSucceeded,OldComputerName,NewComputerName | ConvertTo-Json -Compress"; qm guest exec 107 --timeout 30 -- powershell.exe -NonInteractive -Command "Restart-Computer -Force"
+Host: Proxmox host shell (Proxmox web console), acting on VM 107
+UTC: 2026-09-05T21:42:30Z
+
+Sat Sep  5 09:42:30 PM UTC 2026
+--- static ip ---
+{
+   "exitcode" : 0,
+   "exited" : 1,
+   "out-data" : "[{\"IPAddress\":\"10.0.0.12\",\"PrefixLength\":24},{\"IPAddress\":\"10.0.0.12\",\"PrefixLength\":24}]\r\n"
+}
+--- dns ---
+{
+   "exitcode" : 0,
+   "exited" : 1,
+   "out-data" : "{\"InterfaceAlias\":\"Ethernet\",\"ServerAddresses\":[\"10.0.0.10\"]}\r\n"
+}
+--- rename ---
+{
+   "exitcode" : 0,
+   "exited" : 1,
+   "out-data" : "WARNING: The changes will take effect after you restart the computer WIN-7BF20JAR8KR.\n{\"HasSucceeded\":true,\"OldComputerName\":\"WIN-7BF20JAR8KR\",\"NewComputerName\":\"CA01\"}\r\n"
+}
+--- reboot ---
+{
+   "exitcode" : 0,
+   "exited" : 1
+}

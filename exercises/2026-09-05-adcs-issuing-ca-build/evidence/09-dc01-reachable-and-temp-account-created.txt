@@ -1,0 +1,46 @@
+Command: date -u; qm status 100; sleep 120; qm guest exec 100 --timeout 60 -- powershell.exe -NonInteractive -Command "Get-Service ADWS,Netlogon,DNS,NTDS | Select-Object Name,Status | ConvertTo-Json -Compress"; qm guest exec 100 --timeout 60 -- powershell.exe -NonInteractive -Command "@{Name=(Get-CimInstance Win32_ComputerSystem).Name; IP=@(Get-NetIPAddress -AddressFamily IPv4 | Where-Object {$_.InterfaceAlias -notlike 'Loopback*'} | ForEach-Object {$_.IPAddress})} | ConvertTo-Json -Compress"; qm guest exec 107 --timeout 60 -- cmd.exe /c "nltest /dsgetdc:district.local"; qm guest exec 107 --timeout 60 -- powershell.exe -NonInteractive -Command "Test-NetConnection -ComputerName 10.0.0.10 -Port 389 -WarningAction SilentlyContinue | Select-Object ComputerName,RemoteAddress,TcpTestSucceeded | ConvertTo-Json -Compress"; qm guest exec 100 --timeout 90 -- powershell.exe -NonInteractive -Command "<generate password; New-ADUser tmp-cainstall; Add-ADGroupMember 'Enterprise Admins'; print password>"; qm guest exec 100 --timeout 60 -- powershell.exe -NonInteractive -Command "Get-ADUser tmp-cainstall -Properties MemberOf,Description | Select-Object SamAccountName,Enabled,Description,MemberOf | ConvertTo-Json -Compress"
+Host: Proxmox host shell (Proxmox web console)
+UTC: 2026-09-05T21:47:35Z
+Note: the generated password was redacted by Raymond before pasting. The value never entered the
+session and is not recorded anywhere in this repo. The account-creation command is summarised
+above for the same reason; its full syntax is in report.md with the generator intact.
+
+Sat Sep  5 09:47:35 PM UTC 2026
+--- dc01 status ---
+status: running
+--- dc01 services ---
+{
+   "exitcode" : 0,
+   "exited" : 1,
+   "out-data" : "[{\"Name\":\"ADWS\",\"Status\":4},{\"Name\":\"DNS\",\"Status\":4},{\"Name\":\"Netlogon\",\"Status\":4},{\"Name\":\"NTDS\",\"Status\":4}]\r\n"
+}
+--- dc01 identity and address ---
+{
+   "exitcode" : 0,
+   "exited" : 1,
+   "out-data" : "{\"IP\":[\"10.0.0.10\"],\"Name\":\"DC01\"}\r\n"
+}
+--- ca01 dc locator ---
+{
+   "exitcode" : 0,
+   "exited" : 1,
+   "out-data" : "           DC: \\\\DC01.district.local\r\n      Address: \\\\10.0.0.10\r\n     Dom Guid: 77e088f6-c935-47be-95df-5242384b2af6\r\n     Dom Name: district.local\r\n  Forest Name: district.local\r\n Dc Site Name: Default-First-Site-Name\r\nOur Site Name: Default-First-Site-Name\r\n        Flags: PDC GC DS LDAP KDC TIMESERV GTIMESERV WRITABLE DNS_DC DNS_DOMAIN DNS_FOREST CLOSE_SITE FULL_SECRET WS DS_8 DS_9 DS_10 KEYLIST\r\nThe command completed successfully\r\n"
+}
+--- ca01 to dc01 ldap ---
+{
+   "exitcode" : 0,
+   "exited" : 1,
+   "out-data" : "{\"ComputerName\":\"10.0.0.10\",\"RemoteAddress\":{\"Address\":167772170,\"AddressFamily\":2,\"ScopeId\":null,\"IsIPv6Multicast\":false,\"IsIPv6LinkLocal\":false,\"IsIPv6SiteLocal\":false,\"IsIPv6Teredo\":false,\"IsIPv4MappedToIPv6\":false},\"TcpTestSucceeded\":true}\r\n"
+}
+--- CREATE TEMP ACCOUNT - password line redacted before pasting ---
+{
+   "exitcode" : 0,
+   "exited" : 1,
+   "out-data" : "PASSWORD \r\n"
+}
+--- verify membership ---
+{
+   "exitcode" : 0,
+   "exited" : 1,
+   "out-data" : "{\"SamAccountName\":\"tmp-cainstall\",\"Enabled\":true,\"Description\":\"Temporary. Created 2026-09-05 for AD CS install on CA01. Delete at exercise close.\",\"MemberOf\":[\"CN=Enterprise Admins,CN=Users,DC=district,DC=local\"]}\r\n"
+}

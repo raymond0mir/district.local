@@ -11,6 +11,10 @@ Write the condition that makes each line true. A behavior that depends on a lice
 - `slmgr` runs under `wscript` by default and opens a GUI dialog that hangs. Run `cscript.exe //NoLogo //B slmgr.vbs <args>`. Do not run `slmgr /dlv` at all. Source: `exercises/2026-09-02-dc01-eval-license-status`.
 - Prefer native PowerShell and CIM over VBScript wrappers.
 - `Get-ADDomain` fails while ADWS initializes after boot. Wait and re-run.
+- The agent returns the PID of the process it launched. Wrapping a command in `cmd.exe` means that PID is the shell. Killing it leaves the real process orphaned and still running. Invoke the target binary directly: `qm guest exec 107 -- certutil.exe -installcert C:\ca01.cer`. Cost twice on 2026-09-05 before it was noticed. Source: `exercises/2026-09-05-adcs-issuing-ca-build`.
+- Windows reuses PIDs within minutes. Do not compare PID numbers across turns. Decode `StartTime` and compare that. A reused PID read as continuity produced a wrong claim on 2026-09-05. Source: `exercises/2026-09-05-adcs-issuing-ca-build`.
+- `Get-NetTCPConnection -OwningProcess <pid>` is the cheap way to find what a hung guest process waits on. `State 5` is Established, `State 100` is Bound. Pair it with the process's `CPU` seconds: near-zero CPU means a blocked wait, not a loop. Source: `exercises/2026-09-05-adcs-issuing-ca-build`.
+- `Start-Process -RedirectStandardOutput` cannot show how far a hung process got. The C runtime block-buffers a redirected handle, so the file stays zero bytes while the process runs. Tried and failed 2026-09-05. Source: `exercises/2026-09-05-adcs-issuing-ca-build`.
 
 ## GroupPolicy module
 
@@ -44,3 +48,13 @@ Write the condition that makes each line true. A behavior that depends on a lice
 - Docker inside an unprivileged LXC needs `lxc.apparmor.profile: unconfined`. `nesting=1,keyctl=1` alone is not enough. Source: `exercises/2026-09-03-vaultwarden-secrets-store`.
 - `docker restart` does not re-read `--env-file`. Recreate the container to apply env changes. A bind-mounted Caddyfile is re-read on restart.
 - A Caddy site block written as bare `:443` has no hostname for a certificate. Handshakes fail with `internal_error` and no log line.
+
+## AD CS and certutil
+
+- Do not generalise from one `certutil` verb to another. `certutil -addstore` on a member server and `certutil -dspublish` on DC01 both run to exit 0 under `qm guest exec`. `certutil -installcert` blocks indefinitely in the same context. Source: `exercises/2026-09-05-adcs-issuing-ca-build`.
+- `certutil -installcert` on an **Enterprise** subordinate CA writes the CA's objects into the Configuration container. Under `qm guest exec` the process runs as SYSTEM and authenticates as the machine account, which is denied that write. It then blocks on an established LDAP connection to the DC rather than failing. Run it at the CA's own console, with a credential that holds the forest write. Source: `exercises/2026-09-05-adcs-issuing-ca-build`.
+- The same denied write returns immediately from `certutil -dspublish` (`LDAP_INSUFFICIENT_RIGHTS`, `0x80070005`). A fast denial in one verb does not predict a fast denial in another. Source: `exercises/2026-09-05-adcs-issuing-ca-build`.
+- `certutil -getreg CA\<ValueName>` prints the registry value **and its flag names**. Use it instead of decoding a bitmask by hand. `SetupStatus` `0x20d` resolves to `SETUP_SERVER_FLAG`, `SETUP_SUSPEND_FLAG`, `SETUP_REQUEST_FLAG`, `SETUP_UPDATE_CAOBJECT_SVRTYPE`. Source: `exercises/2026-09-05-adcs-issuing-ca-build`.
+- A CA's `RequestFileName` holds format tokens, not a literal path. `C:\ca01%4.req` expands to `C:\ca01.req`, because `%4` is the certificate-index token and is empty for a first certificate. Event 27's doubled extension is a message artefact of the same expansion. Source: `exercises/2026-09-05-adcs-issuing-ca-build`.
+- DC01 sets `LDAPServerIntegrity 2` and `LdapEnforceChannelBinding 2`. A signed client is unaffected; an ADSI read from a member server succeeds. Rule this out early rather than late when an LDAP operation stalls. Source: `exercises/2026-09-05-adcs-issuing-ca-build`.
+- A fresh Windows Server 2022 evaluation install from this lab's media starts in **OOB Grace with about 10 days**, not a 180-day evaluation. Plan any Server build around that, not around the media's implied window. Source: `exercises/2026-09-05-adcs-issuing-ca-build`.

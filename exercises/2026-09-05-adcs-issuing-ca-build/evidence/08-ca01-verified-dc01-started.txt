@@ -1,0 +1,25 @@
+Command: date -u; qm status 101; qm guest exec 107 --timeout 60 -- powershell.exe -NonInteractive -Command "Get-CimInstance Win32_ComputerSystem | Select-Object Name,PartOfDomain,Workgroup | ConvertTo-Json -Compress"; qm guest exec 107 --timeout 60 -- powershell.exe -NonInteractive -Command "Get-NetIPAddress -AddressFamily IPv4 | Where-Object {$_.InterfaceAlias -notlike 'Loopback*'} | Select-Object IPAddress,PrefixLength,PrefixOrigin,SkipAsSource | ConvertTo-Json -Compress"; if [ "$(qm status 101 | awk '{print $2}')" = "stopped" ]; then qm start 100; echo "dc01 start exit=$?"; else echo "VM 101 STILL RUNNING - DC01 not started"; fi; free -h
+Host: Proxmox host shell (Proxmox web console)
+UTC: 2026-09-05T21:43:34Z
+
+Sat Sep  5 09:43:34 PM UTC 2026
+--- vm101 status ---
+status: stopped
+--- ca01 identity ---
+{
+   "exitcode" : 0,
+   "exited" : 1,
+   "out-data" : "{\"Name\":\"CA01\",\"PartOfDomain\":false,\"Workgroup\":\"WORKGROUP\"}\r\n"
+}
+--- ca01 addresses ---
+{
+   "exitcode" : 0,
+   "exited" : 1,
+   "out-data" : "{\"IPAddress\":\"10.0.0.12\",\"PrefixLength\":24,\"PrefixOrigin\":1,\"SkipAsSource\":false}\r\n"
+}
+--- start DC01 only if 101 is down ---
+dc01 start exit=0
+--- memory ---
+               total        used        free      shared  buff/cache   available
+Mem:            15Gi       5.9Gi       4.5Gi        59Mi       4.9Gi       9.1Gi
+Swap:          8.0Gi       988Ki       8.0Gi

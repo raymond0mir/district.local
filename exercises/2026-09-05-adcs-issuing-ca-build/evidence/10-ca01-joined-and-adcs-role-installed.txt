@@ -1,0 +1,41 @@
+Command: date -u; qm guest exec 107 --timeout 60 -- powershell.exe -NonInteractive -Command "Get-CimInstance Win32_ComputerSystem | Select-Object Name,PartOfDomain,Domain | ConvertTo-Json -Compress"; qm guest exec 107 --timeout 60 -- cmd.exe /c "nltest /sc_verify:district.local"; qm guest exec 100 --timeout 60 -- powershell.exe -NonInteractive -Command "Get-ADComputer CA01 -Properties DistinguishedName,Created,OperatingSystem | Select-Object Name,DistinguishedName,Created,OperatingSystem | ConvertTo-Json -Compress"; qm guest exec 107 --timeout 60 -- powershell.exe -NonInteractive -Command "Add-LocalGroupMember -Group 'Administrators' -Member 'DISTRICT\tmp-cainstall' -ErrorAction SilentlyContinue; Get-LocalGroupMember -Group 'Administrators' | Select-Object Name,PrincipalSource | ConvertTo-Json -Compress"; qm guest exec 107 --timeout 300 -- powershell.exe -NonInteractive -Command "Install-WindowsFeature ADCS-Cert-Authority -IncludeManagementTools | Select-Object Success,RestartNeeded,ExitCode | ConvertTo-Json -Compress"; lvs -o+data_percent | grep -E '^\s+(data|vm-107)'
+Host: Proxmox host shell (Proxmox web console)
+UTC: 2026-09-05T21:58:29Z
+Note: the domain join itself ran at CA01's noVNC console as DISTRICT\tmp-cainstall, because
+Add-Computer needs a typed credential and qm guest exec attaches no TTY.
+
+Sat Sep  5 09:58:29 PM UTC 2026
+--- ca01 domain state ---
+{
+   "exitcode" : 0,
+   "exited" : 1,
+   "out-data" : "{\"Name\":\"CA01\",\"PartOfDomain\":true,\"Domain\":\"district.local\"}\r\n"
+}
+--- secure channel ---
+{
+   "exitcode" : 0,
+   "exited" : 1,
+   "out-data" : "Flags: b0 HAS_IP  HAS_TIMESERV \r\nTrusted DC Name \\\\DC01.district.local \r\nTrusted DC Connection Status Status = 0 0x0 NERR_Success\r\nTrust Verification Status = 0 0x0 NERR_Success\r\nThe command completed successfully\r\n"
+}
+--- object in AD ---
+{
+   "exitcode" : 0,
+   "exited" : 1,
+   "out-data" : "{\"Name\":\"CA01\",\"DistinguishedName\":\"CN=CA01,CN=Computers,DC=district,DC=local\",\"Created\":\"\\/Date(1788645440000)\\/\",\"OperatingSystem\":\"Windows Server 2022 Standard Evaluation\"}\r\n"
+}
+--- grant local admin on CA01 only ---
+{
+   "exitcode" : 0,
+   "exited" : 1,
+   "out-data" : "[{\"Name\":\"CA01\\\\Administrator\",\"PrincipalSource\":1},{\"Name\":\"DISTRICT\\\\Domain Admins\",\"PrincipalSource\":2},{\"Name\":\"DISTRICT\\\\tmp-cainstall\",\"PrincipalSource\":2}]\r\n"
+}
+--- install AD CS role binaries ---
+{
+   "exitcode" : 0,
+   "exited" : 1,
+   "out-data" : "{\"Success\":true,\"RestartNeeded\":1,\"ExitCode\":0}\r\n"
+}
+--- pool ---
+  data                                                   pve twi-aotz-- <155.23g                                    76.97  3.75                             76.97 
+  vm-107-disk-0                                          pve Vwi-aotz--    4.00m data                               14.06                                   14.06 
+  vm-107-disk-1                                          pve Vwi-aotz--   60.00g data                               16.49                                   16.49 

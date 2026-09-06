@@ -1,0 +1,29 @@
+Command: date -u; qm guest exec 107 --timeout 60 -- powershell.exe -NonInteractive -Command "$p = Get-Process -Id 3628 -ErrorAction SilentlyContinue; if ($p) { $p | Select-Object Id,ProcessName,StartTime | ConvertTo-Json -Compress } else { 'not running' }"; qm guest exec 107 --timeout 60 -- powershell.exe -NonInteractive -Command "Get-ItemProperty 'HKLM:\SYSTEM\CurrentControlSet\Services\CertSvc\Configuration\district.local Issuing CA' -ErrorAction SilentlyContinue | Select-Object CACertHash,CACertFileName,CAServerName | ConvertTo-Json -Compress"; qm guest exec 107 --timeout 90 -- powershell.exe -NonInteractive -Command "Get-WinEvent -LogName Application -MaxEvents 40 -ErrorAction SilentlyContinue | Where-Object {$_.ProviderName -like '*Cert*'} | Select-Object -First 6 TimeCreated,Id,ProviderName,@{n='Msg';e={...}} | ConvertTo-Json -Compress"; qm guest exec 107 --timeout 60 -- powershell.exe -NonInteractive -Command "Stop-Process -Id 3628 -Force -ErrorAction SilentlyContinue; 'stop attempted'"
+Host: Proxmox host shell (Proxmox web console), acting on VM 107
+UTC: 2026-09-05T22:21:19Z
+
+Sat Sep  5 10:21:19 PM UTC 2026
+--- is pid 3628 alive? ---
+{
+   "exitcode" : 0,
+   "exited" : 1,
+   "out-data" : "{\"Id\":3628,\"ProcessName\":\"cmd\",\"StartTime\":\"\\/Date(1788646657521)\\/\"}\r\n"
+}
+--- did the cert get installed? ---
+{
+   "exitcode" : 0,
+   "exited" : 1,
+   "out-data" : "{\"CACertHash\":null,\"CACertFileName\":null,\"CAServerName\":\"CA01.district.local\"}\r\n"
+}
+--- CA events ---
+{
+   "exitcode" : 0,
+   "exited" : 1,
+   "out-data" : "{\"TimeCreated\":\"\\/Date(1788646778510)\\/\",\"Id\":27,\"ProviderName\":\"Microsoft-Windows-CertificationAuthority\",\"Msg\":\"Active Directory Certificate Services did not start: Hierarchical setup is incomplete. Use the request file in C:\\\\ca01.req.req to obtain a certificate for this Certificate Server, and use the Certification Authority admi\"}\r\n"
+}
+--- clean up the orphan ---
+{
+   "exitcode" : 0,
+   "exited" : 1,
+   "out-data" : "stop attempted\r\n"
+}

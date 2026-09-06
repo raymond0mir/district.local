@@ -1,0 +1,32 @@
+Command: date -u; qm guest exec 107 --timeout 60 -- powershell.exe -NonInteractive -Command "Get-ChildItem C:\ -File | Where-Object {$_.Extension -in '.req','.cer','.crt','.p7b'} | Select-Object Name,Length,LastWriteTimeUtc | ConvertTo-Json -Compress"; qm guest exec 107 --timeout 120 -- cmd.exe /c "certutil -installcert C:\ca01.cer < NUL & echo EXITCODE=%errorlevel%"; qm guest exec 107 --timeout 60 -- powershell.exe -NonInteractive -Command "Get-ItemProperty 'HKLM:\SYSTEM\CurrentControlSet\Services\CertSvc\Configuration\district.local Issuing CA' -ErrorAction SilentlyContinue | Select-Object CACertHash,CACertFileName | ConvertTo-Json -Compress"; qm guest exec 107 --timeout 120 -- powershell.exe -NonInteractive -Command "try { Start-Service CertSvc -ErrorAction Stop; 'started' } catch { $_.Exception.Message }; Get-Service CertSvc | Select-Object @{n='Status';e={$_.Status.ToString()}} | ConvertTo-Json -Compress"
+Host: Proxmox host shell (Proxmox web console), acting on VM 107
+UTC: 2026-09-05T22:29:21Z
+Note: a prior attempt at the Certification Authority snap-in on CA01's console reported access
+denied on Start Service. That console text is Recalled. CACertHash was null before and after it.
+
+Sat Sep  5 10:29:21 PM UTC 2026
+--- what request and cert files exist on C:? ---
+{
+   "exitcode" : 0,
+   "exited" : 1,
+   "out-data" : "[{\"Name\":\"ca01.cer\",\"Length\":1415,\"LastWriteTimeUtc\":\"\\/Date(1788646654478)\\/\"},{\"Name\":\"ca01.req\",\"Length\":1920,\"LastWriteTimeUtc\":\"\\/Date(1788646101534)\\/\"},{\"Name\":\"root.cer\",\"Length\":1388,\"LastWriteTimeUtc\":\"\\/Date(1788646654478)\\/\"}]\r\n"
+}
+--- installcert with stdin closed ---
+
+
+timeout reached, returning pid
+{
+   "pid" : 2996
+}
+--- cert installed now? ---
+{
+   "exitcode" : 0,
+   "exited" : 1,
+   "out-data" : "{\"CACertHash\":null,\"CACertFileName\":null}\r\n"
+}
+--- start ---
+{
+   "exitcode" : 0,
+   "exited" : 1,
+   "out-data" : "Failed to start service 'Active Directory Certificate Services (CertSvc)'.\r\n{\"Status\":\"Stopped\"}\r\n"
+}

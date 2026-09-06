@@ -1,0 +1,33 @@
+Command: date -u; qm guest exec 107 --timeout 30 -- powershell.exe -NonInteractive -Command "Get-Process -Id 4864 ... | ConvertTo-Json -Compress"; qm guest exec 107 --timeout 30 -- powershell.exe -NonInteractive -Command "$c = Get-NetTCPConnection -OwningProcess 4864 -ErrorAction SilentlyContinue; if ($c) { $c | Select-Object LocalPort,RemoteAddress,RemotePort,State | ConvertTo-Json -Compress } else { 'no tcp connections' }"; qm guest exec 107 --timeout 30 -- powershell.exe -NonInteractive -Command "Start-Process -FilePath certutil.exe -ArgumentList '-v','-installcert','C:\ca01.cer' -RedirectStandardOutput C:\installcert.out -RedirectStandardError C:\installcert.err -NoNewWindow -PassThru"; sleep 40; qm guest exec 107 --timeout 45 -- powershell.exe -NonInteractive -Command "@{ running = ...; outLen = ...; errLen = ... } | ConvertTo-Json -Compress"
+Host: Proxmox host shell (Proxmox web console), acting on VM 107
+UTC: 2026-09-06T00:06:30Z
+
+Context: pid 4864 is the third hung `certutil -installcert C:\ca01.cer`, launched
+2026-09-06T00:02:17Z directly as certutil.exe with no cmd.exe wrapper, against a machine cleaned
+of every orphan from the two earlier attempts.
+
+--- what is pid 4864 doing? ---
+{
+   "exitcode" : 0,
+   "exited" : 1,
+   "out-data" : "{\"Id\":4864,\"ProcessName\":\"certutil\",\"SessionId\":0,\"CPUsec\":0.046875,\"Threads\":5,\"Handles\":303}\r\n"
+}
+--- any network wait? ---
+{
+   "exitcode" : 0,
+   "exited" : 1,
+   "out-data" : "[{\"LocalPort\":57664,\"RemoteAddress\":\"0.0.0.0\",\"RemotePort\":0,\"State\":100},{\"LocalPort\":57664,\"RemoteAddress\":\"10.0.0.10\",\"RemotePort\":389,\"State\":5}]\r\n"
+}
+
+Get-NetTCPConnection State values: 100 = Bound, 5 = Established.
+The process holds an established TCP connection to DC01 (10.0.0.10) on port 389, LDAP.
+CPU time is 0.046875 seconds across 5 threads, so the process is blocked on a wait.
+
+--- verbose run with output redirected to a file, read after 40 seconds ---
+{
+   "exitcode" : 0,
+   "exited" : 1,
+   "out-data" : "{\"errLen\":0,\"running\":\"4652\",\"outLen\":0}\r\n"
+}
+Both redirect files are zero bytes while the process still runs. The C runtime block-buffers a
+redirected handle, so this technique yielded no partial output. Recorded as a failed technique.

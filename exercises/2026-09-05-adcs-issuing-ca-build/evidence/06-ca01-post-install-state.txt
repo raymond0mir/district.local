@@ -1,0 +1,49 @@
+Command: date -u; qm agent 107 ping; echo "ping exit=$?"; qm guest exec 107 --timeout 30 -- powershell.exe -NonInteractive -Command "hostname"; qm guest exec 107 --timeout 30 -- powershell.exe -NonInteractive -Command "Get-CimInstance Win32_OperatingSystem | Select-Object Caption,Version,OSArchitecture,InstallDate | ConvertTo-Json -Compress"; qm guest exec 107 --timeout 60 -- powershell.exe -NonInteractive -Command "Get-CimInstance SoftwareLicensingProduct -Filter 'PartialProductKey is not null' | Select-Object Name,LicenseStatus,GracePeriodRemaining | ConvertTo-Json -Compress"; qm guest exec 107 --timeout 30 -- powershell.exe -NonInteractive -Command "Get-CimInstance Win32_ComputerSystem | Select-Object Name,PartOfDomain,Domain,Workgroup | ConvertTo-Json -Compress"; qm guest exec 107 --timeout 30 -- powershell.exe -NonInteractive -Command "Get-NetIPAddress -AddressFamily IPv4 | Where-Object {$_.InterfaceAlias -notlike 'Loopback*'} | Select-Object IPAddress,InterfaceAlias,PrefixOrigin | ConvertTo-Json -Compress"; lvs -o+data_percent | grep -E '^\s+(data|vm-107)'
+Host: Proxmox host shell (Proxmox web console), acting on VM 107
+UTC: 2026-09-05T21:31:02Z
+
+Preceding manual attempts, same shell, before the block above:
+root@proxmox:~# qm agent 107 ping
+QEMU guest agent is not running
+root@proxmox:~# qm agent 107 ping
+QEMU guest agent is not running
+root@proxmox:~# qm agent 107 ping
+root@proxmox:~#
+
+Sat Sep  5 09:31:02 PM UTC 2026
+--- agent ping ---
+ping exit=0
+--- hostname ---
+{
+   "exitcode" : 0,
+   "exited" : 1,
+   "out-data" : "WIN-7BF20JAR8KR\r\n"
+}
+--- OS ---
+{
+   "exitcode" : 0,
+   "exited" : 1,
+   "out-data" : "{\"Caption\":\"Microsoft Windows Server 2022 Standard Evaluation\",\"Version\":\"10.0.20348\",\"OSArchitecture\":\"64-bit\",\"InstallDate\":\"\\/Date(1788643646000)\\/\"}\r\n"
+}
+--- licence ---
+{
+   "exitcode" : 0,
+   "exited" : 1,
+   "out-data" : "{\"Name\":\"Windows(R), ServerStandardEval edition\",\"LicenseStatus\":2,\"GracePeriodRemaining\":14396}\r\n"
+}
+--- domain state ---
+{
+   "exitcode" : 0,
+   "exited" : 1,
+   "out-data" : "{\"Name\":\"WIN-7BF20JAR8KR\",\"PartOfDomain\":false,\"Domain\":\"WORKGROUP\",\"Workgroup\":\"WORKGROUP\"}\r\n"
+}
+--- ip ---
+{
+   "exitcode" : 0,
+   "exited" : 1,
+   "out-data" : "{\"IPAddress\":\"169.254.57.194\",\"InterfaceAlias\":\"Ethernet\",\"PrefixOrigin\":2}\r\n"
+}
+--- pool ---
+  data                                                   pve twi-aotz-- <155.23g                                    76.63  3.74                             76.63 
+  vm-107-disk-0                                          pve Vwi-aotz--    4.00m data                               14.06                                   14.06 
+  vm-107-disk-1                                          pve Vwi-aotz--   60.00g data                               15.94                                   15.94 

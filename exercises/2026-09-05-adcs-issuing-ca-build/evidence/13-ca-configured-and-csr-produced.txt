@@ -1,0 +1,34 @@
+Command: date -u; qm guest exec 107 --timeout 60 -- powershell.exe -NonInteractive -Command "Get-WindowsFeature ADCS-Cert-Authority | Select-Object Name,@{n='State';e={$_.InstallState.ToString()}} | ConvertTo-Json -Compress"; qm guest exec 107 --timeout 60 -- powershell.exe -NonInteractive -Command "Get-Service CertSvc | Select-Object Name,@{n='Status';e={$_.Status.ToString()}},@{n='StartType';e={$_.StartType.ToString()}} | ConvertTo-Json -Compress"; qm guest exec 107 --timeout 60 -- powershell.exe -NonInteractive -Command "Get-ChildItem 'HKLM:\SYSTEM\CurrentControlSet\Services\CertSvc\Configuration' | Select-Object -ExpandProperty PSChildName"; qm guest exec 107 --timeout 60 -- powershell.exe -NonInteractive -Command "Get-Item C:\ca01.req | Select-Object Name,Length,LastWriteTimeUtc | ConvertTo-Json -Compress"; qm guest exec 107 --timeout 60 -- cmd.exe /c "type C:\ca01.req"
+Host: Proxmox host shell (Proxmox web console), acting on VM 107
+UTC: 2026-09-05T22:10:45Z
+
+Sat Sep  5 10:10:45 PM UTC 2026
+--- feature state as string ---
+{
+   "exitcode" : 0,
+   "exited" : 1,
+   "out-data" : "{\"Name\":\"ADCS-Cert-Authority\",\"State\":\"Installed\"}\r\n"
+}
+--- CertSvc service ---
+{
+   "exitcode" : 0,
+   "exited" : 1,
+   "out-data" : "{\"Name\":\"CertSvc\",\"Status\":\"Stopped\",\"StartType\":\"Automatic\"}\r\n"
+}
+--- CA registry config ---
+{
+   "exitcode" : 0,
+   "exited" : 1,
+   "out-data" : "district.local Issuing CA\r\n"
+}
+--- request file ---
+{
+   "exitcode" : 0,
+   "exited" : 1,
+   "out-data" : "{\"Name\":\"ca01.req\",\"Length\":1920,\"LastWriteTimeUtc\":\"\\/Date(1788646101534)\\/\"}\r\n"
+}
+--- CSR CONTENT ---
+(full PKCS#10 block returned; reproduced verbatim in evidence/ca01.req)
+
+Decoded on the Proxmox host with: openssl req -in ca01.req -noout -subject
+subject=/DC=local/DC=district/CN=district.local Issuing CA

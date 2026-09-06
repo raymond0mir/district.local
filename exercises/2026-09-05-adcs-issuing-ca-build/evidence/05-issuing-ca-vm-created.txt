@@ -1,0 +1,52 @@
+Command: date -u; qm create 107 --name ca01 --memory 2048 --cores 2 --sockets 1 --cpu host --machine pc-q35-10.0 --bios ovmf --ostype win11 --scsihw virtio-scsi-single --agent enabled=1 --efidisk0 local-lvm:1,efitype=4m,pre-enrolled-keys=1 --scsi0 local-lvm:60,iothread=1 --net0 virtio,bridge=vmbr1,firewall=1 --ide2 local:iso/SERVER_EVAL_x64FRE_en-us.iso,media=cdrom --ide3 local:iso/virtio-win-0.1.285.iso,media=cdrom --boot 'order=ide2;scsi0;net0' --description "..."; echo "create exit=$?"; qm config 107; qm start 107; echo "start exit=$?"; qm status 107; lvs -o+data_percent | grep -E '^\s+(data|vm-107)'; free -h
+Host: Proxmox host shell (Proxmox web console)
+UTC: 2026-09-05T21:20:34Z
+
+Sat Sep  5 09:20:34 PM UTC 2026
+  Rounding up size to full physical extent 4.00 MiB
+  WARNING: You have not turned on protection against thin pools running out of space.
+  WARNING: Set activation/thin_pool_autoextend_threshold below 100 to trigger automatic extension of thin pools before they get full.
+  Logical volume "vm-107-disk-0" created.
+  WARNING: Sum of all thin volume sizes (409.01 GiB) exceeds the size of thin pool pve/data and the size of whole volume group (237.47 GiB).
+  Logical volume pve/vm-107-disk-0 changed.
+transferred 0.0 B of 528.0 KiB (0.00%)
+transferred 528.0 KiB of 528.0 KiB (100.00%)
+transferred 528.0 KiB of 528.0 KiB (100.00%)
+efidisk0: successfully created disk 'local-lvm:vm-107-disk-0,efitype=4m,pre-enrolled-keys=1,size=4M'
+  WARNING: You have not turned on protection against thin pools running out of space.
+  WARNING: Set activation/thin_pool_autoextend_threshold below 100 to trigger automatic extension of thin pools before they get full.
+  Logical volume "vm-107-disk-1" created.
+  WARNING: Sum of all thin volume sizes (469.01 GiB) exceeds the size of thin pool pve/data and the size of whole volume group (237.47 GiB).
+  Logical volume pve/vm-107-disk-1 changed.
+scsi0: successfully created disk 'local-lvm:vm-107-disk-1,iothread=1,size=60G'
+create exit=0
+agent: enabled=1
+bios: ovmf
+boot: order=ide2;scsi0;net0
+cores: 2
+cpu: host
+description: Enterprise issuing CA for Entra CBA. Subordinate to offline root in CT 106. Exercise 2026-09-05-adcs-issuing-ca-build.
+efidisk0: local-lvm:vm-107-disk-0,efitype=4m,pre-enrolled-keys=1,size=4M
+ide2: local:iso/SERVER_EVAL_x64FRE_en-us.iso,media=cdrom,size=4925874K
+ide3: local:iso/virtio-win-0.1.285.iso,media=cdrom,size=771138K
+machine: pc-q35-10.0
+memory: 2048
+meta: creation-qemu=10.0.2,ctime=1788643234
+name: ca01
+net0: virtio=BC:24:11:DE:44:84,bridge=vmbr1,firewall=1
+ostype: win11
+scsi0: local-lvm:vm-107-disk-1,iothread=1,size=60G
+scsihw: virtio-scsi-single
+smbios1: uuid=b68a7209-6230-4ae7-b262-4064ac12ab34
+sockets: 1
+vmgenid: 004a7289-773c-4558-822b-89824a014304
+start exit=0
+status: running
+--- pool ---
+  data                                                   pve twi-aotz-- <155.23g                                    70.47  3.54                             70.47 
+  vm-107-disk-0                                          pve Vwi-aotz--    4.00m data                               14.06                                   14.06 
+  vm-107-disk-1                                          pve Vwi-aotz--   60.00g data                               0.00                                    0.00  
+--- memory ---
+               total        used        free      shared  buff/cache   available
+Mem:            15Gi       6.8Gi       8.0Gi        52Mi       609Mi       8.2Gi
+Swap:          8.0Gi       988Ki       8.0Gi

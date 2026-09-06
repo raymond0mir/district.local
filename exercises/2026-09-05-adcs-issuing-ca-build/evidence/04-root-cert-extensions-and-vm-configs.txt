@@ -1,0 +1,61 @@
+Command: date -u; pct exec 106 -- openssl x509 -in /root/ca/certs/root.cert.pem -noout -ext basicConstraints,keyUsage,subjectKeyIdentifier,authorityKeyIdentifier; echo "ext exit=$?"; pct exec 106 -- openssl verify -CAfile /root/ca/certs/root.cert.pem /root/ca/certs/root.cert.pem; qm config 100; qm config 102; pvesh get /cluster/nextid
+Host: Proxmox host shell (Proxmox web console)
+UTC: 2026-09-05T21:19:07Z
+
+Sat Sep  5 09:19:07 PM UTC 2026
+--- root cert extensions ---
+X509v3 Basic Constraints: critical
+    CA:TRUE, pathlen:1
+X509v3 Key Usage: critical
+    Certificate Sign, CRL Sign
+X509v3 Subject Key Identifier: 
+    95:64:33:9E:6C:1A:7F:45:F5:C6:9D:1D:50:C0:78:F9:FF:06:BB:82
+X509v3 Authority Key Identifier: 
+    95:64:33:9E:6C:1A:7F:45:F5:C6:9D:1D:50:C0:78:F9:FF:06:BB:82
+ext exit=0
+--- self-signature verifies? ---
+/root/ca/certs/root.cert.pem: OK
+--- DC01 config ---
+agent: enabled=1
+bios: ovmf
+boot: order=ide2;scsi0;net0
+cores: 2
+cpu: host
+efidisk0: local-lvm:vm-100-disk-0,efitype=4m,pre-enrolled-keys=1,size=4M
+ide2: local:iso/lab.iso,media=cdrom,size=900K
+localtime: 0
+machine: q35
+memory: 10000
+meta: creation-qemu=10.0.2,ctime=1759192209
+name: winserver2022
+net0: virtio=BC:24:11:14:12:57,bridge=vmbr1,firewall=1
+numa: 0
+ostype: l26
+parent: pre-secure-admin-ws-relink-20260902
+scsi0: local-lvm:vm-100-disk-1,iothread=1,size=60G
+scsihw: virtio-scsi-single
+smbios1: uuid=dd1c71e2-2570-4361-9c2b-7f06077da8b1
+sockets: 1
+vmgenid: a860b331-ca66-4e08-9903-71be51a93e63
+--- VM102 config ---
+agent: enabled=1
+bios: ovmf
+boot: order=ide2;scsi0;net0
+cores: 2
+cpu: host
+efidisk0: local-lvm:vm-102-disk-0,efitype=4m,pre-enrolled-keys=1,size=4M
+ide2: local:iso/SERVER_EVAL_x64FRE_en-us.iso,media=cdrom,size=4925874K
+ide3: local:iso/virtio-win.iso,media=cdrom,size=771138K
+machine: pc-q35-10.0
+memory: 2048
+meta: creation-qemu=10.0.2,ctime=1788219164
+name: entraconnect01
+net0: virtio=BC:24:11:AF:CA:0E,bridge=vmbr1,firewall=1
+ostype: win11
+scsi0: local-lvm:vm-102-disk-1,iothread=1,size=60G
+scsihw: virtio-scsi-single
+smbios1: uuid=786f4cd4-5a1b-4c0d-b5b2-9044ef211885
+sockets: 1
+vmgenid: 07ffff33-3d21-4e23-85fb-c88fe8d54f21
+--- next free id ---
+105
