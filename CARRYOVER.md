@@ -1,7 +1,6 @@
 # Carryover
 
-Open items only, as of 2026-09-06T00:15Z. Exercise `2026-09-05-adcs-issuing-ca-build` is
-**paused mid-build** for a second time, not closed. No report written yet.
+Open items only, as of 2026-09-06T00:15Z.
 
 Read the tech-compass skill, then this file, then `EXPOSURES.md`. Check `verified-claims.md`
 before labeling a claim Inherited or Recalled. Gotchas live in
@@ -15,44 +14,44 @@ Running: VM 100 (DC01), VM 104 (pfSense), VM 107 (CA01), container 106 (rootca-o
 Stopped: VM 101, VM 102, container 103. This is **not** the lab's standard opening state.
 Snapshot `pre-adcs-config` on VM 107 is a valid rollback point. All `certutil` orphans are cleared.
 
-## The blocker, now localised
+## Run order, revised 2026-09-05
 
-`certutil -installcert C:\ca01.cer` blocks on an established LDAP connection to DC01:389.
-`CACertHash` stays null, `CertSvc` cannot start, and no AD object exists for the issuing CA.
-Cause: run under `qm guest exec`, `certutil` authenticates as `CA01$`, which is denied the
-Configuration-container write. `certutil -dspublish` from CA01 proves the denial and returns in
-under a second.
+`CURRICULUM.md` governs the order. Next three:
 
-**Still unexplained:** why a denial that is fast in `dspublish` becomes an indefinite block in
-`-installcert`. Two hypotheses, untested: it retries or waits rather than failing, or it raises a
-credential prompt that cannot render in session 0.
+1. Capture the P2 trial start date. `GET /beta/directory/subscriptions`. The clock is Recalled.
+2. B1's fourth policy, using Windows Hello for Business under the built-in phishing-resistant
+   strength. `jsmith` holds a registered method.
+3. **B4 — PIM.** The only P2-gated exercise. Expiry deletes eligible assignments and PIM
+   configuration.
 
-**Next step.** Run `certutil -installcert C:\ca01.cer` at CA01's console, from an elevated prompt,
-as an account **without** Enterprise Admins. That separates the two hypotheses at no privilege
-cost. Then decide on a temporary re-grant.
+## Decisions owed, deferred by Raymond 2026-09-05
 
-## Blocking that next step
+1. B4 needs a cloud-native account for the eligible role. Break-glass stays active and outside
+   PIM. `jsmith` is synced. Create an account, or name an existing one.
+2. Does B1 close with `d9a6a116` held report-only, or does VM 101's device path get resolved
+   first?
+3. DC01 before about 2026-11-01: rearm chain only, or a rebuild on licensed media?
+4. `districtsafetyphoto.com`: verify it, or drop it?
+5. Is there a date the portfolio must be presentable? It reorders C1 against B4 and the README.
 
-**No console logon to CA01 works.** The local `Administrator` password Raymond holds is rejected.
-`DISTRICT\tmp-cainstall` holds local administrator on CA01 and is untested as a console account.
-Try it first.
+## AD CS, paused, now Exercise C2
 
-`tmp-cainstall` is out of Enterprise Admins by decision. Enterprise Admins now holds only the
-disabled `Administrator`. Re-grant, if needed, runs as SYSTEM via `qm guest exec` on DC01.
+No report. No longer a B1 dependency. Runs after the trial. Do not resume before B4. The blocker,
+its two untested hypotheses, and the console-account lead are in `CURRICULUM.md` under C2 and in
+`exercises/2026-09-05-adcs-issuing-ca-build/evidence-log.md`.
 
 ## Time-sensitive
 
-- CA01 licence grace ends about 2026-09-15. DC01's ends about 2026-09-12, 5 of 6 rearms left.
-- P2 trial, 30-day clock, exact start Recalled.
+- DC01 rearm due about 2026-09-12, then about every 10 days. 5 rearms left.
+- DC01 relicensed or replaced before about 2026-11-01. That date ends the lab.
+- CA01 licence grace ends about 2026-09-15. Rearm count not captured.
+- P2 trial ends about 2026-10-04, derived from a Recalled start.
 - `svc-entraconnect` password expires about 2026-10-13.
-- `districtsafetyphoto.com` verification window nearly elapsed.
 
 ## B1, still open
 
-Four items unchanged: `d9a6a116` report-only by decision, `75882b6a`'s block unexercised,
-telemetry resting on one user, and the fourth CA policy blocked on CBA.
+`d9a6a116` report-only by decision. `75882b6a`'s block unexercised. Telemetry rests on one user.
 
 ## Git state
 
-Committed and pushed through `ffddbea`. This exercise's directory is uncommitted. Commit only
-when Raymond asks.
+The 2026-09-05 reorder is committed and **not pushed**. `origin/main` is at `982869e`.

@@ -61,8 +61,12 @@ device join, and it is invisible to anyone reading only the interactive log. *Ev
 `exercises/2026-09-05-b1-breakglass-exclusion-verification/evidence/05-non-excluded-user-contrast-jsmith.md`.
 
 **Certificate-based authentication is disabled tenant-wide, and no trusted certificate authority
-is registered.** B1's fourth report-only policy (phishing-resistant auth against Salesforce) is
-blocked on this — both the method and a CA need setting up, not just a flag flip. *Evidence:*
+is registered.** Both the method and a CA need setting up, not just a flag flip. ~~B1's fourth
+report-only policy (phishing-resistant auth against Salesforce) is blocked on this.~~ **Corrected
+2026-09-05: it is not blocked.** The built-in Phishing-resistant MFA strength accepts Windows Hello
+for Business, FIDO2, or CBA — any one of the three (Microsoft Learn, Conditional Access
+authentication strengths; not a lab capture). `jsmith` holds a registered WHfB method on VM 101,
+Confirmed 2026-09-04. CBA stays a real gap and is now Exercise C2, after the trial. *Evidence:*
 `exercises/2026-09-04-b1-security-defaults-and-ca-report-only/evidence/08-cba-disabled-no-ca-configured.json`.
 
 **Two of the five GPOs applying to DC01 have never been fully read.** `Default Domain Policy` and
@@ -326,6 +330,25 @@ license-driven (unconfirmed — the event-log query didn't reach back that far).
 `exercises/2026-09-02-dc01-eval-license-status/evidence/system-eventlog-1074-6006-6008-41-1076-20260902T1644Z.txt`,
 `exercises/2026-09-02-dc01-eval-license-status/evidence/rearm-and-post-restart-verification-20260902T1650Z.txt`,
 full analysis in `exercises/2026-09-02-dc01-eval-license-status/report.md`.
+
+**The P2 trial ends about 2026-10-04, and the start date is Recalled.** The trial was opened
+2026-09-04 — the decision is Captured in
+`exercises/2026-09-04-b1-security-defaults-and-ca-report-only/evidence-log.md` — but no capture
+records the timestamp. `GET /beta/directory/subscriptions` returns `createdDateTime` and
+`nextLifecycleDateTime` and closes this. It matters because expiry is destructive for one control:
+Microsoft Learn states that when a P2 or Governance licence lapses, eligible role assignments are
+removed, active time-bound assignments become permanent, and PIM configuration settings are
+deleted. PIM evidence cannot be captured after expiry, which is why the run order revised
+2026-09-05 puts Exercise B4 first. *Evidence:* the licensing claims are Microsoft Learn, not a lab
+capture. B4 step 8 captures the boundary in the tenant.
+
+**DC01 stops for good about 2026-11-01 without real activation.** Arithmetic on captured values,
+not a new reading: `RemainingWindowsReArmCount` is 5, each rearm yields exactly 10 days
+(`GracePeriodRemaining` 14400 minutes, read 2026-09-02), and the current grace ends about
+2026-09-12. Five further rearms reach about 2026-11-01. That date ends the lab, and it falls after
+the P2 trial, after `svc-entraconnect`'s expiry, and after every exercise now queued. Decide
+whether to activate, rebuild on licensed media, or accept the ceiling. *Evidence:*
+`exercises/2026-09-02-dc01-eval-license-status/evidence/rearm-and-post-restart-verification-20260902T1650Z.txt`.
 
 **CA01's licence grace ends about 2026-09-15.** A fresh Server 2022 evaluation install from this
 lab's media starts in OOB Grace with roughly 10 days, not the 180-day evaluation the media

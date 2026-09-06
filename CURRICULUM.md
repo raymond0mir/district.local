@@ -1,6 +1,7 @@
 # district.local — curriculum, rewritten against real lab state
 
 **Rewritten:** 2026-09-02, against the repo at commit `5769aed`.
+**Run order revised:** 2026-09-05. See *The sequence*. Exercise IDs are unchanged.
 **Supersedes:** the "Four Exercises + SC-300 Study" section of the Skechers analysis doc dated 2026-09-01.
 
 This rewrite changes the *ordering, sizing, and prerequisites* of the exercises. It does not
@@ -122,8 +123,41 @@ four were 3–5 reports wearing one title; the sizing below reflects that.
 
 ## The sequence
 
-Six exercises. Three cost nothing and need no new hardware. Three sit inside a single P2 trial
-window that should not be opened until the first three are done.
+Eight exercises. Three cost nothing and need no new hardware. The trial is open, so the question
+is no longer when to start it. The question is what actually needs it.
+
+### Run order, revised 2026-09-05
+
+Exercise IDs stay fixed. Reports, `EXPOSURES.md`, and the ledger cite them. The run order is
+separate from the numbering. The run order governs.
+
+| Order | Exercise | Placement reason |
+|---|---|---|
+| 0 | Capture the trial start date | The 30-day clock is Recalled. `GET /beta/directory/subscriptions` returns `createdDateTime` and `nextLifecycleDateTime` |
+| 1 | B1, fourth policy only | Closes B1. Needs no certificate authority and no AD CS. See B1 |
+| 2 | **B4 — PIM** | The only P2-gated exercise in the plan. Expiry deletes its configuration |
+| 3 | B2 | Setup needs no licence, Captured in A3. A provisioning *run* is untested and may need P1 or P2, so run it while the trial covers it |
+| 4 | B3, rotation half | Hard date about 2026-10-13. Not trial-gated |
+| 5 | C2 — AD CS and CBA | On-prem. Survives expiry |
+| 6 | C1 — joiner, then mover, then leaver | Graph and on-prem. Survives expiry |
+| 7 | B3, gMSA and BloodHound half | Survives expiry |
+
+**Why the order changed.** The original rule ran B1, B2 and B3 contiguous inside the trial. That
+rule was written when the licence gates were unmeasured. They are now measured, and one item in
+Phase B needs P2.
+
+- PIM needs Entra ID P2 or Entra ID Governance. Source: Microsoft Learn, ID Governance licensing
+  fundamentals. Not a lab capture.
+- Entitlement management needs Entra ID Governance or Entra Suite. P2 alone does not reach it.
+  Same source. This closes the licence question left open 2026-09-04.
+- Most access-review capability needs Governance as well. Same source.
+- SAML and SCIM *setup* need no paid licence, for gallery and non-gallery apps. Captured
+  2026-09-02 in A3.
+
+**Trial expiry is destructive, and that is why PIM moves first.** Microsoft Learn states that when
+a P2 or Governance licence lapses, eligible role assignments are removed, active time-bound
+assignments become permanent, and PIM configuration settings are deleted. PIM evidence cannot be
+captured after expiry. Every other remaining exercise can.
 
 ### Phase A — unblock and bank cheap wins (no license, no new VM)
 
@@ -233,12 +267,15 @@ throughout the exam and most candidates memorize rather than measure them.
 
 ---
 
-### Phase B — inside one 30-day P2 trial
+### Phase B — the trial window
 
-**Do not open the trial until A1–A3 are complete and A3's step 3 has answered the SAML/SCIM
-licensing question.** The clock is the scarcest resource in this plan. Order below is by "hardest
-to redo if the trial lapses" — the JML work is deliberately last because most of it is
-Graph and on-prem, which survive the trial expiring.
+**The trial opened 2026-09-04 and runs 30 days.** The end date is derived from a Recalled start.
+Treat about 2026-10-04 as provisional until run-order step 0 captures it.
+
+~~Do not open the trial until A1–A3 are complete and A3's step 3 has answered the SAML/SCIM
+licensing question.~~ **Superseded 2026-09-05.** A1 and A3 are done. The trial is open. A3
+answered the SAML/SCIM question. The replacement rule: run the P2-gated work first. Only B4 is
+P2-gated.
 
 ---
 
@@ -256,9 +293,18 @@ is a domain-joined Windows 11 box, the storage blocker for this exercise disappe
 That single check is worth doing before A1 even, because it may change how much headroom A1 needs
 to reclaim.
 
-**Phishing-resistant auth is a decision point, not an assumption.** FIDO2 needs a hardware key;
-Windows Hello for Business needs a working device and enrollment path. Whether to buy a key is
-Raymond's call. Certificate-based authentication is the no-hardware fallback, and it is more work. Decide before starting, and record the decision and its reasoning in the report.
+**Phishing-resistant auth — decided 2026-09-05. Use Windows Hello for Business.** The built-in
+**Phishing-resistant MFA strength** accepts any one of three methods: Windows Hello for Business
+or platform credential, a FIDO2 security key, or Entra certificate-based authentication. Source:
+Microsoft Learn, Conditional Access authentication strengths. Not a lab capture.
+
+`jsmith` holds a registered WHfB method on VM 101, Confirmed 2026-09-04. The fourth policy
+therefore needs no hardware key, no certificate authority, and no console access to CA01.
+**AD CS is not a B1 dependency.** It moves to C2 and runs on its own merit.
+
+**Status, 2026-09-05.** Steps 1 to 3 are done. `365bdd23` and `75882b6a` enforce. `d9a6a116` is
+held report-only by decision, because it would block VM 101. The fourth policy is the only step
+left.
 
 **What you do:**
 1. Baseline: capture what Security Defaults was enforcing before CA replaces it. The two are
@@ -289,18 +335,60 @@ different hypotheses. Split them if the telemetry phase produces anything substa
 
 ---
 
+#### Exercise B4 — PIM: convert a standing grant into a just-in-time one
+
+**Numbered B4 because exercise IDs are fixed. Placed here because it runs second.** Extracted
+from B3 step 6 on 2026-09-05.
+
+**Hypothesis:** a standing administrative grant can be converted to eligible-not-active behind
+approval, and the full request and approval trail can be captured, without the holder losing
+access it legitimately needs.
+
+**Why this one leads the trial.** It is the only exercise P2 gates, and expiry deletes its
+evidence. It is also the permission-sprawl thesis with a control attached, which is the
+through-line the series opens on. The other remaining exercises prove operational skill. This one
+proves a governance design decision.
+
+**The candidate named in B3 step 6 does not work, and the reason is the exercise.** `sysadmin`
+holds standing **Domain Admins** membership in `district.local`, added 2026-09-01, with
+`adminCount` stuck at 1. PIM does not govern that grant. Microsoft Learn states that Entra roles
+cannot be assigned to on-premises groups, and that PIM for Groups excludes groups synchronised
+from on-premises. Not a lab capture. Verify it in the lab and capture the refusal.
+
+**What you do:**
+1. Capture the standing state first. Read the Entra role assignments, the on-prem Domain Admins
+   membership, and `adminCount` on `sysadmin`.
+2. Attempt to bring the synced on-prem group under PIM. Capture the refusal verbatim. This is
+   A3's method applied to governance, and it is the finding, not a dead end.
+3. Enable PIM for Entra roles. Capture what the tenant changes at enablement.
+4. Make one Entra role eligible-not-active on a cloud-native account, behind approval, with a
+   bounded activation window. Microsoft Learn advises cloud-native accounts for Entra roles rather
+   than synced accounts. Record that as the reason for the choice.
+5. Activate the role as the eligible user. Capture the request, the approval, and the audit entry.
+6. Let the activation expire. Capture the removal. An expiry nobody had to action is the point of
+   the exercise.
+7. Keep break-glass permanently active and out of PIM. Say why in the report.
+8. Capture the ceiling. Entitlement management and most access-review capability need Entra ID
+   Governance, not P2. Name the boundary rather than assuming it.
+
+**The on-prem contrast is the report's strongest section.** The cloud grant gets a control. The
+identical pattern on `district.local` has no equivalent, and stays standing. State that plainly.
+
+**SC-300 coverage:** Manage privileged identity (PIM); plan and implement identity governance.
+
+---
+
 #### Exercise B2 — SAML and SCIM against one application
 
 **Hypothesis:** an end-to-end SSO and provisioning flow can be built and then deliberately broken
 in ways that produce distinguishable, diagnosable failures.
 
-**Placement, updated 2026-09-02 per A3's result:** SAML SSO and SCIM provisioning *setup* need no
-license for either a gallery or non-gallery app, tested directly both ways — genuine grounds to
-run this outside the trial window. The one thing A3 could not test is whether an actual
-provisioning *run* (this exercise's real deliverable — deliberate failure injection against a
-live sync) hits a gate that setup alone doesn't. Raymond's call whether that residual risk is
-worth still keeping B2 inside the trial as a safety margin, or running it in Phase A on the
-strength of what's already confirmed — see `CARRYOVER.md`.
+**Placement, decided 2026-09-05. Run B2 inside the trial, after B4.** A3 captured that SAML SSO
+and SCIM provisioning *setup* need no licence, for a gallery app and a non-gallery app, tested
+both ways. A3 could not test whether an actual provisioning *run* — this exercise's real
+deliverable — hits a gate that setup alone does not. That residual risk is the reason B2 stays
+inside the window: if a run needs P1 or P2, the trial covers it, and after expiry the tenant
+returns to Free. B4 still runs first, because B4's evidence is the evidence expiry destroys.
 
 **What you do:** substantially as the original plan had it — the technical content there was
 sound. Two changes:
@@ -359,11 +447,10 @@ job. Do that.
    contrast that matters: automatic rotation with no operator involvement versus the manual
    sequence you just performed by hand on `svc-entraconnect`. Having done both, in that order, is
    what makes the comparison worth anything.
-6. **PIM, if the trial is still open.** Put an eligible-not-active role behind approval and
-   capture the request/approval audit trail. `sysadmin` is the obvious candidate — it currently
-   holds standing Domain Admins membership added 2026-09-01, and its `adminCount` is stuck at 1
-   and will not self-clear. Converting a standing grant into a just-in-time one is the
-   permission-sprawl thesis with a control attached.
+6. ~~**PIM, if the trial is still open.**~~ **Moved 2026-09-05 to Exercise B4**, and moved ahead
+   of this exercise in the run order. Leaving the only P2-gated work at step 6 of the last Phase B
+   exercise put it at maximum risk from the clock. The `sysadmin` candidate named here was also
+   wrong; see B4.
 7. **BloodHound: verify before relying on it.** The original plan states BloodHound CE is
    "already running." What the repo actually shows is an **Inherited** write-up
    (`~/Downloads/district-lab-bloodhound-writeup.md`, from a 2026-06-17 session) and a `bhound`
@@ -426,6 +513,31 @@ implement access management.
 
 ---
 
+#### Exercise C2 — AD CS issuing CA, and certificate-based authentication
+
+**Added 2026-09-05.** This work was already started under
+`exercises/2026-09-05-adcs-issuing-ca-build/`, ahead of the plan and inside the trial window. It
+was started to unblock B1's fourth policy. That dependency does not exist. See B1.
+
+**Placement.** After the trial. AD CS is on-prem and survives expiry. Whether tenant CBA is
+P2-gated is **not captured**: A3 tested Conditional Access, PIM, Identity Protection, Security
+Defaults and SAML/SCIM, not CBA. Capture that before assuming either way.
+
+**State at pause, 2026-09-05.** The offline root CA exists on container 106 with correct
+extensions. CA01 holds a valid certificate and cannot start. `certutil -installcert` blocks on a
+denied Configuration-container write, because under `qm guest exec` it authenticates as `CA01$`.
+Two blockers stack: no console logon to CA01 works, and no enabled account holds Enterprise
+Admins. `DISTRICT\tmp-cainstall` holds local administrator on CA01 and is untested as a console
+account. Try it first. Any Enterprise Admins re-grant runs as SYSTEM through `qm guest exec` on
+DC01. Full state is in that exercise's `evidence-log.md`.
+
+**Do not resume this before B4.** Two sessions have gone into it inside a window that only PIM
+needs.
+
+**SC-300 coverage:** Implement authentication; phishing-resistant methods.
+
+---
+
 ## Calendar
 
 Deliberately not a week-by-week grid. The original's grid assumed each exercise takes its
@@ -440,9 +552,13 @@ What's fixed, and what floats:
 |---|---|
 | ~~A1 before anything that builds or installs~~ **DONE 2026-09-02** | Was 91.06% `Data%` vs an 85% gate; now 70.86%. `VFree` still 2.00 GiB and structurally unfixable without new hardware |
 | ~~A3 step 3 before the trial opens~~ **PARTIALLY DONE 2026-09-02** | Gallery-app SAML and SCIM setup both hit no Free-tier gate — but the original claim was about *non-gallery* apps, untested. See `CARRYOVER.md` for the still-open decision on B2's placement |
-| B1 → B2 → B3 contiguous | One 30-day trial, no second chance |
+| ~~B1 → B2 → B3 contiguous~~ **Superseded 2026-09-05** | Written when the licence gates were unmeasured. Only B4 needs P2 |
+| B4 before the trial ends, about 2026-10-04 | Expiry deletes eligible assignments and PIM configuration. That evidence cannot be recaptured |
+| B2 inside the trial, after B4 | Setup needs no licence (A3, Captured). A provisioning run is untested and may need P1 or P2 |
 | `svc-entraconnect` rotated before ~2026-10-13 | Live sync; opaque failure mode |
-| C1 after the trial | Doesn't need it |
+| DC01 rearmed about every 10 days: ~09-12, ~09-22, ~10-02 | An expired grace period shuts DC01 down mid-session. It has already done so twice |
+| DC01 relicensed or replaced before ~2026-11-01 | 5 rearms left, 10 days each. That date ends the lab, not the trial |
+| C1 and C2 after the trial | Neither needs it |
 
 Everything else floats. Sequence is load-bearing; dates are not.
 
