@@ -1,9 +1,9 @@
 {
-  "commit": "da5839fd3ddf873058a3aabd0aeaad1a67db6d87",
+  "commit": "2048b9d824c4f16d43a05c5cc5316851e8262588",
   "counts": {
     "ERROR": 1,
     "INFO": 24,
-    "WARN": 11
+    "WARN": 27
   },
   "findings": [
     {
@@ -184,6 +184,102 @@
       "check": "evidence-header",
       "message": "capture header has no UTC timestamp",
       "path": "exercises/2026-09-05-b1-security-defaults-transition/evidence/08-enforcement-verified-live.md",
+      "severity": "WARN"
+    },
+    {
+      "check": "evidence-header",
+      "message": "capture header has no UTC timestamp",
+      "path": "exercises/2026-09-06-b4-pim-eligible-role/evidence/02-p2-trial-window-captured.md",
+      "severity": "WARN"
+    },
+    {
+      "check": "evidence-header",
+      "message": "capture header has no UTC timestamp",
+      "path": "exercises/2026-09-06-b4-pim-eligible-role/evidence/03-active-directory-role-assignments.md",
+      "severity": "WARN"
+    },
+    {
+      "check": "evidence-header",
+      "message": "capture header has no UTC timestamp",
+      "path": "exercises/2026-09-06-b4-pim-eligible-role/evidence/04-tenant-user-inventory-and-empty-eligibility.md",
+      "severity": "WARN"
+    },
+    {
+      "check": "evidence-header",
+      "message": "capture header has no UTC timestamp",
+      "path": "exercises/2026-09-06-b4-pim-eligible-role/evidence/05-adm-jsmith-created.md",
+      "severity": "WARN"
+    },
+    {
+      "check": "evidence-header",
+      "message": "capture header has no UTC timestamp",
+      "path": "exercises/2026-09-06-b4-pim-eligible-role/evidence/06-licence-confirmed-and-group-surface.md",
+      "severity": "WARN"
+    },
+    {
+      "check": "evidence-header",
+      "message": "capture header has no UTC timestamp",
+      "path": "exercises/2026-09-06-b4-pim-eligible-role/evidence/07-pim-for-groups-refusal.md",
+      "severity": "WARN"
+    },
+    {
+      "check": "evidence-header",
+      "message": "capture header has no UTC timestamp",
+      "path": "exercises/2026-09-06-b4-pim-eligible-role/evidence/08-eligibility-granted.md",
+      "severity": "WARN"
+    },
+    {
+      "check": "evidence-header",
+      "message": "capture header has no UTC timestamp",
+      "path": "exercises/2026-09-06-b4-pim-eligible-role/evidence/09-role-names-verified-and-policy-located.md",
+      "severity": "WARN"
+    },
+    {
+      "check": "evidence-header",
+      "message": "capture header has no UTC timestamp",
+      "path": "exercises/2026-09-06-b4-pim-eligible-role/evidence/10-activation-policy-defaults.md",
+      "severity": "WARN"
+    },
+    {
+      "check": "evidence-header",
+      "message": "capture header has no UTC timestamp",
+      "path": "exercises/2026-09-06-b4-pim-eligible-role/evidence/11-approval-required-and-window-tightened.md",
+      "severity": "WARN"
+    },
+    {
+      "check": "evidence-header",
+      "message": "capture header has no UTC timestamp",
+      "path": "exercises/2026-09-06-b4-pim-eligible-role/evidence/12-mfa-registered-and-activation-requested.md",
+      "severity": "WARN"
+    },
+    {
+      "check": "evidence-header",
+      "message": "capture header has no UTC timestamp",
+      "path": "exercises/2026-09-06-b4-pim-eligible-role/evidence/13-approval-chain.md",
+      "severity": "WARN"
+    },
+    {
+      "check": "evidence-header",
+      "message": "capture header has no UTC timestamp",
+      "path": "exercises/2026-09-06-b4-pim-eligible-role/evidence/14-activation-live.md",
+      "severity": "WARN"
+    },
+    {
+      "check": "evidence-header",
+      "message": "capture header has no host, UTC timestamp",
+      "path": "exercises/2026-09-06-b4-pim-eligible-role/evidence/15-expiry-unactioned.md",
+      "severity": "WARN"
+    },
+    {
+      "check": "evidence-header",
+      "message": "capture header has no UTC timestamp",
+      "path": "exercises/2026-09-07-plaintext-credential-remediation/evidence/01-account-is-soft-deleted-not-live.md",
+      "severity": "WARN"
+    },
+    {
+      "check": "evidence-header",
+      "message": "capture header has no UTC timestamp",
+      "path": "exercises/2026-09-07-plaintext-credential-remediation/evidence/02-purge-and-redaction.md",
       "severity": "WARN"
     },
     {
