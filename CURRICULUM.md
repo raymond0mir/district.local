@@ -133,9 +133,9 @@ separate from the numbering. The run order governs.
 
 | Order | Exercise | Placement reason |
 |---|---|---|
-| 0 | Capture the trial start date | The 30-day clock is Recalled. `GET /beta/directory/subscriptions` returns `createdDateTime` and `nextLifecycleDateTime` |
-| 1 | B1, fourth policy only | Closes B1. Needs no certificate authority and no AD CS. See B1 |
-| 2 | **B4 — PIM** | The only P2-gated exercise in the plan. Expiry deletes its configuration |
+| 0 | Capture the trial start date | **Complete 2026-09-06.** `GET /beta/directory/subscriptions`: `createdDateTime` 2026-09-04T00:00:00Z, `nextLifecycleDateTime` 2026-10-04T00:00:00Z. No longer Recalled |
+| 1 | **B4 — PIM** | **Complete 2026-09-07.** Ran ahead of B1's fourth policy, because only B4's evidence is deleted at trial expiry |
+| 2 | B1, fourth policy only | Closes B1. Needs no certificate authority and no AD CS. See B1 |
 | 3 | B2 | Setup needs no licence, Captured in A3. A provisioning *run* is untested and may need P1 or P2, so run it while the trial covers it |
 | 4 | B3, rotation half | Hard date about 2026-10-13. Not trial-gated |
 | 5 | C2 — AD CS and CBA | On-prem. Survives expiry |
@@ -337,42 +337,68 @@ different hypotheses. Split them if the telemetry phase produces anything substa
 
 #### Exercise B4 — PIM: convert a standing grant into a just-in-time one
 
-**Numbered B4 because exercise IDs are fixed. Placed here because it runs second.** Extracted
-from B3 step 6 on 2026-09-05.
+**Numbered B4 because exercise IDs are fixed. Ran second.** Extracted from B3 step 6 on
+2026-09-05.
 
-**Hypothesis:** a standing administrative grant can be converted to eligible-not-active behind
-approval, and the full request and approval trail can be captured, without the holder losing
-access it legitimately needs.
+**Status: complete, 2026-09-07.** Report:
+`exercises/2026-09-06-b4-pim-eligible-role/report.md`. Everything below is corrected against what
+the exercise captured. The original plan's framing was wrong in three places, and the corrections
+are the exercise's value.
 
-**Why this one leads the trial.** It is the only exercise P2 gates, and expiry deletes its
-evidence. It is also the permission-sprawl thesis with a control attached, which is the
-through-line the series opens on. The other remaining exercises prove operational skill. This one
-proves a governance design decision.
+**Hypothesis as run:** a standing administrative grant can be converted to eligible-not-active
+behind approval, the full request and approval trail can be captured, and the grant can be shown
+to remove itself with no person in the record.
 
-**The candidate named in B3 step 6 does not work, and the reason is the exercise.** `sysadmin`
-holds standing **Domain Admins** membership in `district.local`, added 2026-09-01, with
-`adminCount` stuck at 1. PIM does not govern that grant. Microsoft Learn states that Entra roles
-cannot be assigned to on-premises groups, and that PIM for Groups excludes groups synchronised
-from on-premises. Not a lab capture. Verify it in the lab and capture the refusal.
+**Correction 1 — the exercise is not "turn on just-in-time access".** The original text assumed
+PIM ships with nothing configured, and that the work was enabling it. It is not. An untouched
+role management policy already requires multi-factor authentication, already requires a
+justification, and already caps activation at PT8H. What it does not do is require approval:
+`isApprovalRequired` false, `primaryApprovers` empty. The policy's `lastModifiedDateTime` was
+null, so those are platform defaults.
 
-**What you do:**
-1. Capture the standing state first. Read the Entra role assignments, the on-prem Domain Admins
-   membership, and `adminCount` on `sysadmin`.
-2. Attempt to bring the synced on-prem group under PIM. Capture the refusal verbatim. This is
-   A3's method applied to governance, and it is the finding, not a dead end.
-3. Enable PIM for Entra roles. Capture what the tenant changes at enablement.
-4. Make one Entra role eligible-not-active on a cloud-native account, behind approval, with a
-   bounded activation window. Microsoft Learn advises cloud-native accounts for Entra roles rather
-   than synced accounts. Record that as the reason for the choice.
-5. Activate the role as the eligible user. Capture the request, the approval, and the audit entry.
-6. Let the activation expire. Capture the removal. An expiry nobody had to action is the point of
-   the exercise.
-7. Keep break-glass permanently active and out of PIM. Say why in the report.
-8. Capture the ceiling. Entitlement management and most access-review capability need Entra ID
-   Governance, not P2. Name the boundary rather than assuming it.
+The exercise worth running is **finding what just-in-time access does not include**. A tenant that
+enables PIM and changes nothing gets an audit trail, not a control. It records who asked and why.
+It does not record that anyone agreed.
 
-**The on-prem contrast is the report's strongest section.** The cloud grant gets a control. The
-identical pattern on `district.local` has no equivalent, and stays standing. State that plainly.
+**Correction 2 — step 3 does not exist.** The original text said "Enable PIM for Entra roles.
+Capture what the tenant changes at enablement." Current tenants have no discrete consent action;
+PIM is present once P2 is. There is nothing to capture at enablement. Read the role management
+policy defaults instead. That read is where the finding is.
+
+**Correction 3 — step 7 assumed a working administrator account that did not exist.** The
+original text said to keep break-glass permanently active and outside PIM, which presumes a
+separate account for routine work. This tenant had none. `roleAssignments` returned two rows:
+Global Administrator on the break-glass account, and Directory Readers on a first-party service
+principal. Every other administrative identity was disabled, including the tenant's original
+Global Administrator. The account labelled break-glass was the account in daily use.
+
+So the exercise created `adm-jsmith`, cloud-native and licensed, as the working administrator,
+and made User Administrator eligible-not-active on it behind approval. Adopting that account for
+routine work is a change in habit, not configuration. That decision was taken 2026-09-07.
+
+**The group refusal is categorical, not a single refusal.** The original step 2 expected one
+refusal on one synced group. All nine groups in the tenant are synced and all have
+`isAssignableToRole` null, and the property cannot be set after a group exists. No existing group
+in this tenant can ever come under PIM for Groups. Governing a group requires building a new
+cloud-only role-assignable group, which is a different design rather than a repair.
+
+**What the exercise proved.** The activation expired at its deadline. Core Directory unassigned
+the role 0.9 seconds later with `initiatedBy.app.displayName` `MS-PIM`. PIM logged the reason six
+seconds after that, actor "Azure AD PIM", null `userPrincipalName`, null `ipAddress`. Neither
+audit entry names a human. The eligibility survived, so the control is repeatable.
+
+**Still open.** A deliberate PT4H over-limit request was planned, to capture the PT2H ceiling as
+a refusal. It was never captured. The ceiling currently rests on the policy read alone. An
+over-limit request may be rejected during validation without persisting a request object, so the
+attempt cannot be reconstructed after the fact.
+
+**The on-prem contrast is the report's strongest section.** `adm-jsmith` cannot use User
+Administrator without MFA, a stated reason, another party's approval, and a clock. `sysadmin`
+holds `Domain Admins` on `district.local` permanently, with `adminCount` 1, and needs none of
+those. The cloud grant got governance. The identical pattern on-premises did not.
+
+**Licence ceiling, named rather than assumed.** Entitlement management and most access-review
+capability need Entra ID Governance, not P2. Source: Microsoft Learn. Not a lab capture.
 
 **SC-300 coverage:** Manage privileged identity (PIM); plan and implement identity governance.
 

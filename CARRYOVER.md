@@ -21,21 +21,20 @@ Outstanding: the PT4H over-limit request, re-run as `adm-jsmith` in a private wi
 `evidence/12`, last section. Until it lands, the PT2H ceiling rests on the policy read alone, not
 on a captured refusal. The report states that limitation. It is not blocking.
 
+## Standing decision, 2026-09-07
+
+**`adm-jsmith` is the go-forward lab admin account.** Sign in as it for tenant work. Activate
+User Administrator through PIM when a task needs it. The break-glass account returns to being
+break-glass. The check is whether it stops appearing as the acting identity in captures.
+
 ## Decisions owed
 
-1. Does routine tenant work move to `adm-jsmith`? That exposure closes on habit, not
-   configuration.
-2. `districtsafetyphoto.com`: verify, or drop? Recommended drop; window nearly gone.
-3. DC01 before about 2026-11-01: rearm chain, or rebuild? Recommended rearm only.
-4. `CURRICULUM.md`'s B4 text still frames the exercise as turning just-in-time access on. The
-   defaults capture disproves that.
-5. `evidence/04` carries Raymond's personal address, inside the original Global Administrator's
+1. `districtsafetyphoto.com`: verify, or drop? Recommended drop; window nearly gone.
+2. DC01 before about 2026-11-01: rearm chain, or rebuild? Recommended rearm only.
+3. `evidence/04` carries Raymond's personal address, inside the original Global Administrator's
    UPN. The redaction rule covers the current one only. PII decision still deferred.
 
-Answered 2026-09-06: no hard portfolio date, so C1 stays behind C2. B1's fourth policy and B4
-swapped, because only B4's evidence dies at expiry.
-
-
+Answered 2026-09-06: no hard portfolio date, so C1 stays behind C2.
 
 ## Time-sensitive
 

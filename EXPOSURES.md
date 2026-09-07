@@ -15,8 +15,12 @@ including the original Microsoft Account Global Administrator. Raymond confirmed
 he signs in as this account for routine tenant work, which makes it a break-glass account in name
 only. A break-glass account in daily use provides no recovery path distinct from the account most
 likely to be compromised. `adm-jsmith` was created 2026-09-06 as the intended working
-administrator, holding User Administrator as eligible-not-active behind approval. The exposure
-closes when routine work moves to that account, not when the account exists. *Evidence:*
+administrator, holding User Administrator as eligible-not-active behind approval. **Raymond
+decided 2026-09-07 that `adm-jsmith` is the go-forward account for lab administration.** The
+exposure closes when routine work actually moves there, not on the decision and not on the
+account existing. Nothing in this repository can verify a change in habit. The check is whether
+future exercises show `adm-jsmith` as the acting identity, and whether the break-glass account
+stops appearing as `createdBy` and `initiatedBy` in captures. *Evidence:*
 `exercises/2026-09-06-b4-pim-eligible-role/evidence/03-active-directory-role-assignments.md`,
 `exercises/2026-09-06-b4-pim-eligible-role/evidence/04-tenant-user-inventory-and-empty-eligibility.md`.
 
