@@ -4,13 +4,11 @@ Open items, 2026-09-07.
 
 Read `EXPOSURES.md` next.
 
-## Priority — live credential in the public repo
+## Closed this session
 
-A live plaintext password sits in `exercises/2026-09-03-breakglass-rotation/evidence/02-role-assignment-and-verification.md:81`.
-Full detail, including the failed disable attempts, is in `EXPOSURES.md`. Next step: read Graph
-Explorer's granted scopes, then disable the account. Do not rotate it.
-
-Once disabled, choose redact-in-place or history rewrite. The rewrite needs Raymond's go-ahead.
+The plaintext credential is remediated. The account was already soft-deleted, not live. It is
+now purged. The string is redacted in place. It remains in history at `62fd7bf`, by decision.
+See `exercises/2026-09-07-plaintext-credential-remediation/report.md`.
 
 ## Lab state
 
@@ -22,21 +20,23 @@ Running: VM 100 (DC01), 104 (pfSense), 107 (CA01), containers 103 and 106. Stopp
 
 ## C2 — CA issuing, enrollment still blocked
 
-The CA is live. The client-auth template is correctly scoped **and already published to the
-CA**: `certutil -CATemplates` lists it first (`evidence/29`).
+The CA is live. The client-auth template is correctly scoped and published to the CA.
 
-`jsmith` still cannot enroll. Confirmed correct: template ACL and EKU, CA ACL, `jsmith`'s live
-token, RPC reachability. Ruled out: CertSvc instability, stale policy cache, non-publication.
-Demoted: the Server 2016 compatibility theory is untested and unsupported. Do not rebuild a
-template for it first. Both retractions sit in the evidence-log's Corrections.
+`jsmith` still cannot enroll. **Raymond confirmed 2026-09-07: `jsmith` enrolled from VM 101.**
+VM 101 is stopped, and it has no working QEMU guest agent. Run the next test at VM 101's own
+console. Nothing scripted can capture from that machine.
 
-Next test, not yet run: `certutil -ca.cert`, then `certutil -verify -urlfetch` on CA01.
-Hypothesis is CA chain or revocation validity: the root is hand-built OpenSSL, no CRL is
+The enrollment failure has no evidence file. It is Recalled. Capture it first, before testing
+theories about its cause.
+
+Next test, not yet run, on VM 101: `certutil -ca.cert`, then `certutil -verify -urlfetch`.
+Hypothesis is CA chain or revocation validity. The root is hand-built OpenSSL, no CRL is
 published, and `-installcert` already blocked once on a revocation dialog.
 
-That test needs one fact the log never recorded: which machine `jsmith` enrolled from.
+What is ruled out, and what is demoted, is listed in `EXPOSURES.md`. Do not rebuild a template
+for the Server 2016 theory first.
 
-`report.md` is still unwritten. Wait for enrollment to resolve.
+`report.md` for C2 is still unwritten. Wait for enrollment to resolve.
 
 ## Time-sensitive
 
@@ -53,7 +53,7 @@ over-limit re-run still owed; not blocking.
 ## Repository and git
 
 Run `git status` and `git log -1`.
-`validate.py`: 2 ERROR, 25 WARN, 24 INFO. The 1/11/24 baseline was stale, not a regression. One
-ERROR is a checker bug: `reference-missing` does not strip a `:81` line suffix.
+`validate.py`: last run 2 ERROR, 25 WARN, 24 INFO. One ERROR is a checker bug:
+`reference-missing` does not strip a `:81` line suffix. Re-run after this session's commits.
 Credential scan: passes 1, 1b, 2, 3 clean at last commit. Pass 4 never run, needs the
 Vaultwarden strings. Pass 5 needs the GA name.

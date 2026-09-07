@@ -78,10 +78,15 @@ Body:
   "userPrincipalName": "breakglassrotationverify@raytakosharkygmail.onmicrosoft.com",
   "passwordProfile": {
     "forceChangePasswordNextSignIn": true,
-    "password": "TempV3rify!Throwaway2026"
+    "password": "[REDACTED 2026-09-07: see exercises/2026-09-07-plaintext-credential-remediation/]"
   }
 }
 ```
+
+**Redacted 2026-09-07.** The `password` value above was a live plaintext credential in a public
+repository. It is replaced in place. It is not removed from git history; commit `62fd7bf`
+still carries it. The account was permanently purged from the tenant on 2026-09-07. See
+`exercises/2026-09-07-plaintext-credential-remediation/`.
 
 Response: `201 Created`
 

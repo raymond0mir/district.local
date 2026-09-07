@@ -3,7 +3,7 @@
 A standing list of what's actually still wrong or open in `district.local`, built only from
 captured facts in `verified-claims.md` and the exercises' own evidence files — nothing here is
 inferred or remembered without a citation. Doubles as the queue for what the next exercise
-should be. Updated as of 2026-09-06; check `verified-claims.md` for anything more recent before
+should be. Updated as of 2026-09-07; check `verified-claims.md` for anything more recent before
 trusting a line here.
 
 ## Identity and access
@@ -40,18 +40,6 @@ cloud-only role-assignable group and moving membership to it. This is a design l
 misconfiguration, and it means the on-premises tier groups have no cloud governance path as
 built. *Evidence:* `exercises/2026-09-06-b4-pim-eligible-role/evidence/06-licence-confirmed-and-group-surface.md`,
 `exercises/2026-09-06-b4-pim-eligible-role/evidence/07-pim-for-groups-refusal.md`.
-
-**A live account credential sits as plaintext in the public repo.**
-`exercises/2026-09-03-breakglass-rotation/evidence/02-role-assignment-and-verification.md` holds
-a literal plaintext password (line 81, `passwordProfile.password`, not reproduced here) for
-`breakglassrotationverify@raytakosharkygmail.onmicrosoft.com`,
-confirmed still live by Raymond 2026-09-07. Predates the JSON-quoted credential-scan pass added
-2026-09-06, which is why it was never caught until now. A disable attempt (`PATCH accountEnabled:
-false`, by UPN and by object id) failed with `400 Request_BadRequest`, "Property accountEnabled
-is invalid," cause not yet found. The JSON body was confirmed correct, so this is not a
-malformed request; check Graph Explorer's granted scopes first. Disable, not rotate: the account
-had no purpose beyond the 2026-09-03 verification step. Until disabled, this is a working
-credential anyone with the repo URL can read. *Evidence:* the file itself.
 
 **Revoking a privileged group membership does not revoke rights already held by a live logon
 session.** `tmp-cainstall` was removed from Enterprise Admins at 2026-09-07T14:22:03Z. A console
@@ -206,18 +194,22 @@ has no working interactive logon path, recorded above; CA01 now makes two. *Evid
 `exercises/2026-09-05-adcs-issuing-ca-build/evidence/21-ca01-ldap-read-succeeds-write-denied.txt`,
 `exercises/2026-09-05-adcs-issuing-ca-build/evidence/19-tmp-cainstall-removed-from-enterprise-admins.txt`.
 
-**The issuing CA is built, holds a valid certificate, and cannot start.** CA01 (VM 107) is
-domain-joined, has the AD CS role installed, and is configured as an Enterprise Subordinate CA
-(`CAType` 1) suspended awaiting its issuer certificate (`SetupStatus` `0x20d`). The certificate
-itself exists and verifies against the offline root. `certutil -installcert` blocks indefinitely
-on an established LDAP connection to DC01:389, `CACertHash` stays null, and `CertSvc` cannot
-start. The write it needs is denied to `CA01$`: `certutil -dspublish` from CA01 returns
-`LDAP_INSUFFICIENT_RIGHTS` / `0x80070005` in under a second. The fast denial does not by itself
-explain the indefinite block, and that gap is unclosed. Downstream: no Enrollment Services object
-exists for CA01, so nothing in the domain can enrol, and B1's fourth Conditional Access policy
-stays blocked on CBA. *Evidence:*
-`exercises/2026-09-05-adcs-issuing-ca-build/evidence/20-installcert-blocked-on-established-ldap-to-dc01.txt`,
-`exercises/2026-09-05-adcs-issuing-ca-build/evidence/21-ca01-ldap-read-succeeds-write-denied.txt`.
+**The issuing CA is live, and no client can enrol from it.** Superseded the 2026-09-06 entry that
+said the CA could not start. `certutil -installcert` completed once `tmp-cainstall` held Enterprise
+Admins, `SetupStatus` moved from `525` to `769`, and `CertSvc` runs. The
+`district.local Client Authentication` template is scoped as designed and is published to the CA;
+`certutil -CATemplates` lists it first. `jsmith` still cannot enrol. Ruled out by capture: template
+ACL, template EKU, CA ACL, `jsmith`'s live token, RPC reachability, CertSvc instability, stale
+policy cache, and non-publication. The Server 2016 compatibility theory is untested and
+unsupported; do not rebuild a template for it first. **The enrolment failure itself has no evidence
+file.** It was seen at VM 101's console, and VM 101 has no working QEMU guest agent, so nothing
+scripted can capture it. That gap blocks B1's fourth Conditional Access policy, which needs CBA.
+Next untried test: `certutil -ca.cert`, then `certutil -verify -urlfetch`, run on VM 101, testing
+chain and revocation validity. The root is hand-built OpenSSL, publishes no CRL, and `-installcert`
+already blocked once on a revocation dialog. *Evidence:*
+`exercises/2026-09-05-adcs-issuing-ca-build/evidence/24-installcert-succeeds-with-enterprise-admins.txt`,
+`exercises/2026-09-05-adcs-issuing-ca-build/evidence/25-ca-confirmed-live-published-and-enterprise-admins-cleanup.txt`,
+`exercises/2026-09-05-adcs-issuing-ca-build/evidence/29-ca-issuance-list-includes-client-auth-template.txt`.
 
 **The root CA certificate is published to AD with no CRL distribution point, by decision.** Raymond
 chose Option A on 2026-09-05: no public HTTP endpoint, and therefore no working revocation. The
@@ -427,6 +419,17 @@ or accept that the CA stops. *Evidence:*
 
 ## Recently closed (for contrast, not action)
 
+- **The plaintext credential in the public repo is remediated, and the standing record about it
+  was wrong, 2026-09-07.** The account it belonged to was not live. It had been soft-deleted
+  2026-09-03T15:02:45Z, the same day it was created, and this file's claim that Raymond confirmed
+  it "still live" on 2026-09-07 was Recalled and false. Three Graph reads found it in
+  `deletedItems` under a UPN that Entra had mangled with its own object id, which is why every
+  lookup by the original UPN returned `Request_ResourceNotFound`. The object was then permanently
+  purged, closing the 30-day restore window about 26 days early. The string occurred in one
+  working-tree file, introduced by one commit; it is redacted in place, and the working tree is
+  clean. It remains in public history at `62fd7bf`, by decision: redact and note, not rewrite.
+  Raymond confirmed the string is not reused elsewhere, which is Recalled and uncapturable.
+  `exercises/2026-09-07-plaintext-credential-remediation/report.md`.
 - **Security Defaults is disabled and two of B1's three CA policies genuinely enforce,
   2026-09-05.** Open since B1's first policy was created report-only. A live-API ordering test
   found the platform rejects enabling a CA policy while Security Defaults is on, so a zero-gap

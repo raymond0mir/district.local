@@ -73,6 +73,17 @@ EVIDENCE_LOG_SECTIONS = [
 ]
 
 EVIDENCE_PATH = re.compile(r"exercises/[0-9]{4}-[0-9]{2}-[0-9]{2}-[a-z0-9-]+/evidence/[^\s`)\]|,]+")
+LINE_SUFFIX = re.compile(r":[0-9]+$")
+
+
+def cited_paths(text):
+    """Evidence paths in text, with any trailing :NN line reference stripped.
+
+    A citation may name a line, as in `.../02-role-assignment.md:81`. The line
+    number is part of the citation, not part of the filename. Stripping it here
+    stops a valid line citation from being reported as a missing file.
+    """
+    return [LINE_SUFFIX.sub("", m) for m in EVIDENCE_PATH.findall(text)]
 # Header wording varies. Match the meaning, not one spelling.
 HOST_MARKER = re.compile(r"^\s*Host\b", re.MULTILINE | re.IGNORECASE)
 UTC_MARKER = re.compile(r"UTC", re.IGNORECASE)
@@ -162,7 +173,7 @@ def check_ledger():
     for cells in table_rows(text, "Confirmed", "Retired"):
         if len(cells) < 2:
             continue
-        for cited in EVIDENCE_PATH.findall(cells[1]):
+        for cited in cited_paths(cells[1]):
             if not os.path.exists(repo_path(cited)):
                 add("ERROR", "ledger-evidence-missing",
                     "Confirmed row cites a file that does not exist: %s" % cited,
@@ -178,7 +189,7 @@ def check_ledger():
 def check_references():
     for rel in tracked_markdown():
         text = read(repo_path(rel))
-        for cited in set(EVIDENCE_PATH.findall(text)):
+        for cited in set(cited_paths(text)):
             if not os.path.exists(repo_path(cited)):
                 add("ERROR", "reference-missing",
                     "references a file that does not exist: %s" % cited, rel)
