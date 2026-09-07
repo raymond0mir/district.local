@@ -1,0 +1,36 @@
+Command: qm guest exec 107 --timeout 30 -- certutil.exe -CATemplates
+Host: Proxmox host shell, acting on VM 107 (CA01)
+UTC: not captured. `date -u` was not run alongside this command. The session date is
+2026-09-07. Treat the timestamp as unrecorded, not as inferred.
+
+Context: run to test Claude's hypothesis that the client-authentication template had never been
+added to the CA's issuance list. The hypothesis is disproven by this output.
+
+--- certutil -CATemplates ---
+{
+   "exitcode" : 0,
+   "exited" : 1,
+   "out-data" : "district.localClientAuthentication: district.local Client Authentication -- Access is denied.\r\nDirectoryEmailReplication: Directory Email Replication -- Access is denied.\r\nDomainControllerAuthentication: Domain Controller Authentication -- Access is denied.\r\nKerberosAuthentication: Kerberos Authentication -- Access is denied.\r\nEFSRecovery: EFS Recovery Agent -- Access is denied.\r\nEFS: Basic EFS -- Access is denied.\r\nDomainController: Domain Controller -- Access is denied.\r\nWebServer: Web Server -- Access is denied.\r\nMachine: Computer -- Auto-Enroll: Access is denied.\r\nUser: User -- Access is denied.\r\nSubCA: Subordinate Certification Authority -- Access is denied.\r\nAdministrator: Administrator -- Access is denied.\r\nCertUtil: -CATemplates command completed successfully.\r\n"
+}
+
+## What this proves
+
+`district.localClientAuthentication` is the first entry in the CA's issuance list. The
+`certificateTemplates` attribute on the Enrollment Services object already holds the template.
+The CA is configured to issue it. List membership is read from CA configuration and does not
+depend on the caller's identity, so this reading stands regardless of the context below.
+
+## What this does not prove
+
+The twelve "Access is denied" results describe the calling identity, not `jsmith`.
+`qm guest exec` runs as LocalSystem, which authenticates to AD as the computer account `CA01$`.
+
+The output proves the caller internally. The `Computer` template returns
+`Auto-Enroll: Access is denied`, while every other template returns a bare `Access is denied`.
+That difference means Enroll passed on `Computer` and failed everywhere else. `CA01$` belongs to
+Domain Computers, which holds Enroll on the `Computer` template. The remaining templates grant
+Enroll to Domain Users, and a computer account is not a member. The results are what `CA01$`
+should see.
+
+No conclusion about `jsmith`'s enrollment rights can be drawn from this file. Reading these
+lines as a rights finding for `jsmith` would be an error.

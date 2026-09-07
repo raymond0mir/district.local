@@ -188,6 +188,16 @@ Exercise date derived from `date -u` on the Proxmox host: 2026-09-05T21:09:59Z.
   logon. The templates container's own ACL rules out a default-permissions gap: only SYSTEM,
   Enterprise Admins, and Domain Admins can create children there. `evidence/26`, `evidence/27`.
 
+### Session 4, 2026-09-07
+
+- **The client-authentication template is already in the CA's issuance list.** `certutil
+  -CATemplates` on CA01 returns `district.localClientAuthentication` as its first entry, so the
+  `certificateTemplates` attribute on the Enrollment Services object holds it. The CA is
+  configured to issue the template. List membership does not depend on the caller's identity.
+  The same file records what the output does not prove: its twelve "Access is denied" results
+  describe the calling machine account `CA01$`, not `jsmith`.
+  `evidence/29-ca-issuance-list-includes-client-auth-template.txt`.
+
 ## Not captured, and why
 
 - **`InstallState: 1` is an unresolved enum, exactly like `RestartNeeded: 1`.**
@@ -354,6 +364,31 @@ Exercise date derived from `date -u` on the Proxmox host: 2026-09-05T21:09:59Z.
   `-RedirectStandardOutput` produced a zero-byte file after 40 seconds, because the C runtime
   block-buffers a redirected handle. Claude flagged the risk before running it. Recorded as a
   failed technique, not as a result.
+### Session 4, 2026-09-07
+
+- **Claude's "the template was never published to the CA" hypothesis was wrong. Retracted.**
+  Claude proposed that the template existed forest-wide but had never been added to the CA's
+  issuance list, and named this the fix. `certutil -CATemplates` returns
+  `district.localClientAuthentication` as the first entry in that list. The template is
+  published. `evidence/29-ca-issuance-list-includes-client-auth-template.txt`.
+
+  The reasoning error is the part worth keeping. Claude grepped the repository, found no record
+  of a "Certificate Template to Issue" step, and treated that silence as proof the step had
+  never run. The grep result was accurate about the repository and said nothing about the lab.
+  Absence of documentation is not absence of configuration. Claude stated the conclusion as a
+  near-certainty and gave it a predicted output, which would have made the error harder to
+  catch had Raymond not run the read first.
+
+- **The Windows Server 2016 compatibility hypothesis is unsupported, and its own entry holds the
+  counter-fact.** Session 3 recorded it as the "leading unverified hypothesis" for the
+  enrollment failure. The same entry states that the CA runs Windows Server 2022 and "should
+  exceed that floor." A Server 2022 enterprise CA issues schema versions 1 through 4; the CA's
+  schema support is a ceiling, not an exact match, so the stated fact undercuts the hypothesis
+  that was built beside it. This is not a disproof by evidence: the hypothesis was never tested,
+  and it is not tested here. It is a retraction of its ranking. It should not have been carried
+  as the leading explanation, and it should not be the first branch a later session spends a
+  template rebuild on.
+
 ## Open questions
 
 - **What `RestartNeeded: 1` and `InstallState: 1` mean.** Both are enums rendered as integers.
@@ -400,13 +435,35 @@ Exercise date derived from `date -u` on the Proxmox host: 2026-09-05T21:09:59Z.
   "a valid certification authority (CA) configured to issue certificates based on this template
   cannot be located, or the CA does not support this operation" — differs from the plain
   template-permission message shown for other unavailable templates in the same list (e.g.
-  "Domain Controller"), suggesting the client's CA-to-template compatibility match is failing,
-  not a rights check. Leading unverified hypothesis: the template's Compatibility setting
-  (Certification Authority: Windows Server 2016, schema version 4) doesn't match something this
-  CA actually supports, though the CA is Windows Server 2022 and should exceed that floor. Not
-  testable by editing the existing template — its Compatibility dropdown only offers 2012+ once
-  created at schema version 4; testing this needs a fresh duplicate built with a lower
-  compatibility level chosen at creation, not attempted today.
+  "Domain Controller"), indicating the failure is not a rights check.
+
+  **Updated 2026-09-07, session 4.** Two branches closed. The template is published to the CA
+  (`evidence/29`), so "configured to issue" is satisfied and Claude's non-publication hypothesis
+  is retracted in Corrections. The Windows Server 2016 compatibility hypothesis is demoted to
+  untested and unsupported, also in Corrections; do not spend a template rebuild on it first.
+
+  What the message leaves. The wording is "a **valid** certification authority ... cannot be
+  located". Rights, publication and RPC reachability are all confirmed, so the untested word is
+  `valid`. A client validates the CA's certificate chain before it offers a template, and it
+  hides the template if the chain does not build or revocation cannot be checked.
+
+  Four recorded facts point that way, and none of them tests it:
+  - The root CA was built by hand with OpenSSL in container 106.
+  - No CRL is published. `CARRYOVER.md` carries "upload the root to Entra with no CRL" as open
+    work, so the gap is known and predates this question.
+  - `-installcert` blocked on a revocation-check dialog (`evidence/23`). Revocation checking was
+    already failing in this build.
+  - `SETUP_FORCECRL_FLAG` appeared after install (`evidence/24`).
+
+  Next test, not yet run: `certutil -ca.cert` to export the CA certificate, then
+  `certutil -verify -urlfetch` against it. Chain validation does not depend on the caller's
+  identity, so the machine-account context of `qm guest exec` does not distort the result. Look
+  for `CERT_TRUST_REVOCATION_STATUS_UNKNOWN`, `CERT_TRUST_IS_OFFLINE_REVOCATION`, or a CDP or
+  AIA URL that fails to fetch. This is a hypothesis and is not Captured.
+
+- **Which machine `jsmith` enrolled from is not recorded.** The failed enrollment is described
+  in this log with no host named. Of the VMs running on 2026-09-07, VM 104 is pfSense, which
+  leaves DC01 or CA01. The next test's location depends on the answer. Raymond to supply it.
 ## Paused
 
 Session 1 paused 2026-09-05T22:29:21Z at Raymond's request, with the CA built but not running.

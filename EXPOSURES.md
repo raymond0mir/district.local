@@ -48,8 +48,10 @@ a literal plaintext password (line 81, `passwordProfile.password`, not reproduce
 confirmed still live by Raymond 2026-09-07. Predates the JSON-quoted credential-scan pass added
 2026-09-06, which is why it was never caught until now. A disable attempt (`PATCH accountEnabled:
 false`, by UPN and by object id) failed with `400 Request_BadRequest`, "Property accountEnabled
-is invalid," cause not yet found. Until disabled, this is a working credential anyone with the
-repo URL can read. *Evidence:* the file itself; see `CARRYOVER.md` for the disable attempt.
+is invalid," cause not yet found. The JSON body was confirmed correct, so this is not a
+malformed request; check Graph Explorer's granted scopes first. Disable, not rotate: the account
+had no purpose beyond the 2026-09-03 verification step. Until disabled, this is a working
+credential anyone with the repo URL can read. *Evidence:* the file itself.
 
 **Revoking a privileged group membership does not revoke rights already held by a live logon
 session.** `tmp-cainstall` was removed from Enterprise Admins at 2026-09-07T14:22:03Z. A console
