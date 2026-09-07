@@ -1,0 +1,26 @@
+Command: qm guest exec 100 --timeout 60 -- powershell.exe -NonInteractive -Command '$t = Get-ADObject
+-Identity "CN=Certificate Templates,CN=Public Key Services,CN=Services,CN=Configuration,DC=district,
+DC=local" -Properties nTSecurityDescriptor; @($t.nTSecurityDescriptor.Access | Where-Object {
+$_.ActiveDirectoryRights -match "CreateChild|GenericAll|WriteDacl" } | ForEach-Object {
+"$($_.IdentityReference)|$($_.ActiveDirectoryRights)|$($_.AccessControlType)" }) | ConvertTo-Json
+-Compress'
+Host: Proxmox host shell, acting on DC01 (VM 100)
+UTC: 2026-09-07T14:45:27Z
+
+Context: tmp-cainstall, holding no Enterprise Admins in AD at the time, had just created and
+fully controlled a new certificate template object. Checked whether the Certificate Templates
+container itself grants broad create/full-control rights to any wider principal, which would
+mean any authenticated domain user could do the same.
+
+--- CN=Certificate Templates container, principals with CreateChild/GenericAll/WriteDacl ---
+{
+   "exitcode" : 0,
+   "exited" : 1,
+   "out-data" : "[\"NT AUTHORITY\\\\SYSTEM|GenericAll|Allow\",\"DISTRICT\\\\Enterprise Admins|CreateChild, Self, WriteProperty, ExtendedRight, GenericRead, WriteDacl, WriteOwner|Allow\",\"DISTRICT\\\\Enterprise Admins|GenericAll|Allow\",\"DISTRICT\\\\Domain Admins|CreateChild, Self, WriteProperty, ExtendedRight, Delete, GenericRead, WriteDacl, WriteOwner|Allow\"]\r\n"
+}
+
+Only SYSTEM, Enterprise Admins, and Domain Admins hold these rights on the container. No broad
+grant to Authenticated Users or Domain Users exists. tmp-cainstall is in neither privileged
+group per AD. This rules out a default-permissions gap as the explanation and points to the
+session-token explanation tested in evidence/26: the console session held a stale ticket from
+before the group removal.

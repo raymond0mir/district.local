@@ -148,6 +148,46 @@ Exercise date derived from `date -u` on the Proxmox host: 2026-09-05T21:09:59Z.
   `LDAPServerIntegrity 2` and `LdapEnforceChannelBinding 2`, and the signed ADSI read above
   succeeds against both. DC01's ADWS, DNS and NTDS were all Running at the time of the test.
   Same file.
+### Session 3, resumed 2026-09-07
+
+- **`tmp-cainstall`'s password was reset for console access.** `PasswordLastSet` moved from
+  2026-09-05's account-creation value to 2026-09-07T13:52:14Z. Account stayed enabled and
+  unlocked. The value was redacted before pasting and saved to the lab's Vaultwarden instance.
+  `evidence/22-tmp-cainstall-password-reset-for-console-access.txt`.
+- **The 2026-09-05 hang is resolved. It was a modal dialog, not a rights-driven retry.** Run
+  interactively at CA01's console, `-installcert` raised "Cannot verify certificate chain,"
+  `CRYPT_E_NO_REVOCATION_CHECK`, a direct consequence of the no-CRL decision. Dismissing it let
+  the command return in seconds. `qm guest exec`'s session 0 has no desktop to render this
+  dialog in, which is why it hung indefinitely there. `evidence/23`.
+- **`tmp-cainstall`, logged on interactively with only local administrator on CA01, gets the
+  same `0x80070005 ERROR_ACCESS_DENIED` that `CA01$` got.** Local administrator on the CA
+  machine does not reach the AD write `-installcert` needs. Only a forest-level grant does.
+  `SetupStatus` stayed at 525 after this attempt, unchanged from 2026-09-05. `evidence/23`.
+- **`-installcert` succeeded once `tmp-cainstall` held Enterprise Admins again.**
+  `SetupStatus` moved from 525 to 769: `SETUP_SUSPEND_FLAG` and `SETUP_REQUEST_FLAG` cleared,
+  `SETUP_FORCECRL_FLAG` appeared. `CertSvc` started clean, `Status: 4` (Running).
+  `evidence/24-installcert-succeeds-with-enterprise-admins.txt`.
+- **The issuing CA is live and published in AD.** `certutil -ping` answers in 16ms. An
+  Enrollment Services object named "district.local Issuing CA" now exists under
+  `CN=Public Key Services,CN=Services,CN=Configuration` — evidence/09 found none there on
+  2026-09-05. `evidence/25-ca-confirmed-live-published-and-enterprise-admins-cleanup.txt`.
+- **Enterprise Admins cleanup and second rotation, same session.** `tmp-cainstall` removed from
+  Enterprise Admins; the group holds only the disabled `Administrator` again. Its password was
+  rotated a second time, invalidating the console-access password from earlier in this session.
+  Same evidence file.
+- **A client-authentication certificate template exists, scoped correctly.** Duplicated from
+  "User," EKU trimmed to Client Authentication only (`1.3.6.1.5.5.7.3.2`), Subject built from AD
+  with UPN in the alternate subject name. A new group, `PKI-CBA-Pilot`, holds the
+  Certificate-Enrollment extended right; `jsmith` is its only member. All confirmed by direct
+  LDAP read of the template object and its `nTSecurityDescriptor`, not from the console screen.
+  Group creation is in `evidence/24`; template state is `evidence/28`.
+- **A revoked Enterprise Admins grant stayed live in an open session for at least 22 minutes.**
+  `tmp-cainstall` created and fully controlled the new template object while holding no
+  Enterprise Admins in AD — the console session's Kerberos ticket, issued before the removal,
+  still carried the group SID. `whoami /groups` proved it present, then absent after a fresh
+  logon. The templates container's own ACL rules out a default-permissions gap: only SYSTEM,
+  Enterprise Admins, and Domain Admins can create children there. `evidence/26`, `evidence/27`.
+
 ## Not captured, and why
 
 - **`InstallState: 1` is an unresolved enum, exactly like `RestartNeeded: 1`.**
@@ -203,7 +243,35 @@ Exercise date derived from `date -u` on the Proxmox host: 2026-09-05T21:09:59Z.
    Claude recommended the middle option. Raymond said "remove tmp-cainstall from Enterprise
    Admins". Consequence: Enterprise Admins now has no enabled member, and the next install attempt
    became the test of which operation actually needs the grant.
+
+8. **PIM-style activation for the Enterprise Admins grant, 2026-09-07.** Raymond asked whether a
+   real org would activate-and-log this kind of grant instead of a manual add/remove. Claude laid
+   out two paths: finish today with the plain add/-installcert/remove/rotate sequence already
+   accepted on 2026-09-05, or detour to confirm AD Recycle Bin's state and consider enabling it to
+   use native expiring group membership (`Add-ADGroupMember -MemberTimeToLive`), which Entra PIM
+   for Groups cannot reach here since none of this tenant's synced groups are role-assignable
+   (EXPOSURES.md). Raymond chose to finish C2 today. The expiring-membership option and the
+   Recycle Bin prerequisite are unexplored, named here for a future exercise.
+
+9. **Client-auth template scope, 2026-09-07.** Two questions: keep or trim the inherited
+   Encrypting File System and Secure Email EKUs, and grant Enroll broadly (Domain Users /
+   Authenticated Users) or narrowly. Claude recommended trimming to Client Authentication only
+   (no Key Recovery Agent exists for this CA, so an EFS-capable cert with no key archival is a
+   latent data-loss risk) and building a scoped group, `PKI-CBA-Pilot`, rather than a
+   wholesale-group Enroll grant, naming it the fix side of the permission-sprawl thesis rather
+   than only the finding side. Raymond said "lets go." Both landed as designed; see
+   `evidence/28`.
 ## Corrections
+
+- **Claude's LDAP query for the new template guessed `cn` equals `displayName`. Wrong.**
+  `Get-ADObject` returned "Directory object not found" for
+  `CN=district.local Client Authentication,...`. AD CS strips spaces and periods from a display
+  name to generate the object's `cn`; the actual value is `district.localClientAuthentication`.
+  Corrected by searching on `displayName` instead. `evidence/28`.
+- **Claude's first password-reset command failed on bash quoting, not PowerShell.** The
+  `-Command` argument was wrapped in bash double quotes, so bash expanded `$p` and `$_` as its
+  own empty variables before PowerShell ever ran. Exit code 1, no AD write happened. Retried
+  with the PowerShell command single-quoted at the bash level. `evidence/22`.
 
 - **Claude's stdin-prompt explanation for the `certutil -installcert` hang was wrong.** Claude
   attributed the hang to the recorded no-TTY behaviour and predicted that redirecting stdin from
@@ -316,33 +384,53 @@ Exercise date derived from `date -u` on the Proxmox host: 2026-09-05T21:09:59Z.
   its own exercise.
 
 
-- **Why a denied LDAP write becomes an indefinite block inside `-installcert`.** `dspublish`
-  proves that `CA01$` gets `LDAP_INSUFFICIENT_RIGHTS` back in under a second. Insufficient rights
-  alone therefore does not explain a hang. Two hypotheses remain and were not tested:
-  `-installcert` retries or waits rather than failing, or it raises a credential prompt that
-  cannot render in session 0. A console run as an account without Enterprise Admins separates
-  them. That run did not happen.
-- **CA01's local `Administrator` password does not work.** Raymond could not sign in to CA01's
-  console with the password he holds. The value was set during Windows setup. Whether it was
-  mistyped at setup, never recorded, or recorded wrongly is unknown. `DISTRICT\tmp-cainstall`
-  holds local administrator rights on CA01 and is the untested alternative console account.
+- **Resolved 2026-09-07.** Why a denied write becomes an indefinite block inside `-installcert`
+  under `qm guest exec`: it doesn't. The block was a revocation-check dialog with no desktop to
+  render it in. A plain rights denial, tested at the console as `tmp-cainstall`, returns in
+  seconds like `-dspublish` always did. See `evidence/23`.
+- **Unresolved.** CA01's local `Administrator` password still does not work. Not investigated
+  further, since `tmp-cainstall` provided a working console path instead.
+- **Why `jsmith` cannot enroll from `district.local Client Authentication`, 2026-09-07.** Every
+  permission layer checked out correct: the template's EKU and ACL by direct LDAP read
+  (`evidence/28`), the CA's own Security tab (Authenticated Users holds Request Certificates),
+  `jsmith`'s live token (carries `PKI-CBA-Pilot`, confirmed by `whoami /groups`), and RPC
+  reachability (`certutil -ping` succeeds as `jsmith`). Ruled out: a CertSvc restart mid-flap
+  (confirmed stable well before the last two attempts, via the Application log), and a stale
+  local enrollment-policy cache (cleared, retried, same result). The console UI's exact message —
+  "a valid certification authority (CA) configured to issue certificates based on this template
+  cannot be located, or the CA does not support this operation" — differs from the plain
+  template-permission message shown for other unavailable templates in the same list (e.g.
+  "Domain Controller"), suggesting the client's CA-to-template compatibility match is failing,
+  not a rights check. Leading unverified hypothesis: the template's Compatibility setting
+  (Certification Authority: Windows Server 2016, schema version 4) doesn't match something this
+  CA actually supports, though the CA is Windows Server 2022 and should exceed that floor. Not
+  testable by editing the existing template — its Compatibility dropdown only offers 2012+ once
+  created at schema version 4; testing this needs a fresh duplicate built with a lower
+  compatibility level chosen at creation, not attempted today.
 ## Paused
 
 Session 1 paused 2026-09-05T22:29:21Z at Raymond's request, with the CA built but not running.
 
-Session 2 paused 2026-09-06T00:1xZ at Raymond's request, blocked on console access to CA01. The
-next step is a console run of `certutil -installcert C:\ca01.cer` as an account without
-Enterprise Admins, to separate the two surviving hypotheses. It needs a working console logon
-that does not yet exist.
+Session 2 paused 2026-09-06T00:1xZ at Raymond's request, blocked on console access to CA01.
+
+Session 3, 2026-09-07: console access restored, the hang diagnosed, the certificate installed,
+the client-auth template built and published, and a stale-ticket exposure found and confirmed.
+Paused at Raymond's request ("stop here for today"), blocked on why `jsmith` cannot enroll from
+the published template — see Open questions. Not a natural stopping point chosen by Claude; three
+diagnostic branches (restart timing, policy cache, schema compatibility) were tried in one
+session before Raymond called it. Next session should not repeat those three without new
+information.
 
 ## Not started
 
-- Installing the CA certificate on CA01. Blocked. The cause is now localised to a directory
-  write that `CA01$` is not permitted to make; see Open questions for what is still unexplained.
-- The console run that separates the two surviving hypotheses. Blocked on CA01 console access.
-- Starting `CertSvc`. Blocked behind the certificate install.
-- The certificate template for client authentication.
-- Enrolling a certificate for `jsmith`.
+- Determining why `jsmith`'s enrollment fails. See Open questions for what's ruled out and the
+  one untested hypothesis.
 - Uploading the root to Entra with no CRL, and enabling CBA.
 - The revocation test that Option A exists to demonstrate.
-- Deleting `tmp-cainstall`, which consultation point 5 requires.
+- Deleting `tmp-cainstall`, which consultation point 5 requires. It still exists, disabled from
+  Enterprise Admins twice now but not removed from the domain.
+- AD-native expiring group membership as an alternative to manual add/remove for future
+  privileged-access windows. Needs AD Recycle Bin enabled first; not currently enabled. Raised
+  and deferred 2026-09-07, consultation point 8.
+- `report.md` for this exercise. Three sessions of work, still unwritten. Should wait for the
+  enrollment question to resolve rather than report a known-incomplete mechanism as done.

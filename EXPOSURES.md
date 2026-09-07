@@ -41,6 +41,29 @@ misconfiguration, and it means the on-premises tier groups have no cloud governa
 built. *Evidence:* `exercises/2026-09-06-b4-pim-eligible-role/evidence/06-licence-confirmed-and-group-surface.md`,
 `exercises/2026-09-06-b4-pim-eligible-role/evidence/07-pim-for-groups-refusal.md`.
 
+**A live account credential sits as plaintext in the public repo.**
+`exercises/2026-09-03-breakglass-rotation/evidence/02-role-assignment-and-verification.md` holds
+a literal plaintext password (line 81, `passwordProfile.password`, not reproduced here) for
+`breakglassrotationverify@raytakosharkygmail.onmicrosoft.com`,
+confirmed still live by Raymond 2026-09-07. Predates the JSON-quoted credential-scan pass added
+2026-09-06, which is why it was never caught until now. A disable attempt (`PATCH accountEnabled:
+false`, by UPN and by object id) failed with `400 Request_BadRequest`, "Property accountEnabled
+is invalid," cause not yet found. Until disabled, this is a working credential anyone with the
+repo URL can read. *Evidence:* the file itself; see `CARRYOVER.md` for the disable attempt.
+
+**Revoking a privileged group membership does not revoke rights already held by a live logon
+session.** `tmp-cainstall` was removed from Enterprise Admins at 2026-09-07T14:22:03Z. A console
+session logged on before that removal created and fully controlled a new PKI trust object
+(a certificate template) at 14:43Z, 21 minutes later, holding a Kerberos ticket that still
+carried the Enterprise Admins SID. `whoami /groups` confirmed the SID present in the stale
+session and absent after a fresh logon. This is standard Kerberos behavior, not a
+misconfiguration, and it applies to any group-membership revocation in this domain or tenant —
+a PIM deactivation, a manual removal, an incident-response action — not only to this account.
+Nothing in `district.local` or this tenant forces re-authentication on a privileged group change;
+closing the gap needs a capped ticket lifetime or a forced sign-out, neither configured.
+*Evidence:* `exercises/2026-09-05-adcs-issuing-ca-build/evidence/26-stale-ticket-retains-revoked-enterprise-admins.txt`,
+`exercises/2026-09-05-adcs-issuing-ca-build/evidence/27-certificate-templates-container-acl.txt`.
+
 **PIM's defaults do not include human approval.** An untouched role management policy requires
 MFA, requires a justification, and caps activation at PT8H, but sets `isApprovalRequired` false
 with no approvers. A tenant that enables PIM and changes nothing gets an audit trail, not a

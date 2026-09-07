@@ -1,0 +1,61 @@
+Command: qm guest exec 107 --timeout 30 -- cmd.exe /c "certutil -ping"; qm guest exec 107
+--timeout 30 -- powershell.exe -NonInteractive -Command '$s = [adsisearcher]""; $s.SearchRoot =
+[adsi]"LDAP://CN=Enrollment Services,CN=Public Key Services,CN=Services,CN=Configuration,
+DC=district,DC=local"; $s.Filter = "(objectClass=pKIEnrollmentService)"; $s.FindAll() |
+ForEach-Object { $_.Properties["cn"] } | ConvertTo-Json -Compress'
+Host: Proxmox host shell, acting on VM 107 (CA01)
+UTC: 2026-09-07T14:21:19Z
+
+--- certutil -ping ---
+{
+   "exitcode" : 0,
+   "exited" : 1,
+   "out-data" : "Connecting to CA01.district.local\\district.local Issuing CA ...\r\nServer \"district.local Issuing CA\" ICertRequest2 interface is alive (16ms)\r\nCertUtil: -ping command completed successfully.\r\n"
+}
+
+--- Enrollment Services search ---
+{
+   "exitcode" : 0,
+   "exited" : 1,
+   "out-data" : "\"district.local Issuing CA\"\r\n"
+}
+
+Evidence/09 on 2026-09-05 found no Enrollment Services object under this container. One now
+exists, named "district.local Issuing CA", confirming the CA published itself to AD as part of
+the successful -installcert run in evidence/24. Confirmed live three independent ways: the
+console's own success message, the RPC ping, and the AD object search.
+
+## Enterprise Admins cleanup and second password rotation
+
+Command: qm guest exec 100 --timeout 60 -- powershell.exe -NonInteractive -Command
+'Remove-ADGroupMember -Identity "Enterprise Admins" -Members tmp-cainstall -Confirm:$false;
+Get-ADGroupMember -Identity "Enterprise Admins" | Select-Object SamAccountName,Enabled |
+ConvertTo-Json -Compress'; qm guest exec 100 --timeout 60 -- powershell.exe -NonInteractive
+-Command '$p = -join ((48..57)+(65..90)+(97..122)+(33,35,36,37,38,42) | Get-Random -Count 20 |
+ForEach-Object {[char]$_}); Set-ADAccountPassword -Identity tmp-cainstall -NewPassword
+(ConvertTo-SecureString $p -AsPlainText -Force) -Reset; Write-Output $p'
+Host: Proxmox host shell, acting on DC01 (VM 100)
+UTC: 2026-09-07T14:22:03Z
+
+--- removal ---
+{
+   "exitcode" : 0,
+   "exited" : 1,
+   "out-data" : "{\"SamAccountName\":\"Administrator\",\"Enabled\":null}\r\n"
+}
+
+Enterprise Admins holds exactly one member again, Administrator, which evidence/18 confirmed
+disabled. tmp-cainstall's Enterprise Admins window covered only the install: re-granted
+2026-09-07T14:22:03Z, held through one console retry, removed in the same command batch as the
+password rotation below. Matches the tradeoff accepted 2026-09-05.
+
+--- password rotation ---
+{
+   "exitcode" : 0,
+   "exited" : 1,
+   "out-data" : "\r\n"
+}
+
+Redacted by Raymond before pasting, same convention as evidence/22. The password used for
+today's console logon no longer works after this line ran. New value saved to Vaultwarden,
+replacing the earlier entry.

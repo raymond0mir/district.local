@@ -1,0 +1,52 @@
+Command: whoami /groups > C:\whoami-groups-stale-ticket.txt (in the console session open since before
+the 14:22:03Z Enterprise Admins removal); then, after logging tmp-cainstall off and back on with the
+rotated password, in a new PowerShell window: whoami /groups > C:\whoami-groups-fresh-ticket.txt.
+Both read back via qm guest exec 107 -- powershell.exe -NonInteractive -Command
+'[string](Get-Content -Raw <path>)'
+Host: CA01 (VM 107) own console for the commands; Proxmox host shell for the reads
+UTC: stale capture 2026-09-07T14:51:57Z (read); fresh capture 2026-09-07T14:53:27Z (read)
+
+Context: while duplicating and saving the "district.local Client Authentication" certificate
+template, tmp-cainstall -- holding no Enterprise Admins per AD at the time -- successfully
+created a new object under CN=Certificate Templates, a container whose own ACL (evidence/25a,
+below) grants CreateChild only to SYSTEM, Enterprise Admins, and Domain Admins. This should not
+have been possible. The container's ACL was checked and confirmed to grant nothing broader
+(evidence/27) -- the console session doing the work had been open since before the 14:22:03Z
+removal.
+
+--- stale ticket, session open before the removal ---
+{
+   "exitcode" : 0,
+   "exited" : 1,
+   "out-data" : "...DISTRICT\\Enterprise Admins    Group    S-1-5-21-2288391267-384259729-2991373820-519    Mandatory group, Enabled by default, Enabled group..."
+}
+
+DISTRICT\Enterprise Admins, the correct domain SID, present and enabled -- twenty-two minutes
+after the AD-side removal captured in evidence/25.
+
+--- fresh ticket, new logon after log off/on with the rotated password ---
+{
+   "exitcode" : 0,
+   "exited" : 1,
+   "out-data" : "...Everyone, BUILTIN\\Administrators, BUILTIN\\Users, BUILTIN\\Certificate Service DCOM Access, NT AUTHORITY\\INTERACTIVE, CONSOLE LOGON, NT AUTHORITY\\Authenticated Users, NT AUTHORITY\\This Organization, LOCAL, Authentication authority asserted identity, Mandatory Label\\High Mandatory Level..."
+}
+
+Enterprise Admins is absent. No group beyond the built-in/well-known set for an interactive
+local administrator on CA01 remains. The removal is real; the stale token was the only thing
+carrying the old grant forward.
+
+## Finding
+
+Removing a security principal from a privileged AD group does not revoke rights already carried
+in a live logon's Kerberos ticket. The directory-side removal at evidence/25 was correct and
+immediate. The console session that outlived it kept acting as Enterprise Admins for at least
+22 minutes, long enough to create and fully control a new PKI trust object (the certificate
+template), with no further approval step and no additional log entry distinguishing "acting on
+stale privilege" from "acting on current privilege."
+
+This generalizes past this exercise. Any group-membership revocation -- a PIM deactivation, a
+manual admin removal, an incident response action pulling someone from a privileged group --
+leaves already-open sessions unaffected until they end. A written policy that "access is removed
+immediately" is true of the directory and false of the session. Forcing sign-out, or capping
+Kerberos ticket lifetime and Conditional Access sign-in frequency, is what actually closes the
+gap. Neither is configured in this tenant or domain. Candidate for EXPOSURES.md.

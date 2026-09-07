@@ -1,0 +1,57 @@
+Command: qm guest exec 100 --timeout 60 -- powershell.exe -NonInteractive -Command 'Add-ADGroupMember
+-Identity "Enterprise Admins" -Members tmp-cainstall; Get-ADGroupMember -Identity "Enterprise Admins"
+| Select-Object SamAccountName,Enabled | ConvertTo-Json -Compress'; then, at CA01's console, logged
+off and back on as tmp-cainstall (a fresh logon was needed for the new group membership to reach the
+Kerberos ticket), then ran: certutil -installcert C:\ca01.cer *> C:\certutil-console.attempt-2.txt
+Host: Proxmox host shell acting on DC01 (VM 100), then CA01 (VM 107) own console
+UTC: 2026-09-07T14:22:03Z (re-grant); console retry followed within minutes
+
+Context: Raymond decided to finish C2 in this session rather than detour into building AD-native
+expiring group membership (`-MemberTimeToLive`), which is unavailable here because AD Recycle Bin
+is not enabled on district.local (EXPOSURES.md). Same tradeoff accepted 2026-09-05: put
+tmp-cainstall back in Enterprise Admins for the install window, remove it and rotate the password
+immediately after.
+
+--- re-grant ---
+{
+   "exitcode" : 0,
+   "exited" : 1,
+   "out-data" : "{\"SamAccountName\":\"Administrator\",\"Enabled\":null}\r\n{\"SamAccountName\":\"tmp-cainstall\",\"Enabled\":null}\r\n"
+}
+
+(Get-ADGroupMember returns ADPrincipal objects, which carry no Enabled property; Select-Object
+prints null for it rather than erroring. Not a state change, a formatting artifact -- use
+Get-ADUser to read Enabled. See gotchas.md.)
+
+--- C:\certutil-console.attempt-2.txt, read via qm guest exec 107 ---
+{
+   "exitcode" : 0,
+   "exited" : 1,
+   "out-data" : "CertUtil: -installCert command completed successfully.\r\nThe CertSvc service may need to be restarted for changes to take effect.\r\n"
+}
+
+--- CA setup state after the successful attempt ---
+{
+   "exitcode" : 0,
+   "exited" : 1,
+   "out-data" : "HKEY_LOCAL_MACHINE\\SYSTEM\\CurrentControlSet\\Services\\CertSvc\\Configuration\\district.local Issuing CA\\SetupStatus:\r\n\r\n  SetupStatus REG_DWORD = 301 (769)\r\n    SETUP_SERVER_FLAG -- 1\r\n    SETUP_FORCECRL_FLAG -- 100 (256)\r\n    SETUP_UPDATE_CAOBJECT_SVRTYPE -- 200 (512)\r\nCertUtil: -getreg command completed successfully.\r\n"
+}
+
+SetupStatus moved from 525 (SERVER+SUSPEND+REQUEST+UPDATE_CAOBJECT_SVRTYPE) to 769
+(SERVER+FORCECRL+UPDATE_CAOBJECT_SVRTYPE). SUSPEND and REQUEST cleared -- the CA is no longer
+awaiting its issuer certificate. FORCECRL appeared, the documented flag for a setup that
+completed despite being unable to publish a CRL, consistent with the no-CRL decision.
+
+--- CertSvc start ---
+{
+   "exitcode" : 0,
+   "exited" : 1,
+   "out-data" : "{\"Name\":\"CertSvc\",\"Status\":4}\r\n"
+}
+
+Status 4 is Running. Started clean, no error, on the first attempt after -installcert succeeded.
+
+C:\ directory on CA01 also holds installcert.out and installcert.err, named by the redirect
+technique in evidence/20 on 2026-09-06. Neither was written by today's commands, which targeted
+certutil-console.attempt-2.txt. Their current size was not checked today; evidence/20 found them
+zero bytes on 2026-09-06, not re-verified since. Not cited as evidence of anything this session.

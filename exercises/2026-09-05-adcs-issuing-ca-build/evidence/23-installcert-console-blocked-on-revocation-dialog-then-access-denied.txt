@@ -1,0 +1,54 @@
+Command: certutil -installcert C:\ca01.cer *> C:\certutil-console-attempt.txt
+Host: CA01 (VM 107) own console, Proxmox web console noVNC, logged on interactively as
+DISTRICT\tmp-cainstall (Domain Users only, local administrator on CA01, not Enterprise Admins)
+UTC: 2026-09-07, approx. 14:02-14:04 (console session; no `date -u` available at this host)
+
+Context: 2026-09-05's evidence-log left two untested hypotheses for why `-installcert` hung
+indefinitely under `qm guest exec` (session 0): that it raises a credential or confirmation
+dialog that cannot render with no desktop, or that it retries/waits past a denial rather than
+failing. `-dspublish` had already proven a plain rights denial returns in under a second, which
+argued against rights alone explaining a hang.
+
+Run at an interactive console this time, the command produced a modal dialog:
+
+"Microsoft Active Directory Certificate Services -- Cannot verify certificate chain. Do you wish
+to ignore the error and continue? The revocation function was unable to check revocation for the
+certificate. 0x80092012 (-2146885614 CRYPT_E_NO_REVOCATION_CHECK)"
+
+This is Recalled -- observed on screen through the noVNC console, not machine output. Clicking
+OK let the command return within seconds. This resolves the 2026-09-05 question: the hang was
+the dialog blocking with no desktop to render it in, not a rights-driven retry loop.
+
+The dialog itself is a direct, expected consequence of the earlier decision to skip publishing a
+CRL (evidence-log.md, "Where Raymond was consulted," item 1, 2026-09-05).
+
+After OK, the command returned and failed. Captured through `qm guest exec`'s JSON channel
+rather than trusted from the screen:
+
+--- C:\certutil-console-attempt.txt, read via qm guest exec 107 ---
+{
+   "exitcode" : 0,
+   "exited" : 1,
+   "out-data" : "{\"value\":\"CertUtil: -installCert command FAILED: 0x80070005 (WIN32: 5 ERROR_ACCESS_DENIED)\\r\\nCertUtil: Access is denied.\\r\\n\"...}"
+}
+
+(Full JSON also carried Get-Content's PSPath/PSProvider metadata -- a `Get-Content -Raw` object
+serializes its attached path properties and the FileSystemProvider's .NET reflection data when
+piped to ConvertTo-Json with no -Depth limit. Only the "value" field is the file's actual
+content. See gotchas.md.)
+
+--- CA setup state after the failed attempt ---
+{
+   "exitcode" : 0,
+   "exited" : 1,
+   "out-data" : "HKEY_LOCAL_MACHINE\\SYSTEM\\CurrentControlSet\\Services\\CertSvc\\Configuration\\district.local Issuing CA\\SetupStatus:\r\n\r\n  SetupStatus REG_DWORD = 20d (525)\r\n    SETUP_SERVER_FLAG -- 1\r\n    SETUP_SUSPEND_FLAG -- 4\r\n    SETUP_REQUEST_FLAG -- 8\r\n    SETUP_UPDATE_CAOBJECT_SVRTYPE -- 200 (512)\r\nCertUtil: -getreg command completed successfully.\r\n"
+}
+
+SetupStatus unchanged at 525, identical to 2026-09-05's reading. The failed attempt left no
+trace of partial progress.
+
+New finding: tmp-cainstall, an interactively logged-on domain user with local administrator on
+CA01 only, gets the same 0x80070005 ERROR_ACCESS_DENIED that CA01$ got from `-dspublish` in
+evidence/21. Local administrator on the CA machine does not reach this write. Only a
+forest-level grant does. This was not previously tested against a real user identity, only the
+machine account.

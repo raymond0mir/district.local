@@ -1,0 +1,40 @@
+Command: at CA01's console (Certificate Templates snap-in), duplicated "User", set Compatibility
+to Windows Server 2016 / Windows 10, named it "district.local Client Authentication", removed
+Encrypting File System and Secure Email from Application Policies leaving Client Authentication
+only, added PKI-CBA-Pilot to Security with Enroll checked, saved. Verified via:
+qm guest exec 100 --timeout 60 -- powershell.exe -NonInteractive -Command '$s = [adsisearcher]"";
+$s.SearchRoot = [adsi]"LDAP://CN=Certificate Templates,CN=Public Key Services,CN=Services,
+CN=Configuration,DC=district,DC=local"; $s.Filter = "(displayName=district.local Client
+Authentication)"; $res = $s.FindOne(); $dn = $res.Properties["distinguishedname"][0]; $t =
+Get-ADObject -Identity $dn -Properties pKIExtendedKeyUsage,nTSecurityDescriptor,cn,displayName;
+@{ CN=$t.cn; EKU=$t.pKIExtendedKeyUsage; EnrollACEs=@($t.nTSecurityDescriptor.Access | Where-Object
+{ $_.IdentityReference.Value -like "*PKI-CBA-Pilot*" } | ForEach-Object {
+"$($_.ActiveDirectoryRights)|$($_.ObjectType)|$($_.AccessControlType)" }) } | ConvertTo-Json
+-Compress'
+Host: CA01 (VM 107) own console for the template work; Proxmox host shell acting on DC01 for the
+verification read
+UTC: 2026-09-07T14:43:34Z
+
+Context: a first verification attempt guessed the template's `cn` equaled its display name
+verbatim and got "Directory object not found" -- corrected below.
+
+--- LDAP read by displayName, template's actual cn and security state ---
+{
+   "exitcode" : 0,
+   "exited" : 1,
+   "out-data" : "{\"EKU\":[\"1.3.6.1.5.5.7.3.2\"],\"CN\":\"district.localClientAuthentication\",\"EnrollACEs\":[\"ReadProperty, GenericExecute|00000000-0000-0000-0000-000000000000|Allow\",\"ExtendedRight|0e10c968-78fb-11d2-90d4-00c04f79dc55|Allow\"]}\r\n"
+}
+
+`cn` is `district.localClientAuthentication` -- AD CS strips spaces and the period from the
+display name when generating the object's internal name. `displayName` keeps the typed value.
+Confirmed by direct object read, not by trusting the console list: EKU holds exactly one OID,
+`1.3.6.1.5.5.7.3.2` (Client Authentication), and `PKI-CBA-Pilot` holds the Certificate-Enrollment
+extended right (`0e10c968-78fb-11d2-90d4-00c04f79dc55`) plus Read. Both design decisions from
+consultation (EKU trim, group-scoped enroll) landed as intended.
+
+## Correction
+
+Claude's first verification query assumed the template's `cn` attribute equals its display name.
+`Get-ADObject` returned "Directory object not found." AD CS sanitizes the display name for `cn`;
+periods and spaces do not survive. Corrected by searching on `displayName` instead and reading
+the returned `distinguishedName`.
