@@ -20,9 +20,18 @@ decided 2026-09-07 that `adm-jsmith` is the go-forward account for lab administr
 exposure closes when routine work actually moves there, not on the decision and not on the
 account existing. Nothing in this repository can verify a change in habit. The check is whether
 future exercises show `adm-jsmith` as the acting identity, and whether the break-glass account
-stops appearing as `createdBy` and `initiatedBy` in captures. *Evidence:*
+stops appearing as `createdBy` and `initiatedBy` in captures.
+**First data point after the decision date, 2026-09-07: the check was not passed.** Four
+`directoryAudits` events on the purged `84360e8b` object all carry `initiatedBy.user.id`
+`6ca413e3`, the break-glass account, through Graph Explorer. Three ran 2026-09-03. The fourth, the
+hard delete at 2026-09-07T17:55:34Z, ran on the same date as the decision. The decision has no
+captured time of day, so the purge cannot be placed after it, and this is not proof that the habit
+outlived the decision. It is the first capture in which the check could have been passed, and it
+was not. This entry's separate claim that Raymond signs in as this account for routine work now
+rests on audit data rather than on recollection. *Evidence:*
 `exercises/2026-09-06-b4-pim-eligible-role/evidence/03-active-directory-role-assignments.md`,
-`exercises/2026-09-06-b4-pim-eligible-role/evidence/04-tenant-user-inventory-and-empty-eligibility.md`.
+`exercises/2026-09-06-b4-pim-eligible-role/evidence/04-tenant-user-inventory-and-empty-eligibility.md`,
+`exercises/2026-09-07-plaintext-credential-remediation/evidence/03-audit-proves-no-use-and-names-the-actor.md`.
 
 **`sysadmin` is synced into Entra while holding on-premises `Domain Admins` with `adminCount` 1.**
 The same object is enabled in the tenant and is a member of `Domain Admins` on `district.local`.
@@ -419,16 +428,28 @@ or accept that the CA stops. *Evidence:*
 
 ## Recently closed (for contrast, not action)
 
-- **The plaintext credential in the public repo is remediated, and the standing record about it
-  was wrong, 2026-09-07.** The account it belonged to was not live. It had been soft-deleted
-  2026-09-03T15:02:45Z, the same day it was created, and this file's claim that Raymond confirmed
-  it "still live" on 2026-09-07 was Recalled and false. Three Graph reads found it in
-  `deletedItems` under a UPN that Entra had mangled with its own object id, which is why every
-  lookup by the original UPN returned `Request_ResourceNotFound`. The object was then permanently
-  purged, closing the 30-day restore window about 26 days early. The string occurred in one
-  working-tree file, introduced by one commit; it is redacted in place, and the working tree is
-  clean. It remains in public history at `62fd7bf`, by decision: redact and note, not rewrite.
-  Raymond confirmed the string is not reused elsewhere, which is Recalled and uncapturable.
+- **The plaintext credential in the public repo is remediated, the standing record about it was
+  wrong, and the closure now rests on evidence, 2026-09-07.** The account it belonged to was not
+  live. It had been soft-deleted 2026-09-03T15:02:45Z, the same day it was created, and this
+  file's claim that Raymond confirmed it "still live" on 2026-09-07 was Recalled and false. Three
+  Graph reads found it in `deletedItems` under a UPN that Entra had mangled with its own object
+  id, which is why every lookup by the original UPN returned `Request_ResourceNotFound`. The
+  object was then permanently purged, closing the 30-day restore window about 26 days early. The
+  string occurred in one working-tree file, introduced by one commit; it is redacted in place, and
+  the working tree is clean. It remains in public history at `62fd7bf`, by decision: redact and
+  note, not rewrite.
+  **Closed on evidence, not on recollection.** Three later reads settled the question the Recalled
+  "not reused elsewhere" answer had been carrying. Both `auditLogs/signIns` streams for the object
+  are empty, interactive and non-interactive read separately. `directoryAudits` holds four events
+  and no others: the password write, the creation, the soft delete, and the purge. The account
+  lived 23.3 seconds, never signed in, and never held a role. Entra logs the password write with
+  `null` on both sides, so the directory never held the literal; only the repository did. Raymond's
+  Recalled answer now covers only reuse outside this tenant, which no lab command can reach.
+  **A retraction belongs to this entry.** Claude asserted in session that the exposed account held
+  Global Administrator and classified the exposure on that basis. It never held the role. The
+  2026-09-03 assignment targets the break-glass account, `6ca413e3`, not `84360e8b`. Retired in
+  `verified-claims.md`; full account in the report's "What broke, and why".
+  *Evidence:* `exercises/2026-09-07-plaintext-credential-remediation/evidence/03-audit-proves-no-use-and-names-the-actor.md`,
   `exercises/2026-09-07-plaintext-credential-remediation/report.md`.
 - **Security Defaults is disabled and two of B1's three CA policies genuinely enforce,
   2026-09-05.** Open since B1's first policy was created report-only. A live-API ordering test

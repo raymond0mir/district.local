@@ -4,29 +4,23 @@ Open items, 2026-09-07.
 
 Read `EXPOSURES.md` next.
 
-## First: finish the 2026-09-07 write-up
+## Uncommitted work in the tree
 
-Committed and pushed at `50e4f38`. Three later Graph reads produced a finding, captured in
-`exercises/2026-09-07-plaintext-credential-remediation/evidence/03-audit-proves-no-use-and-names-the-actor.md`.
-Read it; it is self-contained. These updates are owed and nothing else reflects them:
-
-- `report.md`: the exposure closes on evidence, not on the Recalled "not reused" answer. The
-  account lived 23.3 seconds, never signed in, never held a role. Two Open questions are answered.
-- `evidence-log.md` Corrections: Claude wrongly claimed the exposed account held Global
-  Administrator. File 03 records the correction.
-- `verified-claims.md`: add Confirmed rows for the no-use proof and the 23.3-second lifetime.
-
-- `EXPOSURES.md`: upgrade the closed entry to closed-on-evidence. Add the 2026-09-07 break-glass
-  data point; that entry's own test ran and showed break-glass as `initiatedBy`.
-
-Keep the Global Administrator's UPN and the operator IP out of every artifact. File 03 explains.
+The 2026-09-07 write-up is finished and not committed. Four files are modified: `report.md` and
+`evidence-log.md` under `exercises/2026-09-07-plaintext-credential-remediation/`, plus
+`EXPOSURES.md` and `verified-claims.md`. They record the audit finding in evidence file 03: the
+exposed credential was never used, the account lived 23.3 seconds, and Claude's claim that it held
+Global Administrator is retracted. Credential-scan passes 1, 1b, 2, 3 are clean on these four
+files. Passes 4 and 5 are still owed. `validate.py` reports 1 ERROR, the pre-existing missing
+section in the 08-31 member-server-build report. Regenerate `validation.json` after the commit,
+with `--json validation.json`, and commit it separately.
 
 ## Lab state
 
 Read 2026-09-07T15:45:34Z: pool `Data%` 82.39, metadata 4.01. Under the 85% gate by about 4 GiB.
 Host memory 2.5Gi available, down from 6.7Gi two days ago with the same VMs. Unexplained; track it.
 Running: VM 100 (DC01), 104 (pfSense), 107 (CA01), containers 103, 106. Stopped: VM 101, 102.
-`pre-adcs-config` on VM 107 is a rollback point.
+`pre-adcs-config` on VM 107 is a rollback point. Re-read the pool before any state change.
 
 ## C2 — CA issuing, enrollment still blocked
 
@@ -53,9 +47,3 @@ C2's `report.md` is unwritten. Wait for enrollment to resolve.
 ## Still open elsewhere
 
 B1: `d9a6a116` report-only, `75882b6a`'s block unexercised. B4's PT4H re-run owed.
-
-## Repository
-
-Credential scan passes 1, 1b, 2, 3 clean at `50e4f38`. Pass 4 needs the Vaultwarden strings.
-Pass 5 needs the GA name. `validate.py`: one pre-existing ERROR on the 08-31 member-server-build
-report.

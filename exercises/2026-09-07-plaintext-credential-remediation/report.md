@@ -45,14 +45,27 @@ break-glass rotation, with no purpose beyond it.
 10. Replaced the value at line 81 with a redaction marker. Added a note below the code block naming
     the commit that still carries it.
 11. Re-ran the scope check. No occurrence outside `.git`.
+12. Read the exposed account's interactive sign-ins:
+
+        GET /beta/auditLogs/signIns?$filter=userId eq '84360e8b-3321-4e37-b9ec-10fccd0263b8'
+
+13. Read the same account's non-interactive sign-ins, by adding
+    `signInEventTypes/any(t: t eq 'nonInteractiveUser')` to the filter.
+14. Read every directory audit event targeting the object:
+
+        GET /beta/auditLogs/directoryAudits?$filter=targetResources/any(t: t/id eq '84360e8b-3321-4e37-b9ec-10fccd0263b8')
+
+Steps 12 to 14 ran after the purge. A purged object keeps its audit trail; the log is keyed on the
+object id, not on the object.
 
 ## Where Raymond was consulted
 
 - **Purge the object now, or let the 30-day window expire?** Permanent deletion is irreversible, so
   it was not run on a default. Raymond: "purge it." Run the same session.
 - **Is that password string reused anywhere else?** Raymond: "no." This answer is Recalled. It
-  cannot be captured from the lab, and it is the reason the residual risk is described as closed in
-  effect rather than merely reduced.
+  cannot be captured from the lab. It was the reason the residual risk was described as closed in
+  effect rather than merely reduced. Three later reads removed that dependency: the exposure now
+  closes on captured evidence, and the Recalled answer covers only reuse outside this tenant.
 - **Redact in place, or rewrite git history?** Raymond: "redact and note." The rewrite stays
   unexercised. It remains coupled to the separate, still-deferred question of the author identity in
   pushed history.
@@ -90,6 +103,49 @@ After the purge, quoted from `evidence/02-purge-and-redaction.md`:
 }
 ```
 
+The credential was never used. Both sign-in streams are empty, quoted from
+`evidence/03-audit-proves-no-use-and-names-the-actor.md`:
+
+```json
+{
+    "@odata.context": "https://graph.microsoft.com/beta/$metadata#auditLogs/signIns",
+    "value": []
+}
+```
+
+The interactive read alone would not have carried this. `auditLogs/signIns` returns interactive
+events by default, so a token taken against Graph directly would not appear in it. The
+non-interactive read returned the same empty collection. Both calls returned `200`, not
+`Authentication_RequestFromNonPremiumTenantOrB2CTenant`, so the absence is real and not a licence
+block.
+
+`directoryAudits` returned four events and no others. The first two set the account's lifetime:
+
+```json
+{ "activityDisplayName": "Add user",    "activityDateTime": "2026-09-03T15:02:22.5383841Z", "result": "success" }
+{ "activityDisplayName": "Delete user", "activityDateTime": "2026-09-03T15:02:45.8516049Z", "result": "success" }
+```
+
+The account existed for 23.3 seconds. The password write is logged with null on both sides:
+
+```json
+{ "displayName": "Password", "oldValue": null, "newValue": null }
+```
+
+Entra never records the literal. Only the repository did. The same event set
+`ForceChangePassword` to `True`, so a first sign-in would have demanded a password change before
+any session was usable. No first sign-in happened.
+
+All four events name the same actor:
+
+```json
+"initiatedBy": { "user": { "id": "6ca413e3-06ff-4704-ab36-1348bb7387c8", "displayName": "Graph Explorer" } },
+"performedBy": { "appId": "de8bc8b5-d9f9-48b1-a8ad-b748da725064" }
+```
+
+`6ca413e3` is the break-glass account. `de8bc8b5-d9f9-48b1-a8ad-b748da725064` is the Graph Explorer
+application.
+
 ## What broke, and why
 
 **The standing record was wrong, and it was wrong in the direction that wastes work.**
@@ -121,6 +177,33 @@ object, because restoring requires tenant privilege. But the string sat in publi
 days after the account's deletion, during which the standing record claimed it was live and nothing
 acted on it.
 
+**I claimed the exposed account held Global Administrator. It never did. Retracted.** The
+classification of the exposure rested on that claim for part of the session. The role assignment
+in `exercises/2026-09-03-breakglass-rotation/evidence/02-role-assignment-and-verification.md:35`
+targets `directoryObjects/6ca413e3-06ff-4704-ab36-1348bb7387c8`, which is the break-glass account.
+It does not target `84360e8b`. The exposed account was the object used to prove the role worked,
+not a holder of it; that file's own section header says so. The error came from reading the file's
+title line and its role lookup, and stopping before the assignment body four sections below. A
+credential that never carried a role is a materially smaller exposure than one that did, and the
+whole session's risk framing followed from getting it wrong.
+
+**The break-glass account is still doing routine work, four days after the decision to stop.**
+`EXPOSURES.md` records that `adm-jsmith` became the go-forward administrative account on
+2026-09-07, and it sets that entry's test as whether future captures stop showing the break-glass
+account as `initiatedBy`. The purge in this exercise ran under the break-glass account. The
+decision and the purge fall on the same date and their order is not captured, so this is not proof
+that the habit survived the decision. It is the first capture in which the test could have been
+passed, and it was not.
+
+**A second-order correction, in this file rather than in the evidence.** File 03's closing
+analysis says the purge ran "four days after the 2026-09-07 decision" and calls it "the first test
+after the decision". Both dates are 2026-09-07, so the interval is zero days, and the decision has
+no captured time of day, so the purge cannot be ordered after it. The four-day figure belongs to
+the account's soft delete on 2026-09-03. File 03 is committed evidence. It was edited to fix this,
+`validate.py` raised `evidence-modified`, and the edit was reverted. Committed evidence does not
+get quiet repairs; the correction belongs in the report and the evidence-log, which is where it
+now is.
+
 ## What I'd do differently
 
 Verify object state before writing an exposure entry that asserts it. The entry said "confirmed
@@ -129,9 +212,12 @@ still live" on the strength of a recollection. One read would have made it Captu
 Capture failed requests, not just failed responses. The `400` from 2026-09-03 is unexplainable now
 because the request body was never recorded. An error message is only half the evidence.
 
-Delete the verification account at the end of the exercise that creates it. This account existed for
-one step on 2026-09-03. Somebody did delete it that day, and no capture records who or why. That
-gap is its own small version of the same problem.
+Delete the verification account at the end of the exercise that creates it, and capture the
+deletion. The 2026-09-03 exercise did delete this account, 23.3 seconds after creating it. It
+recorded nothing about having done so, which is why four days later the standing record said the
+account was live and this exercise opened by planning to disable it. The audit log held the answer
+the whole time. Reading it cost three requests, and it was the last thing tried rather than the
+first.
 
 Treat a repository redaction as a scope problem before it is an edit problem. Finding one file and
 one commit took two commands and cost nothing. Editing first would have left the question open.
@@ -139,9 +225,10 @@ one commit took two commands and cost nothing. Editing first would have left the
 ## Open questions
 
 - Why did the 2026-09-03 `PATCH` return `400`, not `404`? Unresolvable without the original request.
-- Who deleted the account on 2026-09-03, and was it deliberate? `deletedDateTime` is the only trace.
-  The likely actor is the break-glass account, which `EXPOSURES.md` records as the identity used for
-  routine tenant work. Nothing captures the act.
+- ~~Who deleted the account on 2026-09-03, and was it deliberate?~~ **Answered.**
+  `directoryAudits` names the break-glass account as `initiatedBy` on the creation, the password
+  write and the soft delete, all three within 23.3 seconds, from one Graph Explorer session and
+  one browser. It was cleanup by the operator who made the account.
 - Do other pre-2026-09-06 evidence files hold credentials that the older scan passes missed? The
   JSON-quoted pass was added 2026-09-06. This value predates it and survived every earlier pass.
 - The value remains in commit `62fd7bf` in public history, by decision. The rewrite is unexercised
