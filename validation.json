@@ -1,9 +1,9 @@
 {
-  "commit": "2048b9d824c4f16d43a05c5cc5316851e8262588",
+  "commit": "3a6eba9dc9ade3bbc6290d2f0d55509f97c61858",
   "counts": {
     "ERROR": 1,
     "INFO": 24,
-    "WARN": 27
+    "WARN": 28
   },
   "findings": [
     {
@@ -280,6 +280,12 @@
       "check": "evidence-header",
       "message": "capture header has no UTC timestamp",
       "path": "exercises/2026-09-07-plaintext-credential-remediation/evidence/02-purge-and-redaction.md",
+      "severity": "WARN"
+    },
+    {
+      "check": "evidence-header",
+      "message": "capture header has no UTC timestamp",
+      "path": "exercises/2026-09-07-plaintext-credential-remediation/evidence/03-audit-proves-no-use-and-names-the-actor.md",
       "severity": "WARN"
     },
     {
