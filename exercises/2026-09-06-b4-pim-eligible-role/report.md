@@ -1,8 +1,5 @@
 # B4 — PIM: converting a standing grant into a just-in-time one
 
-**Draft. One capture is still open**: proof that the activation expired without anyone acting.
-It is marked below. Nothing in this report treats a pending capture as done.
-
 ## What I set out to do
 
 Convert a standing administrative grant into an eligible-not-active grant behind approval, and
@@ -105,8 +102,18 @@ permanent one. The whole difference is time. One GUID links the request, the app
 schedule, and the live assignment.
 Evidence: `14-activation-live.md`.
 
-**Pending.** Proof that the assignment expired at 18:40:45.843Z with no action taken. That is B4
-step 6, and it is the single capture this exercise most depends on.
+**The grant removed itself, and no person is named anywhere in the record.** Core Directory
+unassigned the role at 18:40:46.7455924Z, 0.9 seconds after the deadline, with `initiatedBy` set
+to the application `MS-PIM`. Six seconds later PIM logged the reason: `AuditType`
+`RemoveActivatedRole`, `ActionType` `Revoke`, `initiatedBy.user.displayName` "Azure AD PIM", with
+a null `userPrincipalName` and a null `ipAddress`. Both endpoints that held the assignment now
+return an empty `value`.
+Evidence: `15-expiry-unactioned.md`.
+
+**The eligibility survived the expiry.** `roleEligibilityScheduleInstances` still returns one row
+with `endDateTime` null. The control is repeatable, not single-use. `adm-jsmith` can activate
+again, and must clear approval again each time.
+Evidence: `15-expiry-unactioned.md`.
 
 ## What broke, and why
 
@@ -137,6 +144,16 @@ during validation before any object persists. It is being re-run from a clean st
 
 `roleDefinitions` rejects the `or` operator in `$filter` and accepts `and`. One query was lost to
 that.
+
+## What the record does not contain
+
+Two audit entries describe the removal. Neither names a person. That absence is the finding, and
+it is the one thing a standing grant can never produce. `sysadmin`'s membership of `Domain Admins`
+generates no expiry entry, because nothing expires.
+
+A query scoped to one service would have seen half of this. Core Directory logged the directory
+change and called it `Unassign`. PIM logged the reason and called it `Revoke`. The two records sit
+six seconds apart under different `loggedByService` values.
 
 ## What I'd do differently
 

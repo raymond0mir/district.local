@@ -47,6 +47,10 @@ Write the condition that makes each line true. A behavior that depends on a lice
 - An over-limit PIM activation request may be rejected during validation without persisting a request object. `roleAssignmentScheduleRequests` then cannot distinguish a refused attempt from an attempt never sent. Capture the response at the time; do not plan to reconstruct it later. Source: `exercises/2026-09-06-b4-pim-eligible-role`.
 - `GET /users/{id}/authentication/methods` returns `createdDateTime` null for a Microsoft Authenticator method. Do not use this endpoint to date a registration. Source: `exercises/2026-09-06-b4-pim-eligible-role`.
 
+- A PIM removal writes two `directoryAudits` entries about six seconds apart, under different `loggedByService` values. Core Directory logs `Unassign`; PIM logs `Revoke` with `AuditType` `RemoveActivatedRole`. Filtering on one service returns half the event. Source: `exercises/2026-09-06-b4-pim-eligible-role`.
+- A directory role has two identifiers. `Role.ObjectID` is the directory role object; `Role.TemplateId` is the role definition used by `roleDefinitions` and PIM. They differ and are not interchangeable. Source: `exercises/2026-09-06-b4-pim-eligible-role`.
+- A platform-initiated audit entry names a non-human actor: `initiatedBy.app.displayName` `MS-PIM`, or `initiatedBy.user.displayName` "Azure AD PIM" with a null `userPrincipalName` and a null `ipAddress`. Read the null `ipAddress` as the signal. Source: `exercises/2026-09-06-b4-pim-eligible-role`.
+
 ## Proxmox host
 
 - The host clock runs America/Los_Angeles. `qm listsnapshot` prints local time. Derive names from `date -u`.

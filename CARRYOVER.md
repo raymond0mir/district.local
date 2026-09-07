@@ -1,6 +1,6 @@
 # Carryover
 
-Open items, 2026-09-06T18:45Z.
+Open items, 2026-09-07.
 
 Read `EXPOSURES.md` next. The skill holds the contract; gotchas live in its `references/`.
 
@@ -12,21 +12,14 @@ Running: VM 100 (DC01), VM 104, VM 107 (CA01), container 106. Stopped: VM 101, V
 container 103. **Not** the standard opening state. `pre-adcs-config` on VM 107 is a valid
 rollback point.
 
-## B4 — finish these three reads first
+## B4 — one read still owed
 
-`report.md` is marked Draft and names the gap. Do not publish it first.
+`report.md` is complete and no longer marked Draft. The expiry is Captured, and the audit record
+names no person. `evidence/15`.
 
-All three filter on `principalId eq '03ee6546-f113-4ec5-ba9d-e57381b0c928'`, under
-`/v1.0/roleManagement/directory/`.
-
-1. The unactioned expiry. `roleAssignments` and `roleAssignmentScheduleInstances`, both empty.
-2. `roleEligibilityScheduleInstances`. Eligibility must survive the expiry. If it did not, the
-   control is single-use.
-3. The PT4H over-limit request, re-run as `adm-jsmith` from a clean state. Unresolved: no
-   response was captured, and the endpoint cannot tell a refusal from an attempt never sent.
-   Body in `evidence/12`.
-
-Then fold the results into `report.md`, add ledger rows, and drop the Draft marker.
+Outstanding: the PT4H over-limit request, re-run as `adm-jsmith` in a private window. Body in
+`evidence/12`, last section. Until it lands, the PT2H ceiling rests on the policy read alone, not
+on a captured refusal. The report states that limitation. It is not blocking.
 
 ## Decisions owed
 
