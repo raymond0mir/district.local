@@ -26,10 +26,12 @@ CRL on the offline root in container 106, publish it over HTTP, re-sign `ca01.re
 `crlDistributionPoints`, reinstall with `certutil -installcert`. This also serves the tenant path:
 Entra CBA needs one HTTP CDP; LDAP and OCSP are unsupported.
 
-Template writes need a console; `qm guest exec` gets `Insufficient access rights`. `tmp-cainstall`
-at CA01's console holds Full Control and is the working path.
+Template writes need a console. `qm guest exec` gets `Insufficient access rights`; `tmp-cainstall`
+at CA01's console holds Full Control.
 
-`report.md` is still unwritten, by the standing decision that it waits for enrolment to resolve.
+`report.md` is written and says in section one that the exercise is not closed. When a certificate
+issues, update What the box said, What broke, and Open questions. Leave What I'd do differently
+alone; it is complete.
 
 ## Lab state
 
