@@ -33,6 +33,53 @@ Use these words for these meanings. Do not substitute synonyms.
 
 The October 2025 build was paired with another assistant. Its audit baseline was imported. Nobody can separate verified facts from assumed facts in that baseline. This skill stops that from recurring.
 
+## The loop
+
+The lab produces a loop, not a curriculum. Run it in this order:
+
+1. Understand how the system works.
+2. Break it deliberately.
+3. Observe what happens.
+4. Understand why it happened.
+5. Detect it.
+6. Defend it, or fix it.
+7. Understand the alternatives.
+8. Document the evidence.
+9. Publish the useful result.
+
+The goal is fluency in identity systems, and work that shows that fluency to an interviewer.
+
+**Interrogate the technology.** Drive each exercise toward these nine questions:
+
+- What does the system do internally?
+- What does the system assume?
+- What happens when an assumption fails?
+- How does an attacker abuse that?
+- What evidence does the abuse produce?
+- How does a defender recognize it?
+- What control prevents or contains it?
+- What design alternatives exist?
+- What tradeoffs do the alternatives introduce?
+
+One exercise does not answer all nine. Write each unanswered question in Open questions. It becomes the next exercise.
+
+## Session start
+
+Never state lab state from memory. Never state it from a previous session. Never state it from a summary. Read the repo first. Every claim about what exists, what is proven, and what is open comes from a file read in this session.
+
+Read in this order:
+
+1. `git status`, then `git log --oneline -15`.
+2. Carryover.
+3. Exposures.
+4. The latest exercise's `evidence-log.md`, when the session continues that exercise.
+
+Search the ledger by claim. Do not read the ledger whole. Read a report only when the session continues that exercise.
+
+When a file named here is missing, say so. List the files that exist. Do not substitute a similar file in silence.
+
+Then state three things in four sentences or fewer: where the last session stopped, what is open, and what is uncommitted. That statement answers "what have we been working on".
+
 ## Capture contract
 
 Evidence is what the machine printed. A summary is not evidence. A recollection is not evidence. Put uncaptured claims in Open questions. Do not state them as fact.
@@ -168,7 +215,7 @@ Apply these rules to every output: chat replies, command blocks, evidence-logs, 
 
 ## Token discipline
 
-- Read carryover, then exposures, at session start. Read other files on demand.
+- Read other files on demand.
 - Search the ledger by claim when you label a claim. Do not read the ledger whole.
 - Do not re-read a file that is already in context.
 - Start a new session for each exercise. Close the session after the report.
@@ -185,6 +232,20 @@ Apply these rules to every output: chat replies, command blocks, evidence-logs, 
 - Proceed on routine technical defaults. Flag the choice afterward. Examples: RAM sizing, mirroring config from another VM, snapshot naming, next port in a diagnostic chain.
 - State disproven hypotheses as plainly as confirmed ones.
 
+**Classify every recommendation.** Use one of these five labels:
+
+- **Necessary**: required to unlock the next experiment.
+- **Useful**: improves understanding or evidence.
+- **Optional**: does not change capability.
+- **Polishing**: process or tooling work that can wait. Name the label. Redirect him.
+- **High-value**: strong technical content, or portfolio material. Do it first.
+
+Answer a gap with the next thing to learn, build, or break, and the reason it matters. Do not answer a gap with a retrospective on the previous session.
+
+Teach a missing foundation. Do not work around it. Connect the concept to the experiment in front of him.
+
+Say a point once. Do not reopen a decision he has closed.
+
 ## Portfolio rules
 
 - The repo is public. Run the credential scan before every commit. Follow `references/credential-scan.md`. A literal password reached report prose on 2026-08-31.
@@ -194,6 +255,14 @@ Apply these rules to every output: chat replies, command blocks, evidence-logs, 
 - A grant in use is not a grant that is appropriate.
 - When removing a grant breaks something, the lesson is sequencing and break-glass. The lesson is not restoration.
 - Watch for reports outpacing verified lab work. If the inherited baseline is still Inherited, say so.
+- Publish on completion. The order is experiment, evidence, analysis, publish, next experiment. A short honest report has more value than a delayed complete one. Do not gate publication on a future exercise.
+- Raymond built every condition in this lab. The lab cannot show that such conditions arise on their own. His operational history is the observation. The lab is the demonstration. Frame the series that way.
+
+## Cross-surface
+
+Claude on claude.ai cannot read Code sessions. Chat history stops at that boundary. A lab-state answer given there from chat history is stale and wrong.
+
+Carryover is the only bridge. Write anything that must reach a chat conversation into carryover. Write it for a reader with no access to this repo.
 
 ## Session close
 
