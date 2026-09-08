@@ -1,9 +1,9 @@
 {
-  "commit": "2de0ffa296d3ae4ac5d056151f6096822f14e9b8",
+  "commit": "4fd32c1a3cb2b4ff99e09405cd970098e7a4a9fd",
   "counts": {
     "ERROR": 1,
     "INFO": 24,
-    "WARN": 28
+    "WARN": 27
   },
   "findings": [
     {
@@ -11,12 +11,6 @@
       "message": "report is missing the required section: What the box said",
       "path": "exercises/2026-08-31-member-server-build/report.md",
       "severity": "ERROR"
-    },
-    {
-      "check": "no-report",
-      "message": "exercise has no report.md",
-      "path": "exercises/2026-09-05-adcs-issuing-ca-build",
-      "severity": "WARN"
     },
     {
       "check": "evidence-log-grandfathered",
