@@ -1,0 +1,61 @@
+# The CA is correctly published to both AD trust stores
+
+Closes a branch that had never been examined in this repository. A grep of exercises/,
+verified-claims.md and EXPOSURES.md on 2026-09-07 returned no prior NTAuth read.
+
+Scope note. NTAuth governs whether certificates this CA issues are accepted for
+authentication to Active Directory. It is not the usual cause of a template missing from
+an enrollment list. This file rules it out as a blocker for C2's end goal, certificate-based
+authentication. It does not by itself explain the enrollment failure.
+
+--------------------------------------------------------------------------------
+Command:   date -u
+Host:      Proxmox host shell
+Timestamp: 2026-09-07T22:53:19Z
+--------------------------------------------------------------------------------
+
+Mon Sep  7 10:53:19 PM UTC 2026
+
+--------------------------------------------------------------------------------
+Command:   qm guest exec 107 --timeout 90 -- certutil.exe -store -enterprise NTAuth
+Host:      CA01 (VM 107), via qm guest exec from the Proxmox host shell
+Timestamp: 2026-09-07T22:53:19Z
+--------------------------------------------------------------------------------
+
+{
+   "exitcode" : 0,
+   "exited" : 1,
+   "out-data" : "NTAuth\r\n================ Certificate 0 ================\r\nSerial Number: 098a6109d790919464df8f1d8bd96ebce56cdc08\r\nIssuer: CN=district.local Root CA, O=district.local\r\n NotBefore: 9/5/2026 3:14 PM\r\n NotAfter: 9/4/2031 3:14 PM\r\nSubject: CN=district.local Issuing CA, DC=district, DC=local\r\nNon-root Certificate\r\nCert Hash(sha1): 286c3546968d71398de9c5276a4192039605454a\r\nNo key provider information\r\n  Provider = Microsoft Software Key Storage Provider\r\n  Simple container name: district.local Issuing CA\r\n  Unique container name: ffbdbc6e3eadeb51f881ba729a1cd70c_a1a7b767-69ca-4c81-9e7d-91605ed55ddd\r\n  ERROR: missing key association property: CERT_KEY_IDENTIFIER_PROP_ID\r\nSignature test passed\r\nCertUtil: -store command completed successfully.\r\n"
+}
+
+--------------------------------------------------------------------------------
+Command:   qm guest exec 107 --timeout 90 -- certutil.exe -store -enterprise Root
+Host:      CA01 (VM 107), via qm guest exec from the Proxmox host shell
+Timestamp: 2026-09-07T22:53:19Z
+--------------------------------------------------------------------------------
+
+{
+   "exitcode" : 0,
+   "exited" : 1,
+   "out-data" : "Root \"Trusted Root Certification Authorities\"\r\n================ Certificate 0 ================\r\nSerial Number: 025958bfad1a543a977540380545a04ee952b6cc\r\nIssuer: CN=district.local Root CA, O=district.local\r\n NotBefore: 9/5/2026 2:16 PM\r\n NotAfter: 9/2/2036 2:16 PM\r\nSubject: CN=district.local Root CA, O=district.local\r\nSignature matches Public Key\r\nRoot Certificate: Subject matches Issuer\r\nCert Hash(sha1): 578ea69b32fc2e21b190ac0a24dc2e947adde045\r\nNo key provider information\r\nCannot find the certificate and private key for decryption.\r\nCertUtil: -store command completed successfully.\r\n"
+}
+
+--------------------------------------------------------------------------------
+What this proves
+--------------------------------------------------------------------------------
+
+- The issuing CA certificate is published in the enterprise NTAuth store. Its hash,
+  286c3546968d71398de9c5276a4192039605454a, matches the issuing CA element read in
+  evidence/32. "Signature test passed".
+- The root certificate is published in the enterprise Trusted Root store. Its hash,
+  578ea69b32fc2e21b190ac0a24dc2e947adde045, matches the root element read in evidence/32.
+  "Signature matches Public Key" and "Root Certificate: Subject matches Issuer".
+- Both stores hold exactly one certificate each. No stale or competing CA entry exists.
+
+Recorded, not interpreted:
+- "ERROR: missing key association property: CERT_KEY_IDENTIFIER_PROP_ID" appears under the
+  NTAuth entry. This is a local key-handle property on the machine that holds the private
+  key. No source in this lab maps it to a functional consequence. Do not cite a meaning.
+- "Cannot find the certificate and private key for decryption" appears under the root entry.
+  CA01 does not hold the root's private key by design; the root lives offline in container
+  106.

@@ -1,0 +1,70 @@
+# The CA's own security descriptor permits Authenticated Users to enroll
+
+Replaces a Recalled claim. The evidence-log recorded the CA's Security tab as checked, with
+Authenticated Users holding Request Certificates, but that was a GUI reading with no capture.
+This file captures it.
+
+Read from CA configuration. The result does not depend on the caller's identity, so running
+as SYSTEM under qm guest exec does not distort it.
+
+--------------------------------------------------------------------------------
+Command:   date -u
+Host:      Proxmox host shell
+Timestamp: 2026-09-07T23:23:45Z
+--------------------------------------------------------------------------------
+
+Mon Sep  7 11:23:45 PM UTC 2026
+
+--------------------------------------------------------------------------------
+Command:   qm guest exec 107 --timeout 90 -- certutil.exe -v -getreg 'CA\Security'
+Host:      CA01 (VM 107), via qm guest exec from the Proxmox host shell
+Timestamp: 2026-09-07T23:23:45Z
+--------------------------------------------------------------------------------
+
+{
+   "exitcode" : 0,
+   "exited" : 1,
+   "out-data" : "HKEY_LOCAL_MACHINE\\SYSTEM\\CurrentControlSet\\Services\\CertSvc\\Configuration\\district.local Issuing CA\\Security:\r\n\r\n  Security REG_BINARY =\r\n    Allow CA Administrator\tBUILTIN\\Administrators\r\n    Allow Certificate Manager\tBUILTIN\\Administrators\r\n    Allow CA Administrator\tDISTRICT\\Domain Admins\r\n    Allow Certificate Manager\tDISTRICT\\Domain Admins\r\n    Allow CA Administrator\tDISTRICT\\Enterprise Admins\r\n    Allow Certificate Manager\tDISTRICT\\Enterprise Admins\r\n    Allow Enroll\tNT AUTHORITY\\Authenticated Users\r\n\r\n\r\n0000\t01 00 14 84 20 01 00 00  30 01 00 00 14 00 00 00   .... ...0.......\r\n0010\t44 00 00 00 02 00 30 00  02 00 00 00 02 c0 14 00   D.....0.........\r\n0020\tff ff 00 00 01 01 00 00  00 00 00 01 00 00 00 00   ................\r\n0030\t02 c0 14 00 ff ff 00 00  01 01 00 00 00 00 00 05   ................\r\n0040\t07 00 00 00 02 00 dc 00  07 00 00 00 00 03 18 00   ................\r\n0050\t01 00 00 00 01 02 00 00  00 00 00 05 20 00 00 00   ............ ...\r\n0060\t20 02 00 00 00 03 18 00  02 00 00 00 01 02 00 00    ...............\r\n0070\t00 00 00 05 20 00 00 00  20 02 00 00 00 03 24 00   .... ... .....$.\r\n0080\t01 00 00 00 01 05 00 00  00 00 00 05 15 00 00 00   ................\r\n0090\t63 14 66 88 91 56 e7 16  fc bd 4c b2 00 02 00 00   c.f..V....L.....\r\n00a0\t00 03 24 00 02 00 00 00  01 05 00 00 00 00 00 05   ..$.............\r\n00b0\t15 00 00 00 63 14 66 88  91 56 e7 16 fc bd 4c b2   ....c.f..V....L.\r\n00c0\t00 02 00 00 00 03 24 00  01 00 00 00 01 05 00 00   ......$.........\r\n00d0\t00 00 00 05 15 00 00 00  63 14 66 88 91 56 e7 16   ........c.f..V..\r\n00e0\tfc bd 4c b2 07 02 00 00  00 03 24 00 02 00 00 00   ..L.......$.....\r\n00f0\t01 05 00 00 00 00 00 05  15 00 00 00 63 14 66 88   ............c.f.\r\n0100\t91 56 e7 16 fc bd 4c b2  07 02 00 00 00 03 14 00   .V....L.........\r\n0110\t00 02 00 00 01 01 00 00  00 00 00 05 0b 00 00 00   ................\r\n0120\t01 02 00 00 00 00 00 05  20 00 00 00 20 02 00 00   ........ ... ...\r\n0130\t01 02 00 00 00 00 00 05  20 00 00 00 20 02 00 00   ........ ... ...\r\nCertUtil: -getreg command completed successfully.\r\n"
+}
+
+--------------------------------------------------------------------------------
+What this proves
+--------------------------------------------------------------------------------
+
+- The CA "district.local Issuing CA" grants Allow Enroll to NT AUTHORITY\Authenticated
+  Users. jsmith's token carries S-1-5-11 Authenticated Users (evidence/34), so jsmith
+  holds the CA-level enroll right.
+- CA Administrator and Certificate Manager are held by BUILTIN\Administrators,
+  DISTRICT\Domain Admins and DISTRICT\Enterprise Admins. No other principal appears.
+- The enrollment wizard's first stated reason, "The permissions on this certification
+  authority do not allow the current user to enroll for certificates", is not the cause.
+
+--------------------------------------------------------------------------------
+Recalled, not captured
+--------------------------------------------------------------------------------
+
+The enrollment wizard's own text, seen at CA01's console 2026-09-07 and reproduced with
+its Details pane expanded:
+
+  district.local Client Authentication -- STATUS: Unavailable
+  "The permissions on this certification authority do not allow the current user to
+   enroll for certificates. A valid certification authority (CA) configured to issue
+   certificates based on this template cannot be located, or the CA does not support
+   this operation, or the CA is not trusted."
+  Key usage: Digital signature, Key encipherment
+  Application policies: Client Authentication
+  Validity period (days): 365
+
+This is a screenshot and stays Recalled. The block lists candidate causes rather than a
+diagnosis. The first candidate is disproven by the capture above.
+
+--------------------------------------------------------------------------------
+Name-form result, captured in passing
+--------------------------------------------------------------------------------
+
+certreq -enroll resolves the template cn, not the friendly name. Three runs using
+"district.local Client Authentication" returned "Template not found" and 0x80094801
+CERTSRV_E_NO_CERT_TYPE. A fourth run using the cn, district.localClientAuthentication,
+34 characters, launched the Certificate Enrollment wizard instead. The name form was a
+real artifact in this exercise's earlier attempts, and it is not the underlying failure:
+the wizard it launched reports the template Unavailable.

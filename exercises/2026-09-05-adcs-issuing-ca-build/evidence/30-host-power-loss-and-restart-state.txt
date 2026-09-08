@@ -1,0 +1,116 @@
+# The host lost power mid-session, and only one guest restarted
+
+Not part of C2's hypothesis. Captured because a domain controller was stopped
+ungracefully and because the restart behavior is a standing infrastructure fact.
+
+Cause, supplied by Raymond in session 2026-09-07: "laptop went down, lost battery."
+That statement is Recalled. Everything below it is Captured.
+
+--------------------------------------------------------------------------------
+Command:   date -u
+Host:      Proxmox host shell
+Timestamp: 2026-09-07T22:28:10Z (this line is the timestamp source for the block below)
+--------------------------------------------------------------------------------
+
+Mon Sep  7 10:28:10 PM UTC 2026
+
+--------------------------------------------------------------------------------
+Command:   qm list
+           pct list
+Host:      Proxmox host shell
+Timestamp: 2026-09-07T22:28:10Z
+--------------------------------------------------------------------------------
+
+      VMID NAME                 STATUS     MEM(MB)    BOOTDISK(GB) PID
+       100 winserver2022        stopped    10000             60.00 0
+       101 win11-client01       stopped    3072              64.00 0
+       102 entraconnect01       stopped    2048              60.00 0
+       104 pfsense-fw           stopped    2048              20.00 0
+       107 ca01                 stopped    2048              60.00 0
+VMID       Status     Lock         Name
+103        running                 vaultwarden
+106        stopped                 rootca-offline
+
+--------------------------------------------------------------------------------
+Command:   qm config 100 | grep -E '^(memory|balloon|agent|name|net|onboot)'
+           qm config 107 | grep -E '^(memory|balloon|agent|name|net|onboot)'
+           pct config 103 | grep -E '^(memory|hostname|net|onboot)'
+           pct config 106 | grep -E '^(memory|hostname|net|onboot)'
+Host:      Proxmox host shell
+Timestamp: 2026-09-07T22:28:10Z
+--------------------------------------------------------------------------------
+
+agent: enabled=1
+memory: 10000
+name: winserver2022
+net0: virtio=BC:24:11:14:12:57,bridge=vmbr1,firewall=1
+agent: enabled=1
+memory: 2048
+name: ca01
+net0: virtio=BC:24:11:DE:44:84,bridge=vmbr1,firewall=1
+hostname: vaultwarden
+memory: 1024
+net0: name=eth0,bridge=vmbr1,gw=10.0.0.1,hwaddr=BC:24:11:FE:D1:31,ip=10.0.0.20/24,type=veth
+onboot: 1
+hostname: rootca-offline
+memory: 512
+onboot: 0
+
+--------------------------------------------------------------------------------
+Command:   grep -E 'iface|bridge|address' /etc/network/interfaces
+Host:      Proxmox host shell
+Timestamp: 2026-09-07T22:28:10Z
+--------------------------------------------------------------------------------
+
+iface lo inet loopback
+iface wlp0s20f3 inet manual
+iface enp0s31f6 inet manual
+iface vmbr0 inet static
+        address 192.168.1.100/24
+        bridge-ports enp0s31f6
+        bridge-stp off
+        bridge-fd 0
+iface vmbr1 inet static
+        address 10.0.0.5/24
+        bridge-ports none
+        bridge-stp off
+        bridge-fd 0
+
+--------------------------------------------------------------------------------
+Command:   uptime
+           journalctl --list-boots --no-pager | tail -4
+           journalctl -b -1 --no-pager | tail -15
+           journalctl -b 0 --no-pager | head -8
+Host:      Proxmox host shell
+Timestamp: 2026-09-07T22:35:36Z (from the uptime line below; host TZ is
+           America/Los_Angeles, PDT, -0700)
+--------------------------------------------------------------------------------
+
+ 15:35:36 up 8 min,  1 user,  load average: 0.00, 0.10, 0.08
+ -3 54a2a9b17e8e46f58a550b4f3b69941d Wed 2026-08-26 08:22:57 PDT Sat 2026-08-29 09:40:40 PDT
+ -2 7982064b5f5c4efc97626ca65203b4c9 Mon 2026-08-31 08:34:30 PDT Wed 2026-09-02 15:42:04 PDT
+ -1 35cfc3f354b94166ae6af3bbd429cb30 Thu 2026-09-03 07:45:40 PDT Mon 2026-09-07 14:17:02 PDT
+  0 a6e18afc6c2f495a90459523de60da9f Mon 2026-09-07 15:27:35 PDT Mon 2026-09-07 15:28:52 PDT
+Sep 07 13:10:53 proxmox pvedaemon[231881]: <root@pam> successful auth for user 'root@pam'
+Sep 07 13:17:01 proxmox CRON[306607]: pam_unix(cron:session): session opened for user root(uid=0) by root(uid=0)
+Sep 07 13:17:01 proxmox CRON[306609]: (root) CMD (cd / && run-parts --report /etc/cron.hourly)
+Sep 07 13:17:01 proxmox CRON[306607]: pam_unix(cron:session): session closed for user root
+Sep 07 13:25:54 proxmox pvedaemon[231881]: <root@pam> successful auth for user 'root@pam'
+Sep 07 13:40:54 proxmox pvedaemon[213844]: <root@pam> successful auth for user 'root@pam'
+Sep 07 13:55:55 proxmox pvedaemon[231881]: <root@pam> successful auth for user 'root@pam'
+Sep 07 14:03:35 proxmox pveproxy[296927]: worker exit
+Sep 07 14:03:35 proxmox pveproxy[1198]: worker 296927 finished
+Sep 07 14:03:35 proxmox pveproxy[1198]: starting 1 worker(s)
+Sep 07 14:03:35 proxmox pveproxy[1198]: worker 317911 started
+Sep 07 14:10:56 proxmox pvedaemon[231881]: <root@pam> successful auth for user 'root@pam'
+Sep 07 14:17:02 proxmox CRON[321158]: pam_unix(cron:session): session opened for user root(uid=0) by root(uid=0)
+Sep 07 14:17:02 proxmox CRON[321160]: (root) CMD (cd / && run-parts --report /etc/cron.hourly)
+Sep 07 14:17:02 proxmox CRON[321158]: pam_unix(cron:session): session closed for user root
+Sep 07 15:27:35 proxmox kernel: Linux version 6.14.8-2-pve (build@proxmox) (gcc (Debian 14.2.0-19) 14.2.0, GNU ld (GNU Binutils for Debian) 2.44) #1 SMP PREEMPT_DYNAMIC PMX 6.14.8-2 (2025-07-22T10:04Z) ()
+Sep 07 15:27:35 proxmox kernel: Command line: BOOT_IMAGE=/boot/vmlinuz-6.14.8-2-pve root=/dev/mapper/pve-root ro quiet
+Sep 07 15:27:35 proxmox kernel: KERNEL supported cpus:
+Sep 07 15:27:35 proxmox kernel:   Intel GenuineIntel
+Sep 07 15:27:35 proxmox kernel:   AMD AuthenticAMD
+Sep 07 15:27:35 proxmox kernel:   Hygon HygonGenuine
+Sep 07 15:27:35 proxmox kernel:   Centaur CentaurHauls
+Sep 07 15:27:35 proxmox kernel:   zhaoxin   Shanghai

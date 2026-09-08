@@ -198,6 +198,85 @@ Exercise date derived from `date -u` on the Proxmox host: 2026-09-05T21:09:59Z.
   describe the calling machine account `CA01$`, not `jsmith`.
   `evidence/29-ca-issuance-list-includes-client-auth-template.txt`.
 
+### Session 5, 2026-09-07 evening
+
+- **The host lost power mid-day, and only the secrets store restarted.** Boot `-1` ends at a
+  routine hourly cron line, 14:17:02 PDT, with no systemd shutdown sequence; boot `0` begins
+  15:27:35 PDT. DC01 was stopped ungracefully. Container 103 carries `onboot: 1` and came back
+  by itself; VM 100, 101, 102, 104, 107 and container 106 carry none and stayed down. The same
+  file records the bridge layout: DC01, CA01 and container 103 sit on `vmbr1`, `10.0.0.0/24`,
+  which has `bridge-ports none` and is host-internal; VM 101 sits on `vmbr0` with the physical
+  port. Cause supplied by Raymond in session, "laptop went down, lost battery", and Recalled.
+  `evidence/30-host-power-loss-and-restart-state.txt`.
+- **`slmgr /rearm` reset DC01's full evaluation period, not a 10-day grace.** `LicenseStatus`
+  is 1 (Licensed) with `GracePeriodRemaining` 252970 minutes, 175.67 days, ending about
+  2027-03-02. `RemainingWindowsReArmCount` is still 5, unchanged from 2026-09-02, so no second
+  rearm occurred. 175.67 days remaining plus the 5.24 days elapsed since the rearm is 180.9
+  days, one full evaluation period beginning at the rearm. The `14400`/`LicenseStatus: 2`
+  reading captured about one minute after the restart was a transient OOB Grace state. DC01 also
+  logged its own account of the power loss, Kernel-Power 41 and EventLog 6008 written at boot,
+  with a second pair at 9/5 6:25 PM. ADWS, NTDS, DNS and Netlogon all Running; `Get-ADDomain`
+  answers. `evidence/31-dc01-rearm-reset-the-full-evaluation-period.txt`.
+- **CA01 has a full evaluation period too.** `LicenseStatus` 1, `GracePeriodRemaining` 255815
+  minutes, 177.65 days, ending about 2027-03-04, with `RemainingWindowsReArmCount` 6, the
+  untouched original. CA01 has never been rearmed, so nothing but a post-install transient can
+  explain the 14396-minute reading taken 2026-09-05T21:27Z.
+  `evidence/35-ca01-evaluation-period-is-full-not-ten-days.txt`.
+- **The issuing CA chain builds and is trusted; revocation cannot be checked.**
+  `CERT_TRUST_REVOCATION_STATUS_UNKNOWN` (0x40) is the only error status, at ChainContext,
+  SimpleChain and the issuing CA element. The root element carries `dwErrorStatus=0`. Neither
+  certificate carries an AIA, CDP or OCSP URL, so nothing was fetched and pfSense being stopped
+  did not distort the reading. `CRYPT_E_NO_REVOCATION_CHECK` 0x80092012. This is the direct,
+  captured consequence of the no-CRL decision of 2026-09-05. The file carries a correction: both
+  command lines passed an unquoted Windows path through bash, which ate the backslashes, so the
+  path recorded is not the path that ran. The result is unaffected.
+  `evidence/32-issuing-ca-chain-builds-revocation-unknown.txt`.
+- **Both AD trust stores are correctly published.** The issuing CA certificate is in the
+  enterprise NTAuth store, hash `286c3546…`, "Signature test passed". The root is in the
+  enterprise Root store, hash `578ea69b…`. Each store holds exactly one certificate; no stale or
+  competing CA entry exists. A repository-wide grep found no prior NTAuth read, so this branch
+  had never been examined. `evidence/33-ntauth-and-root-stores-correctly-published.txt`.
+- **`jsmith`'s client-side view: the template is visible, with Enroll.** `jsmith`'s live token on
+  CA01 carries `DISTRICT\PKI-CBA-Pilot`, SID ending `-1133`, Enabled. `certutil -template` run as
+  `jsmith` enumerates 34 templates, and Template[9] is the client-auth template. Rights are not
+  the blocker. The same capture shows `DISTRICT\Domain Users` holding Allow Enroll on that
+  template, alongside Domain Admins and Enterprise Admins, and `tmp-cainstall` holding Full
+  Control. The built-in `ClientAuth` template it was duplicated from carries the identical Domain
+  Users Enroll ACE. `evidence/34-jsmith-client-view-template-visible-domain-users-can-enroll.txt`.
+- **The CA's own security descriptor permits Authenticated Users to enroll.** `Allow Enroll
+  NT AUTHORITY\Authenticated Users` is present; CA Administrator and Certificate Manager are held
+  only by `BUILTIN\Administrators`, `Domain Admins` and `Enterprise Admins`. This replaces a
+  Recalled GUI reading of the CA's Security tab from 2026-09-07. The wizard's first stated reason
+  is therefore disproven. `evidence/36-ca-security-allows-authenticated-users-to-enroll.txt`.
+- **The CA has published its CRL and setup is complete.** `SetupStatus` is 1
+  (`SETUP_SERVER_FLAG` only), down from the 769 captured in `evidence/24`, so
+  `SETUP_FORCECRL_FLAG` is cleared. `CertEnroll` holds a base CRL of 1220 bytes and a delta CRL
+  of 1013 bytes, both written 9/7/2026 7:20:50 AM. `CRLPublicationURLs` and
+  `CACertPublicationURLs` both carry LDAP entries with `CSURL_SERVERPUBLISH`.
+  `evidence/37-ca-has-published-its-crl-setup-complete.txt`.
+- **AD advertises the CA certificate the CA is actually running.** The `pKIEnrollmentService`
+  object names `CA01.district.local`, holds one `cACertificate`, and its thumbprint and serial
+  match both the running CA certificate and the NTAuth entry. `certificateTemplates` holds 12
+  values. A stale CA certificate in AD is not the cause. Disproves a hypothesis Claude raised the
+  same session. `evidence/38-ad-advertises-the-current-ca-certificate.txt`.
+- **Root cause of the enrollment failure, and the second defect behind it.** The template required
+  the e-mail attribute in both the subject and the SAN — `msPKI-Certificate-Name-Flag`
+  `-1509949440`, which is `0xA6000000`, carrying `SubjectNameRequireEmail` and
+  `SubjectAlternativeNameRequireEmail` — and no user in `district.local` has `mail` populated.
+  `certreq -submit` returned `0x80094812 CERTSRV_E_SUBJECT_EMAIL_REQUIRED` on request 4. The
+  built-in `User` template holds the identical flag value, which is why it failed the same way and
+  made the fault look CA-wide. Raymond chose the template change. The flag is now `-2113929216`,
+  `0x82000000`, keeping directory-path subject and UPN in the SAN, with the minor revision bumped
+  to 5. Request 5 then failed differently: `0x80092012 CRYPT_E_NO_REVOCATION_CHECK`, "Error
+  Constructing or Publishing Certificate". Two independent causes, stacked, the first hiding the
+  second. `evidence/39-root-cause-template-required-email-and-no-user-has-one.txt`.
+- **`certreq -enroll` resolves the template `cn`, not the friendly name.** Three runs with
+  "district.local Client Authentication" returned "Template not found" from the Active Directory
+  Enrollment Policy over `ldap:` and failed with `0x80094801 CERTSRV_E_NO_CERT_TYPE`. A fourth
+  run with `district.localClientAuthentication`, 34 characters, launched the Certificate
+  Enrollment wizard. The name form was a real artifact in earlier attempts and is not the
+  underlying failure. `evidence/36`.
+
 ## Not captured, and why
 
 - **`InstallState: 1` is an unresolved enum, exactly like `RestartNeeded: 1`.**
@@ -223,6 +302,23 @@ Exercise date derived from `date -u` on the Proxmox host: 2026-09-05T21:09:59Z.
   extensions block. `basicConstraints`, `keyUsage`, `subjectKeyIdentifier` and
   `authorityKeyIdentifier` were requested in the config and are unverified in output. Re-read
   before the root certificate is trusted anywhere.
+
+
+### Session 5, 2026-09-07 evening
+
+- **The enrollment wizard's "STATUS: Unavailable" verdict.** Seen at CA01's console for both
+  `district.local Client Authentication` and the built-in `User` template, with identical detail
+  text. Both are screenshots and stay Recalled. `certreq -enroll` writes the policy header to its
+  redirect file and nothing about the wizard's verdict, confirmed by reading `h.txt`, which holds
+  only "Active Directory Enrollment Policy", the policy GUID and "ldap:". No command found so far
+  captures that verdict. Capturing it needs a different route, most likely `certreq -new` plus
+  `certreq -submit`, which bypasses the availability UI and returns the CA's own error code.
+- **`jsmith`'s own chain validation.** `b-verify-as-jsmith.txt` holds only
+  `ERROR_FILE_NOT_FOUND`, because the certificate file it referenced never existed under that
+  path. See Corrections.
+- **The time of day of the CA certificate installs.** `CertEnroll` holds three `.crt` files
+  timestamped 7:19:01 AM and 7:20:50 AM on 9/7/2026, which shows the certificate was installed
+  more than once, but no capture records why or by which command.
 
 ## Where Raymond was consulted
 
@@ -271,6 +367,28 @@ Exercise date derived from `date -u` on the Proxmox host: 2026-09-05T21:09:59Z.
    wholesale-group Enroll grant, naming it the fix side of the permission-sprawl thesis rather
    than only the finding side. Raymond said "lets go." Both landed as designed; see
    `evidence/28`.
+
+### Session 5, 2026-09-07 and 2026-09-08
+
+- **Which machine did `jsmith` attempt enrollment from?** `CARRYOVER.md` said VM 101. Raymond:
+  "CA01 console, jsmith was logged in there." That removed VM 101 and pfSense from the critical
+  path and made the capture straightforward, because CA01 has both a working console and a working
+  guest agent.
+- **Did you run anything licence-related on DC01 after 2026-09-02?** Raymond: "no i didn't touch it
+  since then to my memory." Recalled, and corroborated the same turn by
+  `RemainingWindowsReArmCount` still reading 5.
+- **Change the template, or populate `mail` on the user objects?** Claude recommended the template
+  change and gave the reasons: Microsoft documents that e-mail is not required for smart-card
+  sign-in, Entra CBA binds on SAN Principal Name to `userPrincipalName` by default, and
+  address-based mappings are classed as low affinity. Populating `mail` would treat the symptom and
+  would break again on `adm-jsmith` and service accounts. Raymond: "good lets go with the template
+  change". The `Domain Users` Enroll ACE was deliberately left alone, one variable at a time.
+- **Reissue the CA certificate with a CDP, or relax revocation checking on the CA?** Raised
+  2026-09-08 after request 5 failed. Claude recommended the reissue, because Microsoft documents
+  that Entra CBA accepts one CDP per trusted CA and it must be an HTTP URL, with LDAP and OCSP
+  unsupported — so a workaround would issue one certificate and still block C2's goal. Open at the
+  time of writing.
+
 ## Corrections
 
 - **Claude's LDAP query for the new template guessed `cn` equals `displayName`. Wrong.**
@@ -389,6 +507,35 @@ Exercise date derived from `date -u` on the Proxmox host: 2026-09-05T21:09:59Z.
   as the leading explanation, and it should not be the first branch a later session spends a
   template rebuild on.
 
+
+### Session 5, 2026-09-07 evening
+
+- **Claude passed unquoted Windows paths through `qm guest exec`, and bash ate the backslashes.**
+  `certutil.exe -ca.cert C:\c2\issuing-ca.cer` reached the guest as `C:c2issuing-ca.cer`, a
+  drive-relative path. Both the `-ca.cert` and the `-verify` calls carried the identical mangling,
+  so `evidence/32`'s chain output is genuine and its conclusion holds; only the path recorded
+  there is wrong. The defect surfaced when `jsmith` ran the literal path at the console and got
+  `ERROR_FILE_NOT_FOUND`. A correction note is written into `evidence/32` and a standing rule into
+  `references/gotchas.md`.
+- **Claude proposed that `jsmith`'s console token was stale and did not carry `PKI-CBA-Pilot`**,
+  by analogy with the stale-ticket finding in `evidence/26`. Disproven the same session by
+  `whoami /groups`, which shows the group present and Enabled. `evidence/34`.
+- **Claude proposed that the CA had never published a base CRL and that `SETUP_FORCECRL_FLAG` was
+  still set.** Disproven the same session. `SetupStatus` is 1, and both a base and a delta CRL
+  exist in `CertEnroll`. `evidence/37`.
+- **This exercise's Confirmed ledger row saying the client-auth template is "scoped as designed"
+  does not hold.** It cites `evidence/28`, which captured the enrollment ACEs as a filtered list
+  with no principal names. The full ACL read as `jsmith` shows `DISTRICT\Domain Users` with Allow
+  Enroll. `jsmith` is the only member of `PKI-CBA-Pilot`, but `PKI-CBA-Pilot` is not the only
+  principal that can enroll. Retired in `verified-claims.md`. `evidence/34`.
+- **`CARRYOVER.md` said `jsmith` enrolled from VM 101.** Raymond corrected it in session: the
+  attempt was made at CA01's console with `jsmith` signed in there. This log's own earlier entry
+  had recorded the machine as unknown and reasoned that VM 101 was not running, which was right.
+  The carryover line was Recalled and wrong.
+- **`EXPOSURES.md`'s two licence entries are retracted.** DC01 does not stop about 2026-11-01 and
+  CA01's grace does not end about 2026-09-15. Both rest on short `GracePeriodRemaining` readings
+  taken within minutes of a restart or install. `evidence/31`, `evidence/35`.
+
 ## Open questions
 
 - **What `RestartNeeded: 1` and `InstallState: 1` mean.** Both are enums rendered as integers.
@@ -464,6 +611,27 @@ Exercise date derived from `date -u` on the Proxmox host: 2026-09-05T21:09:59Z.
 - **Which machine `jsmith` enrolled from is not recorded.** The failed enrollment is described
   in this log with no host named. Of the VMs running on 2026-09-07, VM 104 is pfSense, which
   leaves DC01 or CA01. The next test's location depends on the answer. Raymond to supply it.
+
+### Session 5 close, 2026-09-08
+
+- ~~Why can `jsmith` not enroll from the published template?~~ **Answered.** The template required
+  the e-mail attribute in the subject and the SAN, and no user in the domain has `mail` populated.
+  `evidence/39`. Every branch the earlier sessions chased — template ACL, template EKU, CA ACL,
+  token freshness, RPC reachability, CertSvc stability, policy cache, publication, NTAuth, the
+  Server 2016 compatibility theory, a stale CA certificate in AD — was correct all along.
+- **Is revocation the last blocker?** Request 5 failed while constructing the certificate, so no
+  stage after that has been exercised. Unknown until a certificate issues.
+- **Which principals besides `jsmith` can now enroll?** `Domain Users` still holds Allow Enroll on
+  the template. Left deliberately unchanged this session, one variable at a time. It needs its own
+  before-and-after.
+- **Does any user object in `district.local` have `mail` populated?** Only `jsmith` was checked.
+  The domain-wide answer is not captured, and it bears on whether other templates are affected.
+- **What is the `flags` value 10 on the `pKIEnrollmentService` object?** A Microsoft Learn search
+  returned no value table. Recorded undecoded in `evidence/38`.
+- **Was the disclosed Vaultwarden credential rotated?** A screenshot on 2026-09-08 showed a
+  password in clear text. The value is in no artifact. Rotation was recommended in session and is
+  not confirmed.
+
 ## Paused
 
 Session 1 paused 2026-09-05T22:29:21Z at Raymond's request, with the CA built but not running.
@@ -478,6 +646,14 @@ diagnostic branches (restart timing, policy cache, schema compatibility) were tr
 session before Raymond called it. Next session should not repeat those three without new
 information.
 
+Session 5, 2026-09-07 evening into 2026-09-08. The enrollment question is answered and the root
+cause is fixed. Ten evidence files, 30 through 39. Paused at Raymond's request: "lets go with the
+reissue for next session and close out this one." This is a natural stopping point — a root cause
+found, one defect corrected, the next blocker identified and its remedy chosen.
+
+`report.md` stays unwritten by the standing decision that it waits for enrollment to resolve.
+Enrollment did not resolve; it moved to a second blocker. One session should finish it.
+
 ## Not started
 
 - Determining why `jsmith`'s enrollment fails. See Open questions for what's ruled out and the
@@ -491,3 +667,12 @@ information.
   and deferred 2026-09-07, consultation point 8.
 - `report.md` for this exercise. Three sessions of work, still unwritten. Should wait for the
   enrollment question to resolve rather than report a known-incomplete mechanism as done.
+
+### Session 5 close, 2026-09-08
+
+- The reissue of the issuing CA certificate with a CDP extension, and publication of the root CRL
+  over HTTP. Chosen by Raymond as the next session's work.
+- Removal of the `Domain Users` Enroll ACE from the client-auth template.
+- Whether tenant CBA is P2-gated. `CURRICULUM.md` flags it as not captured, and A3 never tested
+  CBA. It needs a read inside the trial window, which ends 2026-10-04.
+- B4's PT4H re-run, still owed and still trial-gated.

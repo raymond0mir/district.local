@@ -203,32 +203,87 @@ has no working interactive logon path, recorded above; CA01 now makes two. *Evid
 `exercises/2026-09-05-adcs-issuing-ca-build/evidence/21-ca01-ldap-read-succeeds-write-denied.txt`,
 `exercises/2026-09-05-adcs-issuing-ca-build/evidence/19-tmp-cainstall-removed-from-enterprise-admins.txt`.
 
-**The issuing CA is live, and no client can enrol from it.** Superseded the 2026-09-06 entry that
-said the CA could not start. `certutil -installcert` completed once `tmp-cainstall` held Enterprise
-Admins, `SetupStatus` moved from `525` to `769`, and `CertSvc` runs. The
-`district.local Client Authentication` template is scoped as designed and is published to the CA;
-`certutil -CATemplates` lists it first. `jsmith` still cannot enrol. Ruled out by capture: template
-ACL, template EKU, CA ACL, `jsmith`'s live token, RPC reachability, CertSvc instability, stale
-policy cache, and non-publication. The Server 2016 compatibility theory is untested and
-unsupported; do not rebuild a template for it first. **The enrolment failure itself has no evidence
-file.** It was seen at VM 101's console, and VM 101 has no working QEMU guest agent, so nothing
-scripted can capture it. That gap blocks B1's fourth Conditional Access policy, which needs CBA.
-Next untried test: `certutil -ca.cert`, then `certutil -verify -urlfetch`, run on VM 101, testing
-chain and revocation validity. The root is hand-built OpenSSL, publishes no CRL, and `-installcert`
-already blocked once on a revocation dialog. *Evidence:*
-`exercises/2026-09-05-adcs-issuing-ca-build/evidence/24-installcert-succeeds-with-enterprise-admins.txt`,
-`exercises/2026-09-05-adcs-issuing-ca-build/evidence/25-ca-confirmed-live-published-and-enterprise-admins-cleanup.txt`,
-`exercises/2026-09-05-adcs-issuing-ca-build/evidence/29-ca-issuance-list-includes-client-auth-template.txt`.
+**The issuing CA is live, and it cannot issue a certificate because it cannot check revocation
+on its own chain.** Supersedes the entry that said no client could enrol from it, and the earlier
+one that said the CA could not start. The enrolment question is answered and closed. Its cause was
+not trust, rights, publication or reachability: the `district.local Client Authentication` template
+required the e-mail attribute in both the subject and the subject alternative name, inherited
+verbatim from the built-in `User` template by duplication, and no user in `district.local` has
+`mail` populated. `certreq -submit` returned request 4 `Denied by Policy Module`,
+`0x80094812 CERTSRV_E_SUBJECT_EMAIL_REQUIRED`. Raymond chose to fix the template rather than
+populate `mail`; `msPKI-Certificate-Name-Flag` moved from `-1509949440` to `-2113929216` on
+2026-09-08, keeping the directory-path subject and UPN in the SAN. Request 5 then failed
+differently: `Error Constructing or Publishing Certificate`,
+`0x80092012 CRYPT_E_NO_REVOCATION_CHECK`. **That is now the blocker.** The root CA publishes no
+CRL and the issuing CA certificate carries no CDP, so the CA cannot validate revocation on its own
+chain while constructing a certificate. Two independent defects were stacked and the first hid the
+second. Whether revocation is the last one is unknown, because no stage past certificate
+construction has been exercised. Next step, decided by Raymond 2026-09-08: reissue the issuing CA
+certificate from the root with a CDP extension and publish the root CRL over HTTP. *Evidence:*
+`exercises/2026-09-05-adcs-issuing-ca-build/evidence/39-root-cause-template-required-email-and-no-user-has-one.txt`,
+`exercises/2026-09-05-adcs-issuing-ca-build/evidence/32-issuing-ca-chain-builds-revocation-unknown.txt`,
+`exercises/2026-09-05-adcs-issuing-ca-build/evidence/36-ca-security-allows-authenticated-users-to-enroll.txt`.
 
-**The root CA certificate is published to AD with no CRL distribution point, by decision.** Raymond
-chose Option A on 2026-09-05: no public HTTP endpoint, and therefore no working revocation. The
-root certificate carries `basicConstraints`, `keyUsage`, SKI and AKI, and no CDP. It is already
-published into `CN=Certification Authorities` and `CN=AIA`. Consequence, accepted deliberately:
-once certificate-based authentication is live, a revoked certificate will not be blocked. *Evidence:*
+**The root CA certificate is published to AD with no CRL distribution point, by decision, and the
+consequence is now larger than the one accepted.** Raymond chose Option A on 2026-09-05: no public
+HTTP endpoint, and therefore no working revocation. The root certificate carries
+`basicConstraints`, `keyUsage`, SKI and AKI, and no CDP. It is already published into
+`CN=Certification Authorities` and `CN=AIA`. The accepted consequence was that a revoked
+certificate would not be blocked once CBA was live. **Two further consequences are now captured or
+documented.** First, the CA cannot issue at all: request 5 on 2026-09-08 was denied with
+`0x80092012 CRYPT_E_NO_REVOCATION_CHECK` while constructing the certificate, because the chain
+carries no AIA, CDP or OCSP URL at any level and `CERT_TRUST_REVOCATION_STATUS_UNKNOWN` is the only
+chain error. Second, Microsoft documents that Entra certificate-based authentication accepts exactly
+one CDP per trusted CA, that the CDP must be an HTTP URL, and that OCSP and LDAP URLs are not
+supported — so the LDAP CDP configured on the issuing CA cannot serve Entra CBA even once issuance
+works. That is Microsoft Learn, not a lab capture. Reissuing the issuing CA certificate with an
+HTTP CDP therefore fixes on-premises issuance and the tenant path together, which is why Raymond
+chose it on 2026-09-08. *Evidence:*
 `exercises/2026-09-05-adcs-issuing-ca-build/evidence/04-root-cert-extensions-and-vm-configs.txt`,
 `exercises/2026-09-05-adcs-issuing-ca-build/evidence/21-ca01-ldap-read-succeeds-write-denied.txt`.
 
+**`DISTRICT\tmp-cainstall` holds standing Full Control over a production certificate template.**
+It was created 2026-09-05 for one task, stripped of Enterprise Admins the same day, and its Full
+Control ACE on `district.localClientAuthentication` was never removed. On 2026-09-08 that made it
+the only non-tier-0 identity able to change the template, because `Set-ADObject` as `DC01$` returns
+`Insufficient access rights` and no enabled account holds Enterprise Admins. The grant was used,
+deliberately and on the record, to apply the e-mail-flag fix. A grant in use is not a grant that is
+appropriate: this is the permission-sprawl pattern in a PKI trust object rather than a group — a
+temporary account whose standing access outlived its task. *Evidence:*
+`exercises/2026-09-05-adcs-issuing-ca-build/evidence/34-jsmith-client-view-template-visible-domain-users-can-enroll.txt`,
+`exercises/2026-09-05-adcs-issuing-ca-build/evidence/39-root-cause-template-required-email-and-no-user-has-one.txt`.
+
+**`DISTRICT\Domain Users` holds Allow Enroll on the client-auth template.** The template was built
+to scope certificate enrolment to `PKI-CBA-Pilot`, whose only member is `jsmith`. The ACE
+`(OA;;RPWPCR;0e10c968-78fb-11d2-90d4-00c04f79dc55;;DU)` sits beside it and grants the same right to
+every domain user. The built-in `ClientAuth` template the object was duplicated from carries the
+identical ACE, so this arrived by duplication and was never removed — the same mechanism that
+brought in the e-mail requirement. `PKI-CBA-Pilot` restricts nothing while this ACE stands. Left
+unchanged on 2026-09-08 deliberately, to keep one variable at a time during the root-cause work; it
+needs its own before-and-after. *Evidence:*
+`exercises/2026-09-05-adcs-issuing-ca-build/evidence/34-jsmith-client-view-template-visible-domain-users-can-enroll.txt`.
+
+**No user object in `district.local` has the `mail` attribute populated.** Captured for `jsmith`
+only; the domain-wide answer is not captured. It is recorded because it silently broke certificate
+enrolment for every template that builds a subject from the directory, including the built-in
+`User` template, and because the failure surfaced as a message about CA permissions and CA trust.
+Not fixed: on 2026-09-08 Raymond chose to change the template rather than populate the attribute,
+so this stays as directory hygiene rather than a remediation. *Evidence:*
+`exercises/2026-09-05-adcs-issuing-ca-build/evidence/39-root-cause-template-required-email-and-no-user-has-one.txt`.
+
 ## Infrastructure
+
+**The lab has no power protection and no restart policy, and a power loss stops a domain
+controller ungracefully.** The Proxmox host lost power on 2026-09-07: boot `-1` ends at a routine
+hourly cron line, 14:17:02 PDT, with no systemd shutdown sequence, and boot `0` begins 15:27:35 PDT,
+about 70 minutes later. Cause supplied by Raymond in session, "laptop went down, lost battery",
+which is Recalled. DC01 logged its own account at next boot: Kernel-Power 41 and EventLog 6008, with
+an earlier pair at 9/5 6:25 PM, so this has happened at least twice. Only container 103
+(`vaultwarden`) carries `onboot: 1`; VM 100, 101, 102, 104, 107 and container 106 carry none, so the
+lab comes back with the secrets store running and the domain down. The host is a laptop, so its
+battery is the de facto UPS and it is not being managed as one. Nothing here is fixed. *Evidence:*
+`exercises/2026-09-05-adcs-issuing-ca-build/evidence/30-host-power-loss-and-restart-state.txt`,
+`exercises/2026-09-05-adcs-issuing-ca-build/evidence/31-dc01-rearm-reset-the-full-evaluation-period.txt`.
 
 **Host RAM is over-committed by 3.77 GiB — a configuration problem, not a hardware ceiling.**
 `qm list` shows 10000 MB assigned to VM 100 (DC01), 4096 MB to VM 101, 3072 MB to VM 102 and
@@ -383,13 +438,15 @@ intervals (60 minutes to 16+ hours apart, not a fixed timer) reaching back to at
 which lands seven seconds before the exact timestamp `exercises/2026-08-31-dc01-unexpected-
 shutdown/report.md` logged as its own unexplained "occurrence 2" crash — a root cause that
 investigation could not pin down at the time, because nobody yet knew the license was expired.
-**Mitigated same day, not resolved.** DC01 was rearmed (`slmgr /rearm` via `cscript`, avoiding the
+**Mitigated same day, and the mitigation turned out to be larger than recorded — see the retraction above; the rearm reset the full evaluation period, not 10 days.** DC01 was rearmed (`slmgr /rearm` via `cscript`, avoiding the
 same `wscript` GUI-hang risk `/dlv` has), moving `LicenseStatus` from 5 (Notification/expired) to 2
 (OOB Grace) with `GracePeriodRemaining` 14400 minutes — **exactly 10 days, not a reset of the full
-180-day evaluation window.** `RemainingWindowsReArmCount` is now 5 of an original 6. **The
-underlying exposure is unchanged**: this is a temporary extension of an evaluation build running a
-production domain controller, not a licensed one, and the shutdown cycle resumes on schedule
-around **2026-09-12** unless rearmed again or replaced with real activation. Two threads remain
+180-day evaluation window.** ~~That reading is wrong; see the retraction in Time-sensitive
+below.~~ **Corrected 2026-09-08: the rearm did reset the full evaluation period.** The 14400-minute
+figure was a transient read about one minute after the restart. `RemainingWindowsReArmCount` is 5 of
+an original 6. **The underlying exposure is unchanged**: this is an evaluation build running a
+production domain controller, not a licensed one. ~~The shutdown cycle resumes around
+2026-09-12.~~ **It resumes about 2027-03-02**, and no rearm is due in September. Two threads remain
 genuinely open and separate from this finding: a 9/1 1:46:15 PM shutdown Windows itself flagged as
 *unexpected* (no `wlms.exe` entry near it), and whether the original 08-31 09:38:11 crash was also
 license-driven (unconfirmed — the event-log query didn't reach back that far). *Evidence:*
@@ -409,22 +466,26 @@ deleted. PIM evidence cannot be captured after expiry, which is why the run orde
 2026-09-05 puts Exercise B4 first. *Evidence:* the licensing claims are Microsoft Learn, not a lab
 capture. B4 step 8 captures the boundary in the tenant.
 
-**DC01 stops for good about 2026-11-01 without real activation.** Arithmetic on captured values,
-not a new reading: `RemainingWindowsReArmCount` is 5, each rearm yields exactly 10 days
-(`GracePeriodRemaining` 14400 minutes, read 2026-09-02), and the current grace ends about
-2026-09-12. Five further rearms reach about 2026-11-01. That date ends the lab, and it falls after
-the P2 trial, after `svc-entraconnect`'s expiry, and after every exercise now queued. Decide
-whether to activate, rebuild on licensed media, or accept the ceiling. *Evidence:*
-`exercises/2026-09-02-dc01-eval-license-status/evidence/rearm-and-post-restart-verification-20260902T1650Z.txt`.
+**~~DC01 stops for good about 2026-11-01 without real activation.~~ Retracted 2026-09-08. DC01
+runs to about 2027-03-02.** The 2026-11-01 date was arithmetic on a wrong premise: that each rearm
+yields exactly 10 days. It does not. `slmgr /rearm` reset the full evaluation period. DC01 reads
+`LicenseStatus` 1 (Licensed) with `GracePeriodRemaining` 252970 minutes, 175.67 days, and
+`RemainingWindowsReArmCount` still 5, unchanged since the 2026-09-02 rearm. The remaining time plus
+the elapsed time is 180.9 days, one full evaluation period beginning at the rearm. The 14400-minute
+reading behind the old figure was captured about one minute after the post-rearm restart and
+describes a transient OOB Grace state. Five rearms remain after this period. The ledger row carrying
+the old conclusion is Retired. *Evidence:*
+`exercises/2026-09-05-adcs-issuing-ca-build/evidence/31-dc01-rearm-reset-the-full-evaluation-period.txt`.
 
-**CA01's licence grace ends about 2026-09-15.** A fresh Server 2022 evaluation install from this
-lab's media starts in OOB Grace with roughly 10 days, not the 180-day evaluation the media
-implies: `LicenseStatus` 2, `GracePeriodRemaining` 14396 minutes, read 2026-09-05T21:27Z. This is
-the same 10-day figure DC01 reached after `slmgr /rearm`. The lab now has two Windows Server
-guests on expiring grace periods, DC01's ending about 2026-09-12 and CA01's about 2026-09-15.
-Neither is rearmed indefinitely; DC01 has 5 of 6 rearms left. Decide whether to rearm, activate,
-or accept that the CA stops. *Evidence:*
-`exercises/2026-09-05-adcs-issuing-ca-build/evidence/06-ca01-post-install-state.txt`.
+**~~CA01's licence grace ends about 2026-09-15.~~ Retracted 2026-09-08. CA01 runs to about
+2027-03-04.** Same error as DC01's entry above, from the same cause: a `GracePeriodRemaining` of
+14396 minutes read at 2026-09-05T21:27Z, minutes after the install, was treated as the settled
+licence. CA01 now reads `LicenseStatus` 1 with `GracePeriodRemaining` 255815 minutes, 177.65 days,
+and `RemainingWindowsReArmCount` 6 — the untouched original, so CA01 has never been rearmed and no
+rearm can explain the difference. Neither Windows Server guest expires in September 2026. General
+rule for this lab: a short `GracePeriodRemaining` read within minutes of an install or restart is a
+transient, not the licence. *Evidence:*
+`exercises/2026-09-05-adcs-issuing-ca-build/evidence/35-ca01-evaluation-period-is-full-not-ten-days.txt`.
 
 ## Recently closed (for contrast, not action)
 

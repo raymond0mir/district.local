@@ -1,0 +1,124 @@
+# slmgr /rearm reset DC01's full evaluation period, not a 10-day grace
+
+This retracts the 2026-09-02 conclusion that a rearm yields "exactly 10 days, not a
+reset of the full 180-day evaluation window", and the 2026-11-01 end-of-lab date
+derived from it.
+
+Raymond stated in session 2026-09-07 that he ran nothing licence-related on DC01
+after 2026-09-02. That statement is Recalled. RemainingWindowsReArmCount below
+corroborates it with a capture: the count is unchanged at 5.
+
+--------------------------------------------------------------------------------
+Command:   date -u
+Host:      Proxmox host shell
+Timestamp: 2026-09-07T22:39:03Z
+--------------------------------------------------------------------------------
+
+Mon Sep  7 10:39:03 PM UTC 2026
+
+--------------------------------------------------------------------------------
+Command:   qm guest exec 100 --timeout 60 -- powershell.exe -NonInteractive -Command
+           "Get-CimInstance SoftwareLicensingProduct | Where-Object PartialProductKey |
+            Select-Object Name,LicenseStatus,GracePeriodRemaining | Format-List |
+            Out-String -Width 200"
+Host:      DC01 (VM 100), via qm guest exec from the Proxmox host shell
+Timestamp: 2026-09-07T22:39:03Z
+--------------------------------------------------------------------------------
+
+{
+   "exitcode" : 0,
+   "exited" : 1,
+   "out-data" : "\r\n\r\nName                 : Windows(R), ServerStandardEval edition\r\nLicenseStatus        : 1\r\nGracePeriodRemaining : 252973\r\n\r\n\r\n\r\n\r\n"
+}
+
+--------------------------------------------------------------------------------
+Command:   date -u
+Host:      Proxmox host shell
+Timestamp: 2026-09-07T22:44:27Z
+--------------------------------------------------------------------------------
+
+Mon Sep  7 10:44:27 PM UTC 2026
+
+--------------------------------------------------------------------------------
+Command:   qm guest exec 100 --timeout 60 -- powershell.exe -NonInteractive -Command
+           "Get-CimInstance SoftwareLicensingService |
+            Select-Object RemainingWindowsReArmCount | Format-List | Out-String -Width 250"
+Host:      DC01 (VM 100), via qm guest exec from the Proxmox host shell
+Timestamp: 2026-09-07T22:44:27Z
+--------------------------------------------------------------------------------
+
+{
+   "exitcode" : 0,
+   "exited" : 1,
+   "out-data" : "\r\n\r\nRemainingWindowsReArmCount : 5\r\n\r\n\r\n\r\n\r\n"
+}
+
+--------------------------------------------------------------------------------
+Command:   qm guest exec 100 --timeout 60 -- powershell.exe -NonInteractive -Command
+           "Get-CimInstance SoftwareLicensingProduct | Where-Object PartialProductKey |
+            Select-Object Name,Description,LicenseStatus,LicenseStatusReason,
+            GracePeriodRemaining,EvaluationEndDate | Format-List | Out-String -Width 250"
+Host:      DC01 (VM 100), via qm guest exec from the Proxmox host shell
+Timestamp: 2026-09-07T22:44:27Z
+--------------------------------------------------------------------------------
+
+{
+   "exitcode" : 0,
+   "exited" : 1,
+   "out-data" : "\r\n\r\nName                 : Windows(R), ServerStandardEval edition\r\nDescription          : Windows(R) Operating System, TIMEBASED_EVAL channel\r\nLicenseStatus        : 1\r\nLicenseStatusReason  : 1074068484\r\nGracePeriodRemaining : 252970\r\nEvaluationEndDate    : 12/31/1600 4:00:00 PM\r\n\r\n\r\n\r\n\r\n"
+}
+
+--------------------------------------------------------------------------------
+Command:   qm guest exec 100 --timeout 60 -- powershell.exe -NonInteractive -Command
+           "Get-CimInstance Win32_OperatingSystem | Select-Object InstallDate,LastBootUpTime |
+            Format-List | Out-String -Width 250"
+Host:      DC01 (VM 100), via qm guest exec from the Proxmox host shell
+Timestamp: 2026-09-07T22:44:27Z
+--------------------------------------------------------------------------------
+
+{
+   "exitcode" : 0,
+   "exited" : 1,
+   "out-data" : "\r\n\r\nInstallDate    : 9/30/2025 12:36:49 AM\r\nLastBootUpTime : 9/7/2026 10:39:08 PM\r\n\r\n\r\n\r\n\r\n"
+}
+
+--------------------------------------------------------------------------------
+Command:   qm guest exec 100 --timeout 60 -- powershell.exe -NonInteractive -Command
+           "Get-Service ADWS,NTDS,DNS,Netlogon | Select-Object Name,Status |
+            Format-Table -AutoSize | Out-String -Width 120"
+           qm guest exec 100 --timeout 60 -- powershell.exe -NonInteractive -Command
+           "Get-ADDomain | Select-Object DNSRoot,DomainMode,PDCEmulator | Format-List |
+            Out-String -Width 200"
+           qm guest exec 100 --timeout 60 -- powershell.exe -NonInteractive -Command
+           "Get-WinEvent -FilterHashtable @{LogName='System'; Id=6008,41,1074,1076}
+            -MaxEvents 6 | Select-Object TimeCreated,Id,ProviderName |
+            Format-Table -AutoSize | Out-String -Width 200"
+Host:      DC01 (VM 100), via qm guest exec from the Proxmox host shell
+Timestamp: 2026-09-07T22:39:03Z
+--------------------------------------------------------------------------------
+
+{
+   "exitcode" : 0,
+   "exited" : 1,
+   "out-data" : "\r\nName      Status\r\n----      ------\r\nADWS     Running\r\nDNS      Running\r\nNetlogon Running\r\nNTDS     Running\r\n\r\n\r\n\r\n"
+}
+{
+   "exitcode" : 0,
+   "exited" : 1,
+   "out-data" : "\r\n\r\nDNSRoot     : district.local\r\nDomainMode  : Windows2016Domain\r\nPDCEmulator : DC01.district.local\r\n\r\n\r\n\r\n\r\n"
+}
+{
+   "exitcode" : 0,
+   "exited" : 1,
+   "out-data" : "\r\nTimeCreated            Id ProviderName                  \r\n-----------            -- ------------------------------\r\n9/7/2026 10:39:09 PM   41 Microsoft-Windows-Kernel-Power\r\n9/7/2026 10:39:13 PM 6008 EventLog                      \r\n9/5/2026 12:14:42 PM 1074 User32                        \r\n9/5/2026 6:25:06 PM    41 Microsoft-Windows-Kernel-Power\r\n9/5/2026 6:25:10 PM  6008 EventLog                      \r\n9/2/2026 3:41:25 PM  1074 User32                        \r\n\r\n\r\n\r\n"
+}
+
+--------------------------------------------------------------------------------
+Not decoded
+--------------------------------------------------------------------------------
+
+LicenseStatusReason 1074068484 (0x4004F00C) is recorded verbatim and is not decoded
+here. No source in this lab maps that value. Do not cite a meaning for it.
+
+EvaluationEndDate reads 12/31/1600 4:00:00 PM, the null date, exactly as it did on
+2026-09-02. That property is not the source of truth for this build.

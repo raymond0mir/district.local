@@ -1,0 +1,59 @@
+# CA01 has a full evaluation period, not a 10-day grace
+
+Retracts the EXPOSURES.md entry "CA01's licence grace ends about 2026-09-15", which rests on
+a GracePeriodRemaining of 14396 minutes read at 2026-09-05T21:27Z, minutes after the install.
+
+Same pattern as DC01, captured in evidence/31 the same session. A short OOB Grace figure read
+immediately after install or restart is transient and is not the settled evaluation period.
+
+--------------------------------------------------------------------------------
+Command:   date -u
+Host:      Proxmox host shell
+Timestamp: 2026-09-07T23:13:39Z
+--------------------------------------------------------------------------------
+
+Mon Sep  7 11:13:39 PM UTC 2026
+
+--------------------------------------------------------------------------------
+Command:   qm guest exec 107 --timeout 60 -- powershell.exe -NonInteractive -Command
+           "Get-CimInstance SoftwareLicensingProduct | Where-Object PartialProductKey |
+            Select-Object Name,Description,LicenseStatus,GracePeriodRemaining |
+            Format-List | Out-String -Width 250"
+Host:      CA01 (VM 107), via qm guest exec from the Proxmox host shell
+Timestamp: 2026-09-07T23:13:39Z
+--------------------------------------------------------------------------------
+
+{
+   "exitcode" : 0,
+   "exited" : 1,
+   "out-data" : "\r\n\r\nName                 : Windows(R), ServerStandardEval edition\r\nDescription          : Windows(R) Operating System, TIMEBASED_EVAL channel\r\nLicenseStatus        : 1\r\nGracePeriodRemaining : 255815\r\n\r\n\r\n\r\n\r\n"
+}
+
+--------------------------------------------------------------------------------
+Command:   qm guest exec 107 --timeout 60 -- powershell.exe -NonInteractive -Command
+           "Get-CimInstance SoftwareLicensingService |
+            Select-Object RemainingWindowsReArmCount | Format-List | Out-String -Width 250"
+Host:      CA01 (VM 107), via qm guest exec from the Proxmox host shell
+Timestamp: 2026-09-07T23:13:39Z
+--------------------------------------------------------------------------------
+
+{
+   "exitcode" : 0,
+   "exited" : 1,
+   "out-data" : "\r\n\r\nRemainingWindowsReArmCount : 6\r\n\r\n\r\n\r\n\r\n"
+}
+
+--------------------------------------------------------------------------------
+What this proves
+--------------------------------------------------------------------------------
+
+- CA01 reports LicenseStatus 1 (Licensed), not 2 (OOB Grace).
+- GracePeriodRemaining is 255815 minutes, which is 177.65 days, ending about 2027-03-04.
+- RemainingWindowsReArmCount is 6, the untouched original. CA01 has never been rearmed,
+  so no rearm can account for the difference from the 14396-minute reading on 2026-09-05.
+- The 14396-minute figure and the 255815-minute figure describe the same install, with no
+  intervening rearm. The earlier figure was a post-install transient.
+
+Consequence for the lab's calendar. Neither Windows Server guest expires in September 2026.
+DC01 runs to about 2027-03-02 (evidence/31) with 5 rearms left. CA01 runs to about
+2027-03-04 with 6 rearms left.

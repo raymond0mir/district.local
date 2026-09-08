@@ -1,0 +1,92 @@
+# The issuing CA chain builds and is trusted; revocation cannot be checked
+
+The test named as "next, not yet run" in this exercise's evidence-log and in CARRYOVER.md.
+
+Context for the reading. pfSense (VM 104) was stopped for this capture, so 10.0.0.0/24 had
+no gateway. That does not distort the result: the chain carries no AIA, CDP or OCSP URLs at
+all, so nothing was fetched and nothing could have been fetched.
+
+Chain validation does not depend on the caller's identity, so running as SYSTEM under
+qm guest exec does not distort the result either. The enrollment failure itself is a
+client-side view held by jsmith and is NOT captured by this file.
+
+--------------------------------------------------------------------------------
+Command:   date -u
+Host:      Proxmox host shell
+Timestamp: 2026-09-07T22:49:53Z
+--------------------------------------------------------------------------------
+
+Mon Sep  7 10:49:53 PM UTC 2026
+
+--------------------------------------------------------------------------------
+Command:   qm guest exec 107 --timeout 60 -- powershell.exe -NonInteractive -Command
+           "Get-Service CertSvc | Select-Object Name,Status | Format-List | Out-String"
+Host:      CA01 (VM 107), via qm guest exec from the Proxmox host shell
+Timestamp: 2026-09-07T22:49:53Z
+--------------------------------------------------------------------------------
+
+{
+   "exitcode" : 0,
+   "exited" : 1,
+   "out-data" : "\r\n\r\nName   : CertSvc\r\nStatus : Running\r\n\r\n\r\n\r\n\r\n"
+}
+
+--------------------------------------------------------------------------------
+Command:   qm guest exec 107 --timeout 90 -- certutil.exe -ca.cert C:\c2\issuing-ca.cer
+Host:      CA01 (VM 107), via qm guest exec from the Proxmox host shell
+Timestamp: 2026-09-07T22:49:53Z
+--------------------------------------------------------------------------------
+
+{
+   "exitcode" : 0,
+   "exited" : 1,
+   "out-data" : "CA cert[2]: 3 -- Valid\r\nCA cert[2]:\r\n-----BEGIN CERTIFICATE-----\r\nMIIFgzCCA2ugAwIBAgIUCYphCdeQkZRk348di9luvOVs3AgwDQYJKoZIhvcNAQEL\r\nBQAwOjEXMBUGA1UECgwOZGlzdHJpY3QubG9jYWwxHzAdBgNVBAMMFmRpc3RyaWN0\r\nLmxvY2FsIFJvb3QgQ0EwHhcNMjYwOTA1MjIxNDA4WhcNMzEwOTA0MjIxNDA4WjBV\r\nMRUwEwYKCZImiZPyLGQBGRYFbG9jYWwxGDAWBgoJkiaJk/IsZAEZFghkaXN0cmlj\r\ndDEiMCAGA1UEAxMZZGlzdHJpY3QubG9jYWwgSXNzdWluZyBDQTCCAiIwDQYJKoZI\r\nhvcNAQEBBQADggIPADCCAgoCggIBAMjhkzJfu7dGJTTiMAB9TC9kKXesX7bNvewc\r\nIlar0QWej0LeOjEkNcZ0NfbkFNBHrS39Ttzc9DayoQlrdosbXkWWf/MvZZQXcpmj\r\nug29bxLXQwLKVn+aOA/WbIAkwkB/qMUG+Psn5Z7McSkK1bSaMRRXhV5+sIb/drlO\r\nQrTlRKA0Rx2m24IwvLMS/V5PAe/VXXYf6RTRCT56eOQiw/0Lzq7TWtuGNQV++KPM\r\nL3xsht+AsuYwdVWtovH8kY7jnJYxtmgAfD4ZMmY7+0J7nrdD5AIDygLVyOvIJusX\r\nGvJ2c48/nr1iNgpY9B+mVU2ImL5njSi1Lm1PAFd9va4Bs9U5tXd7ll+9UJ9tqAmO\r\nr27lm5onF9h5bvLJ5p39ugftpkMubuBvG7j/v72VIfXLKIoMhgAF93gloYLm2YIz\r\nSfGUbWSl4RgrqKgW9GgK0k5yWnbvWa9+A7nOnyAAfQVSmcNKPkVjqb2M7APMV1Yp\r\nCpQLgrPNCiv/cMY3kLXzS1VGDkNVpbkbJKXUcWCDBjGfUNjkWNP8IwyFP1MZXwLx\r\nsEgv16ra7+E0RMdNZHisveunvUwLbdw2C7bbhc17uuLjZkBnlMF4C3nzZZJl9BH+\r\nd2QC68thP1ncQ03ifHZBJZHBZaMLWg/S0VuKUZmAewvSmt48YoVslAcCuTaaJIpS\r\nnltfJsShAgMBAAGjZjBkMBIGA1UdEwEB/wQIMAYBAf8CAQAwDgYDVR0PAQH/BAQD\r\nAgEGMB0GA1UdDgQWBBS3E9iGJKDSL8FkKDgDgHHiBG1KtzAfBgNVHSMEGDAWgBSV\r\nZDOebBp/RfXGnR1QwHj5/wa7gjANBgkqhkiG9w0BAQsFAAOCAgEAlE1W7B3sfU6W\r\n1akz/htslZWiYz78tidOP/Gr+6dAtNIX6RLj6jETnnbaGXSXlODEzytQjnMRs1Sq\r\nCb/EOYGXGJE+U/ITCDCJjjggjqaU5syUGG9n7pEKbmINf11QYTfdfi/DW3fR4zGa\r\nv6V9MvOMsRUyTeRJUpnGrYOY5cvsJTuoah000tG5F8SY9NvK0H3u5Y47BWQFl7gf\r\nIYYA7nnjoOzVLnFB9cWyR7vgnhLArbAoA3y/u08ePwissTRVS8xbP/P4NsiYRZ5J\r\n7ApIwM9C3TjY1/lje5PB7W5NnnIhluoW1rTQFy3/IX8FG8AnLm0P54v9x1YmpHLI\r\nRYS2yVqDhjwSWuntfynXesdS59SC+BS26qFGcJD4ghJCxnl9h8KILv0/rq0lm9Kt\r\nYupM8wKprtHMzNbDeog2CNyx5lMDPybFbu+ZPKQtmzClXY23OtWK1T2I9cNfbN9r\r\nhSnUv7DG1iTBc+jRZVF6HUt3A8qk6f+sOoS4nMMbv6XKq/fsg8glz53ScS1hfd/+\r\ngkyxgHummz3qm1DZWDbVHDIgJbig6hC+au3lSJGwL2OCw2wWqm5LSYeX1IHwlBB5\r\nua0S02qocIMhFiCZPQEAMe+asw0Ad+ajrQSz9q1EWvV+8cgBlCWCi4xqZbtA3zd1\r\nuNh5kU/lF1jHfC96b0ggV/+qG/mWQJo=\r\n-----END CERTIFICATE-----\r\n\r\nCertUtil: -ca.cert command completed successfully.\r\n"
+}
+
+--------------------------------------------------------------------------------
+Command:   qm guest exec 107 --timeout 240 -- certutil.exe -verify -urlfetch C:\c2\issuing-ca.cer
+Host:      CA01 (VM 107), via qm guest exec from the Proxmox host shell
+Timestamp: 2026-09-07T22:49:53Z
+--------------------------------------------------------------------------------
+
+{
+   "exitcode" : 0,
+   "exited" : 1,
+   "out-data" : "Issuer:\r\n    CN=district.local Root CA\r\n    O=district.local\r\n  Name Hash(sha1): 0725062b9386d2a6ecb3533b8a882c396907578c\r\n  Name Hash(md5): b40cd0eae55d36a8ef49fb4cca12c30b\r\nSubject:\r\n    CN=district.local Issuing CA\r\n    DC=district\r\n    DC=local\r\n  Name Hash(sha1): 61c683e2f1ecd721de927c4c04d3cc56b3583183\r\n  Name Hash(md5): 674c049fea4253b9b05a44f648f15f2a\r\nCert Serial Number: 098a6109d790919464df8f1d8bd96ebce56cdc08\r\n\r\ndwFlags = CA_VERIFY_FLAGS_CONSOLE_TRACE (0x20000000)\r\ndwFlags = CA_VERIFY_FLAGS_DUMP_CHAIN (0x40000000)\r\nChainFlags = CERT_CHAIN_REVOCATION_CHECK_CHAIN_EXCLUDE_ROOT (0x40000000)\r\nHCCE_LOCAL_MACHINE\r\nCERT_CHAIN_POLICY_BASE\r\n-------- CERT_CHAIN_CONTEXT --------\r\nChainContext.dwInfoStatus = CERT_TRUST_HAS_PREFERRED_ISSUER (0x100)\r\nChainContext.dwErrorStatus = CERT_TRUST_REVOCATION_STATUS_UNKNOWN (0x40)\r\n\r\nSimpleChain.dwInfoStatus = CERT_TRUST_HAS_PREFERRED_ISSUER (0x100)\r\nSimpleChain.dwErrorStatus = CERT_TRUST_REVOCATION_STATUS_UNKNOWN (0x40)\r\n\r\nCertContext[0][0]: dwInfoStatus=102 dwErrorStatus=40\r\n  Issuer: CN=district.local Root CA, O=district.local\r\n  NotBefore: 9/5/2026 3:14 PM\r\n  NotAfter: 9/4/2031 3:14 PM\r\n  Subject: CN=district.local Issuing CA, DC=district, DC=local\r\n  Serial: 098a6109d790919464df8f1d8bd96ebce56cdc08\r\n  Cert: 286c3546968d71398de9c5276a4192039605454a\r\n  Element.dwInfoStatus = CERT_TRUST_HAS_KEY_MATCH_ISSUER (0x2)\r\n  Element.dwInfoStatus = CERT_TRUST_HAS_PREFERRED_ISSUER (0x100)\r\n  Element.dwErrorStatus = CERT_TRUST_REVOCATION_STATUS_UNKNOWN (0x40)\r\n  ----------------  Certificate AIA  ----------------\r\n  No URLs \"None\" Time: 0 (null)\r\n  ----------------  Certificate CDP  ----------------\r\n  No URLs \"None\" Time: 0 (null)\r\n  ----------------  Certificate OCSP  ----------------\r\n  No URLs \"None\" Time: 0 (null)\r\n  --------------------------------\r\n\r\nCertContext[0][1]: dwInfoStatus=10a dwErrorStatus=0\r\n  Issuer: CN=district.local Root CA, O=district.local\r\n  NotBefore: 9/5/2026 2:16 PM\r\n  NotAfter: 9/2/2036 2:16 PM\r\n  Subject: CN=district.local Root CA, O=district.local\r\n  Serial: 025958bfad1a543a977540380545a04ee952b6cc\r\n  Cert: 578ea69b32fc2e21b190ac0a24dc2e947adde045\r\n  Element.dwInfoStatus = CERT_TRUST_HAS_KEY_MATCH_ISSUER (0x2)\r\n  Element.dwInfoStatus = CERT_TRUST_IS_SELF_SIGNED (0x8)\r\n  Element.dwInfoStatus = CERT_TRUST_HAS_PREFERRED_ISSUER (0x100)\r\n  ----------------  Certificate AIA  ----------------\r\n  No URLs \"None\" Time: 0 (null)\r\n  ----------------  Certificate CDP  ----------------\r\n  No URLs \"None\" Time: 0 (null)\r\n  ----------------  Certificate OCSP  ----------------\r\n  No URLs \"None\" Time: 0 (null)\r\n  --------------------------------\r\n\r\nExclude leaf cert:\r\n  Chain: 286c3546968d71398de9c5276a4192039605454a\r\nFull chain:\r\n  Chain: 029735eedd029524c508fb566a9e87a5c3d05c2f\r\n  Issuer: CN=district.local Root CA, O=district.local\r\n  NotBefore: 9/5/2026 3:14 PM\r\n  NotAfter: 9/4/2031 3:14 PM\r\n  Subject: CN=district.local Issuing CA, DC=district, DC=local\r\n  Serial: 098a6109d790919464df8f1d8bd96ebce56cdc08\r\n  Cert: 286c3546968d71398de9c5276a4192039605454a\r\nThe revocation function was unable to check revocation for the certificate. 0x80092012 (-2146885614 CRYPT_E_NO_REVOCATION_CHECK)\r\n------------------------------------\r\nRevocation check skipped -- no revocation information available\r\nCert is a CA certificate\r\nCannot check leaf certificate revocation status\r\nCertUtil: -verify command completed successfully.\r\n"
+}
+
+--------------------------------------------------------------------------------
+Correction, added the same session
+--------------------------------------------------------------------------------
+
+The two certutil command lines above are recorded as typed. They are not what executed.
+Both pass C:\c2\issuing-ca.cer unquoted at the bash level, and bash consumes the
+backslashes as escapes, so certutil received C:c2issuing-ca.cer, a drive-relative path.
+
+The result is unaffected. -ca.cert wrote to the mangled path and -verify read the same
+mangled path, so the chain output below describes the issuing CA certificate as intended.
+The file C:\c2\issuing-ca.cer does not exist on CA01; that is how the defect surfaced,
+in evidence/37, when jsmith ran the literal path at the console and got
+ERROR_FILE_NOT_FOUND.
+
+Do not cite this file for the existence of C:\c2\issuing-ca.cer.
+
+--------------------------------------------------------------------------------
+What this proves, and what it does not
+--------------------------------------------------------------------------------
+
+Proves:
+- The chain builds from the issuing CA to the root, and the root element carries
+  dwErrorStatus=0. Trust, time validity and key match are all correct.
+- REVOCATION_STATUS_UNKNOWN (0x40) is the ONLY error status on the chain, at every
+  level: ChainContext, SimpleChain, and the issuing CA element.
+- Neither certificate carries an AIA, CDP or OCSP URL. The failure is the absence of
+  revocation information, not an unreachable endpoint. This is the direct, captured
+  consequence of the no-CRL decision recorded 2026-09-05.
+- The issuing CA certificate is valid 9/5/2026 3:14 PM to 9/4/2031 3:14 PM. The root
+  is valid 9/5/2026 2:16 PM to 9/2/2036 2:16 PM.
+
+Does NOT prove:
+- That REVOCATION_STATUS_UNKNOWN is what makes the enrollment UI hide the template.
+  The enrollment failure is a client-side view held by jsmith at CA01's console. No
+  capture in this repository holds it. The causal link is a hypothesis.

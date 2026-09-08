@@ -1,0 +1,126 @@
+# The CA has published its CRL, and setup is complete
+
+Disproves a hypothesis Claude raised in session 2026-09-07: that the CA had never published a
+base CRL, that SETUP_FORCECRL_FLAG was still set, and that this made the CA refuse to issue.
+All three parts are wrong. Recorded because the hypothesis was stated before it was tested.
+
+--------------------------------------------------------------------------------
+Command:   date -u
+Host:      Proxmox host shell
+Timestamp: 2026-09-07T23:25:47Z
+--------------------------------------------------------------------------------
+
+Mon Sep  7 11:25:47 PM UTC 2026
+
+--------------------------------------------------------------------------------
+Command:   qm guest exec 107 --timeout 60 -- certutil.exe -getreg 'CA\SetupStatus'
+Host:      CA01 (VM 107), via qm guest exec from the Proxmox host shell
+Timestamp: 2026-09-07T23:25:47Z
+--------------------------------------------------------------------------------
+
+{
+   "exitcode" : 0,
+   "exited" : 1,
+   "out-data" : "HKEY_LOCAL_MACHINE\\SYSTEM\\CurrentControlSet\\Services\\CertSvc\\Configuration\\district.local Issuing CA\\SetupStatus:\r\n\r\n  SetupStatus REG_DWORD = 1\r\n    SETUP_SERVER_FLAG -- 1\r\nCertUtil: -getreg command completed successfully.\r\n"
+}
+
+--------------------------------------------------------------------------------
+Command:   qm guest exec 107 --timeout 60 -- certutil.exe -getreg 'CA\CRLPublicationURLs'
+Host:      CA01 (VM 107), via qm guest exec from the Proxmox host shell
+Timestamp: 2026-09-07T23:25:47Z
+--------------------------------------------------------------------------------
+
+{
+   "exitcode" : 0,
+   "exited" : 1,
+   "out-data" : "HKEY_LOCAL_MACHINE\\SYSTEM\\CurrentControlSet\\Services\\CertSvc\\Configuration\\district.local Issuing CA\\CRLPublicationURLs:\r\n\r\n  CRLPublicationURLs REG_MULTI_SZ =\r\n    0: 65:C:\\Windows\\system32\\CertSrv\\CertEnroll\\%3%8%9.crl\r\n    CSURL_SERVERPUBLISH -- 1\r\n    CSURL_SERVERPUBLISHDELTA -- 40 (64)\r\n\r\n    1: 79:ldap:///CN=%7%8,CN=%2,CN=CDP,CN=Public Key Services,CN=Services,%6%10\r\n    CSURL_SERVERPUBLISH -- 1\r\n    CSURL_ADDTOCERTCDP -- 2\r\n    CSURL_ADDTOFRESHESTCRL -- 4\r\n    CSURL_ADDTOCRLCDP -- 8\r\n    CSURL_SERVERPUBLISHDELTA -- 40 (64)\r\n\r\n    2: 0:http://%1/CertEnroll/%3%8%9.crl\r\n\r\n    3: 0:file://%1/CertEnroll/%3%8%9.crl\r\n\r\nCertUtil: -getreg command completed successfully.\r\n"
+}
+
+--------------------------------------------------------------------------------
+Command:   qm guest exec 107 --timeout 60 -- certutil.exe -getreg 'CA\CACertPublicationURLs'
+Host:      CA01 (VM 107), via qm guest exec from the Proxmox host shell
+Timestamp: 2026-09-07T23:25:47Z
+--------------------------------------------------------------------------------
+
+{
+   "exitcode" : 0,
+   "exited" : 1,
+   "out-data" : "HKEY_LOCAL_MACHINE\\SYSTEM\\CurrentControlSet\\Services\\CertSvc\\Configuration\\district.local Issuing CA\\CACertPublicationURLs:\r\n\r\n  CACertPublicationURLs REG_MULTI_SZ =\r\n    0: 1:C:\\Windows\\system32\\CertSrv\\CertEnroll\\%1_%3%4.crt\r\n    CSURL_SERVERPUBLISH -- 1\r\n\r\n    1: 3:ldap:///CN=%7,CN=AIA,CN=Public Key Services,CN=Services,%6%11\r\n    CSURL_SERVERPUBLISH -- 1\r\n    CSURL_ADDTOCERTCDP -- 2\r\n\r\n    2: 0:http://%1/CertEnroll/%1_%3%4.crt\r\n\r\n    3: 0:file://%1/CertEnroll/%1_%3%4.crt\r\n\r\nCertUtil: -getreg command completed successfully.\r\n"
+}
+
+--------------------------------------------------------------------------------
+Command:   qm guest exec 107 --timeout 60 -- powershell.exe -NonInteractive -Command
+           "Get-ChildItem 'C:\Windows\System32\CertSrv\CertEnroll' |
+            Select-Object Name,Length,LastWriteTime | Format-Table -AutoSize |
+            Out-String -Width 200"
+Host:      CA01 (VM 107), via qm guest exec from the Proxmox host shell
+Timestamp: 2026-09-07T23:25:47Z
+--------------------------------------------------------------------------------
+
+{
+   "exitcode" : 0,
+   "exited" : 1,
+   "out-data" : "\r\nName                                                 Length LastWriteTime      \r\n----                                                 ------ -------------      \r\nCA01.district.local_district.local Issuing CA(1).crt   1415 9/7/2026 7:20:50 AM\r\nCA01.district.local_district.local Issuing CA(2).crt   1415 9/7/2026 7:19:01 AM\r\nCA01.district.local_district.local Issuing CA.crt      1415 9/7/2026 7:20:50 AM\r\ndistrict.local Issuing CA+.crl                         1013 9/7/2026 7:20:50 AM\r\ndistrict.local Issuing CA.crl                          1220 9/7/2026 7:20:50 AM\r\n\r\n\r\n\r\n"
+}
+
+--------------------------------------------------------------------------------
+Command:   qm guest exec 107 --timeout 60 -- powershell.exe -NonInteractive -Command
+           "Get-Content 'C:\Users\jsmith\%USERPROFILE%\c2\b-verify-as-jsmith.txt' -Raw"
+           The file itself was produced at CA01's console by jsmith with:
+           certutil -verify -urlfetch C:\c2\issuing-ca.cer > %USERPROFILE%\c2\b-verify-as-jsmith.txt 2>&1
+Host:      CA01 (VM 107)
+Timestamp: 2026-09-07T23:25:47Z (read back)
+--------------------------------------------------------------------------------
+
+{
+   "exitcode" : 0,
+   "exited" : 1,
+   "out-data" : "DecodeFile returned The system cannot find the file specified. 0x80070002 (WIN32: 2 ERROR_FILE_NOT_FOUND)\r\nLoadCert(Cert) returned The system cannot find the file specified. 0x80070002 (WIN32: 2 ERROR_FILE_NOT_FOUND)\r\nCertUtil: -verify command FAILED: 0x80070002 (WIN32: 2 ERROR_FILE_NOT_FOUND)\r\nCertUtil: The system cannot find the file specified.\r\n"
+}
+
+--------------------------------------------------------------------------------
+What this proves
+--------------------------------------------------------------------------------
+
+- SetupStatus is 1, SETUP_SERVER_FLAG only. Evidence/24 captured 769 immediately after
+  -installcert. SETUP_FORCECRL_FLAG is no longer set.
+- The CA has published a base CRL, "district.local Issuing CA.crl", 1220 bytes, and a
+  delta CRL, "district.local Issuing CA+.crl", 1013 bytes, both at 9/7/2026 7:20:50 AM.
+- CRLPublicationURLs holds four entries including an LDAP CDP with CSURL_SERVERPUBLISH,
+  CSURL_ADDTOCERTCDP, CSURL_ADDTOFRESHESTCRL and CSURL_ADDTOCRLCDP.
+- CACertPublicationURLs holds four entries including an LDAP AIA with CSURL_SERVERPUBLISH
+  and CSURL_ADDTOCERTCDP.
+- The CA's own CRL state is therefore not the cause of the enrollment failure.
+
+--------------------------------------------------------------------------------
+A defect in Claude's own commands, found by this read
+--------------------------------------------------------------------------------
+
+jsmith's console command used the literal path C:\c2\issuing-ca.cer and returned
+ERROR_FILE_NOT_FOUND. That file does not exist. The cause is Claude's earlier command,
+not the guest.
+
+    qm guest exec 107 --timeout 90 -- certutil.exe -ca.cert C:\c2\issuing-ca.cer
+
+The path is unquoted at the bash level. Bash consumes the backslashes as escapes and
+passes C:c2issuing-ca.cer, a drive-relative path. certutil wrote there and reported
+success. The -verify command in evidence/32 carried the identical mangling, so it read
+the same file that -ca.cert wrote. Evidence/32's chain output is genuine and its
+conclusion holds. The path recorded in evidence/32 is not the path that executed. A
+correction note is written into that file.
+
+Standing rule added to references/gotchas.md: quote Windows paths passed through
+qm guest exec at the bash level.
+
+--------------------------------------------------------------------------------
+Recalled, not captured
+--------------------------------------------------------------------------------
+
+The built-in "User" template also showed STATUS: Unavailable for jsmith, with the same
+detail text as the client-auth template. That was seen in a screenshot of the Certificate
+Enrollment wizard at 2026-09-07 23:25Z. It is Recalled. If the redirect ran, the file
+C:\Users\jsmith\h.txt on CA01 holds the same result and one read makes it Captured.
+
+If that result holds, the enrollment failure is CA-wide rather than template-specific,
+and the template ACL, template EKU, template schema version and the Windows Server 2016
+compatibility hypothesis are all excluded by a single observation.

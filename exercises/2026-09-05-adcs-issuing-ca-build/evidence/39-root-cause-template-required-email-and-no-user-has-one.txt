@@ -1,0 +1,203 @@
+# Root cause: the template required an e-mail name, and no user has one
+
+This file closes the enrollment question that three prior sessions could not. It also records
+the second, independent defect the fix uncovered.
+
+The route that found it: certreq -new plus certreq -submit, which bypasses the client-side
+availability check and returns the CA's own policy-module verdict. The enrollment wizard's
+"STATUS: Unavailable" text names permissions, CA location and CA trust. None of those was wrong.
+
+--------------------------------------------------------------------------------
+Command:   date -u
+Host:      Proxmox host shell
+Timestamp: 2026-09-08T00:23:19Z
+--------------------------------------------------------------------------------
+
+Tue Sep  8 12:23:19 AM UTC 2026
+
+--------------------------------------------------------------------------------
+Command:   certreq -new C:\c2\req.inf req.req > i.txt 2>&1
+           certreq -submit req.req cert.cer > j.txt 2>&1
+           run at CA01's console as DISTRICT\jsmith; CA picked from the Certification
+           Authority List dialog, which listed "district.local Issuing CA (Kerberos)"
+           on CA01.district.local
+           read back with: qm guest exec 107 ... Get-Content 'C:\Users\jsmith\j.txt' -Raw
+Host:      CA01 (VM 107)
+Timestamp: 2026-09-08T00:23:19Z (read back)
+--------------------------------------------------------------------------------
+
+i.txt:
+{
+   "exitcode" : 0,
+   "exited" : 1,
+   "out-data" : "Active Directory Enrollment Policy\r\n  {77E088F6-C935-47BE-95DF-5242384B2AF6}\r\n  ldap:\r\n\r\nCertReq: Request Created\r\n"
+}
+
+j.txt:
+{
+   "exitcode" : 0,
+   "exited" : 1,
+   "out-data" : "Active Directory Enrollment Policy\r\n  {77E088F6-C935-47BE-95DF-5242384B2AF6}\r\n  ldap:\r\nRequestId: 4\r\nRequestId: \"4\"\r\nCertificate not issued (Denied) Denied by Policy Module The EMail name is unavailable and cannot be added to the Subject or Subject Alternate name. 0x80094812 (-2146875374 CERTSRV_E_SUBJECT_EMAIL_REQUIRED)\r\n"
+}
+
+--------------------------------------------------------------------------------
+Command:   qm guest exec 100 --timeout 60 -- powershell.exe -NonInteractive -Command
+           'Get-ADObject -SearchBase "CN=Certificate Templates,CN=Public Key Services,
+            CN=Services,CN=Configuration,DC=district,DC=local"
+            -Filter {cn -eq "district.localClientAuthentication" -or cn -eq "User"}
+            -Properties cn,"msPKI-Certificate-Name-Flag","msPKI-Enrollment-Flag",
+            "msPKI-Template-Schema-Version" | Select-Object ... | Format-Table -AutoSize'
+           qm guest exec 100 --timeout 60 -- powershell.exe -NonInteractive -Command
+           'Get-ADUser jsmith -Properties mail,userPrincipalName,displayName |
+            Select-Object SamAccountName,UserPrincipalName,mail | Format-List'
+Host:      DC01 (VM 100), via qm guest exec from the Proxmox host shell
+Timestamp: 2026-09-08T00:26:21Z
+--------------------------------------------------------------------------------
+
+{
+   "exitcode" : 0,
+   "exited" : 1,
+   "out-data" : "\r\ncn                                 msPKI-Certificate-Name-Flag msPKI-Enrollment-Flag msPKI-Template-Schema-Version\r\n--                                 --------------------------- --------------------- -----------------------------\r\nUser                                               -1509949440                    41                             1\r\ndistrict.localClientAuthentication                 -1509949440                    41                             4\r\n\r\n\r\n\r\n"
+}
+{
+   "exitcode" : 0,
+   "exited" : 1,
+   "out-data" : "\r\n\r\nSamAccountName    : jsmith\r\nUserPrincipalName : jsmith@raytakosharkygmail.onmicrosoft.com\r\nmail              : \r\n\r\n\r\n\r\n\r\n"
+}
+
+--------------------------------------------------------------------------------
+Decoding the flag, against documentation
+--------------------------------------------------------------------------------
+
+-1509949440 as an unsigned 32-bit value is 2785017856, which is 0xA6000000.
+
+Bit names and values from Microsoft Learn, X509CertificateTemplateSubjectNameFlag
+enumeration (certenroll.h). Documentation, not a lab capture:
+
+  0x80000000  SubjectNameRequireDirectoryPath
+  0x20000000  SubjectNameRequireEmail
+  0x04000000  SubjectAlternativeNameRequireEmail
+  0x02000000  SubjectAlternativeNameRequireUPN
+
+0xA6000000 is exactly those four bits. Two of them require the e-mail attribute. jsmith's
+mail attribute is empty, so the CA's policy module denies the request.
+
+Both templates hold the identical value. The client-auth template is schema version 4 and
+User is schema version 1, so duplication changed the schema version and carried the name
+flags across unaltered. The e-mail requirement was inherited, not chosen.
+
+This also explains why the built-in User template appeared Unavailable for jsmith. Same flag
+value, same empty attribute, same denial. The failure looked CA-wide because two templates
+shared one requirement.
+
+--------------------------------------------------------------------------------
+The change, and Raymond's decision
+--------------------------------------------------------------------------------
+
+Asked on 2026-09-08 whether to change the template or populate mail on the user objects,
+Raymond chose the template change: "good lets go with the template change".
+
+Target value 0xA6000000 minus 0x20000000 minus 0x04000000 = 0x82000000, which is
+-2113929216 signed. That keeps SubjectNameRequireDirectoryPath and
+SubjectAlternativeNameRequireUPN. Entra CBA binds on SAN Principal Name to
+userPrincipalName by default, so UPN is the binding that matters.
+
+First attempt, from DC01 as SYSTEM. It failed, and the failure is a finding:
+
+{
+   "err-data" : "Set-ADObject : Insufficient access rights to perform the operation\r\n...ActiveDirectoryServer:8344,Microsoft.ActiveDirectory.Management.Commands.SetADObject\r\n",
+   "exitcode" : 1,
+   "exited" : 1
+}
+
+DC01's own machine account cannot modify a certificate template. Full Control on the object
+is held by Domain Admins, Enterprise Admins and DISTRICT\tmp-cainstall (evidence/34). No
+enabled account holds Enterprise Admins. The change was therefore made at CA01's console as
+DISTRICT\tmp-cainstall, using ADSI, in eight short lines ending in SetInfo(). The minor
+revision was bumped in the same write so enrollment clients treat their cached copy as stale.
+
+Verification, read back from DC01:
+
+--------------------------------------------------------------------------------
+Command:   qm guest exec 100 --timeout 60 -- powershell.exe -NonInteractive -Command
+           'Get-ADObject -Identity "CN=district.localClientAuthentication,CN=Certificate
+            Templates,CN=Public Key Services,CN=Services,CN=Configuration,DC=district,
+            DC=local" -Properties cn,"msPKI-Certificate-Name-Flag","revision",
+            "msPKI-Template-Minor-Revision" | Select-Object ... | Format-List'
+Host:      DC01 (VM 100), via qm guest exec from the Proxmox host shell
+Timestamp: 2026-09-08T00:37:54Z
+--------------------------------------------------------------------------------
+
+{
+   "exitcode" : 0,
+   "exited" : 1,
+   "out-data" : "\r\n\r\ncn                            : district.localClientAuthentication\r\nmsPKI-Certificate-Name-Flag   : -2113929216\r\nrevision                      : 100\r\nmsPKI-Template-Minor-Revision : 5\r\n\r\n\r\n\r\n\r\n"
+}
+
+Prior value for rollback: -1509949440, minor revision 4.
+
+--------------------------------------------------------------------------------
+Retest after the change, and the second defect
+--------------------------------------------------------------------------------
+
+CertSvc was restarted, then certreq -new and certreq -submit were run again at CA01's
+console as jsmith.
+
+--------------------------------------------------------------------------------
+Command:   certreq -new C:\c2\req.inf req2.req > m.txt 2>&1
+           certreq -submit req2.req cert2.cer > n.txt 2>&1
+           run at CA01's console as DISTRICT\jsmith
+           read back with: qm guest exec 107 ... Get-Content 'C:\Users\jsmith\n.txt' -Raw
+Host:      CA01 (VM 107)
+Timestamp: 2026-09-08T00:41:21Z (read back)
+--------------------------------------------------------------------------------
+
+{
+   "exitcode" : 0,
+   "exited" : 1,
+   "out-data" : "Active Directory Enrollment Policy\r\n  {77E088F6-C935-47BE-95DF-5242384B2AF6}\r\n  ldap:\r\nRequestId: 5\r\nRequestId: \"5\"\r\nCertificate not issued (Denied) Error Constructing or Publishing Certificate The revocation function was unable to check revocation for the certificate. 0x80092012 (-2146885614 CRYPT_E_NO_REVOCATION_CHECK)\r\n"
+}
+
+{
+   "exitcode" : 0,
+   "exited" : 1,
+   "out-data" : "\r\n"
+}
+
+No .cer file exists in C:\Users\jsmith. No certificate was issued.
+
+--------------------------------------------------------------------------------
+What this proves
+--------------------------------------------------------------------------------
+
+- The enrollment failure had two independent causes, stacked. The first hid the second.
+- Cause 1, now fixed: the template required the e-mail attribute in both the subject and
+  the SAN, inherited verbatim from the built-in User template by duplication, and no user
+  in district.local has mail populated. Error 0x80094812
+  CERTSRV_E_SUBJECT_EMAIL_REQUIRED, request 4.
+- Cause 2, now blocking: the CA cannot check revocation on its own chain while constructing
+  a certificate. Error 0x80092012 CRYPT_E_NO_REVOCATION_CHECK, request 5. This is the same
+  error code captured in evidence/32 at the chain-inspection stage, now appearing at the
+  issuance stage.
+- evidence/32's finding is promoted. It was recorded as real but not the enrollment blocker.
+  That was correct at the time, because the e-mail requirement failed first. It is the
+  blocker now.
+- Requests 4 and 5 both reached the CA and both received policy-module verdicts, so nothing
+  in the trust, rights, publication or reachability chain was ever broken.
+
+--------------------------------------------------------------------------------
+What this does not prove
+--------------------------------------------------------------------------------
+
+Whether cause 2 is the last one. Request 5 failed while constructing the certificate, so no
+stage after that has been exercised.
+
+--------------------------------------------------------------------------------
+Not recorded, deliberately
+--------------------------------------------------------------------------------
+
+A screenshot supplied at 2026-09-08T00:39Z showed an open Vaultwarden entry with a password
+in clear text. The value is not written here, in the ledger, or in the report. Raymond was
+told in session to treat it as disclosed and to rotate it. The control that failed is the
+same one the 2026-09-07 exercise was about: a secret visible in a channel that keeps a
+record. There the channel was a public repository; here it was a screenshot.

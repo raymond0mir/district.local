@@ -1,0 +1,76 @@
+# AD advertises the current CA certificate, not a stale one
+
+Disproves a hypothesis Claude raised in session 2026-09-07: that the pKIEnrollmentService
+object in AD held a CA certificate different from the one CertSvc runs, which would explain
+"a valid certification authority (CA) ... cannot be located". It does not. The thumbprint and
+serial match exactly.
+
+The hypothesis was raised because CertEnroll holds three .crt files with two distinct
+timestamps (evidence/37), showing the CA certificate was installed more than once.
+
+--------------------------------------------------------------------------------
+Command:   date -u
+Host:      Proxmox host shell
+Timestamp: 2026-09-08T00:18:59Z
+--------------------------------------------------------------------------------
+
+Tue Sep  8 12:18:59 AM UTC 2026
+
+--------------------------------------------------------------------------------
+Command:   qm guest exec 100 --timeout 90 -- powershell.exe -NonInteractive -Command
+           '$o = Get-ADObject -SearchBase "CN=Enrollment Services,CN=Public Key Services,
+            CN=Services,CN=Configuration,DC=district,DC=local"
+            -Filter {objectClass -eq "pKIEnrollmentService"}
+            -Properties cACertificate,dNSHostName,certificateTemplates,flags;
+            $c = New-Object System.Security.Cryptography.X509Certificates.X509Certificate2(,[byte[]]$o.cACertificate[0]);
+            "Thumbprint " + $c.Thumbprint; "Serial " + $c.SerialNumber; "Subject " + $c.Subject;
+            "NotAfter " + $c.NotAfter; "Flags " + $o.flags;
+            "TemplateCount " + @($o.certificateTemplates).Count'
+Host:      DC01 (VM 100), via qm guest exec from the Proxmox host shell
+Timestamp: 2026-09-08T00:19:53Z
+--------------------------------------------------------------------------------
+
+{
+   "exitcode" : 0,
+   "exited" : 1,
+   "out-data" : "Thumbprint 286C3546968D71398DE9C5276A4192039605454A\r\nSerial 098A6109D790919464DF8F1D8BD96EBCE56CDC08\r\nSubject CN=district.local Issuing CA, DC=district, DC=local\r\nNotAfter 09/04/2031 15:14:08\r\nFlags 10\r\nTemplateCount 12\r\n"
+}
+
+--------------------------------------------------------------------------------
+First attempt, recorded because it failed
+--------------------------------------------------------------------------------
+
+The same command with $o.cACertificate passed directly to the X509Certificate2 constructor
+returned, at 2026-09-08T00:18:59Z:
+
+{
+   "err-data" : "New-Object : Cannot convert argument \"0\", with value: \r\n\"Microsoft.ActiveDirectory.Management.ADPropertyValueCollection\", for \"X509Certificate2\" to type \"System.Byte[]\": \r\n\"Cannot convert value \"Microsoft.ActiveDirectory.Management.ADPropertyValueCollection\" to type \"System.Byte[]\". Error: \r\n\"Cannot convert the \"System.Byte[]\" value of type \"System.Byte[]\" to type \"System.Byte\".\"\"\r\n",
+   "exitcode" : 0,
+   "exited" : 1,
+   "out-data" : "Host CA01.district.local\r\nCertCount 1\r\nThumbprint \r\nSerial \r\nSubject \r\nNotAfter \r\n"
+}
+
+That run still carries two facts: dNSHostName is CA01.district.local, and cACertificate holds
+exactly one value. Get-ADObject returns a multi-valued attribute as an
+ADPropertyValueCollection; index it and cast, [byte[]]$o.cACertificate[0].
+
+--------------------------------------------------------------------------------
+What this proves
+--------------------------------------------------------------------------------
+
+- The pKIEnrollmentService object names CA01.district.local and holds exactly one
+  cACertificate value.
+- That certificate's thumbprint, 286C3546968D71398DE9C5276A4192039605454A, and serial,
+  098A6109D790919464DF8F1D8BD96EBCE56CDC08, match the running CA certificate read in
+  evidence/32 and the NTAuth entry read in evidence/33. All three agree.
+- certificateTemplates holds 12 values, matching the 12-entry issuance list captured in
+  evidence/29.
+- A stale CA certificate in AD is not the cause of the enrollment failure.
+
+--------------------------------------------------------------------------------
+Not decoded
+--------------------------------------------------------------------------------
+
+flags = 10 on the pKIEnrollmentService object is recorded verbatim. A Microsoft Learn search
+on 2026-09-08 returned the schema definition for the class and its attributes but no value
+table for this flags attribute. Do not cite a meaning for it.

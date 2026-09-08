@@ -1,0 +1,121 @@
+# jsmith's client-side view: the template is visible, and Domain Users can enroll
+
+The client-side capture this exercise has been missing since 2026-09-07. Produced at CA01's
+console by jsmith, written to jsmith's profile, then read back as SYSTEM through
+qm guest exec. Console output is Recalled; a file written at the console and read by
+machine is Captured.
+
+Two corrections are recorded at the end of this file.
+
+--------------------------------------------------------------------------------
+Command:   date -u
+Host:      Proxmox host shell
+Timestamp: 2026-09-07T23:13:39Z
+--------------------------------------------------------------------------------
+
+Mon Sep  7 11:13:39 PM UTC 2026
+
+--------------------------------------------------------------------------------
+Command:   whoami /groups > %USERPROFILE%\c2\c-whoami-groups.txt 2>&1
+           run at CA01's console as DISTRICT\jsmith
+           read back with: qm guest exec 107 --timeout 60 -- powershell.exe -NonInteractive
+           -Command "Get-Content 'C:\Users\jsmith\%USERPROFILE%\c2\c-whoami-groups.txt' -Raw"
+Host:      CA01 (VM 107)
+Timestamp: 2026-09-07T23:13:39Z (read back); written earlier the same session
+--------------------------------------------------------------------------------
+
+{
+   "exitcode" : 0,
+   "exited" : 1,
+   "out-data" : "\r\nGROUP INFORMATION\r\n-----------------\r\n\r\nGroup Name                                 Type             SID                                           Attributes                                        \r\n========================================== ================ ============================================= ==================================================\r\nEveryone                                   Well-known group S-1-1-0                                       Mandatory group, Enabled by default, Enabled group\r\nBUILTIN\\Users                              Alias            S-1-5-32-545                                  Mandatory group, Enabled by default, Enabled group\r\nBUILTIN\\Certificate Service DCOM Access    Alias            S-1-5-32-574                                  Mandatory group, Enabled by default, Enabled group\r\nNT AUTHORITY\\INTERACTIVE                   Well-known group S-1-5-4                                       Mandatory group, Enabled by default, Enabled group\r\nCONSOLE LOGON                              Well-known group S-1-2-1                                       Mandatory group, Enabled by default, Enabled group\r\nNT AUTHORITY\\Authenticated Users           Well-known group S-1-5-11                                      Mandatory group, Enabled by default, Enabled group\r\nNT AUTHORITY\\This Organization             Well-known group S-1-5-15                                      Mandatory group, Enabled by default, Enabled group\r\nLOCAL                                      Well-known group S-1-2-0                                       Mandatory group, Enabled by default, Enabled group\r\nDISTRICT\\PKI-CBA-Pilot                     Group            S-1-5-21-2288391267-384259729-2991373820-1133 Mandatory group, Enabled by default, Enabled group\r\nDISTRICT\\SG_Share_Site1_RW                 Group            S-1-5-21-2288391267-384259729-2991373820-1115 Mandatory group, Enabled by default, Enabled group\r\nAuthentication authority asserted identity Well-known group S-1-18-1                                      Mandatory group, Enabled by default, Enabled group\r\nMandatory Label\\Medium Mandatory Level     Label            S-1-16-8192                                                                                     \r\n\r\n"
+}
+
+--------------------------------------------------------------------------------
+Command:   certutil -template > %USERPROFILE%\c2\a-template-view.txt 2>&1
+           run at CA01's console as DISTRICT\jsmith
+           read back filtered with: Select-String -Pattern
+           'district|Client Authentication|Access|denied|cannot|Template'
+Host:      CA01 (VM 107)
+Timestamp: 2026-09-07T23:13:39Z (read back)
+--------------------------------------------------------------------------------
+
+Header line: "34 Templates:"
+
+Template[9], quoted verbatim from the read-back:
+
+  TemplatePropCommonName = district.localClientAuthentication
+  TemplatePropFriendlyName = district.local Client Authentication
+  TemplatePropSecurityDescriptor = O:S-1-5-21-2288391267-384259729-2991373820-1131G:S-1-5-21-2288391267-384259729-2991373820-519D:PAI(OA;;CR;0e10c968-78fb-11d2-90d4-00c04f79dc55;;S-1-5-21-2288391267-384259729-2991373820-1133)(OA;;RPWPCR;0e10c968-78fb-11d2-90d4-00c04f79dc55;;DA)(OA;;RPWPCR;0e10c968-78fb-11d2-90d4-00c04f79dc55;;DU)(OA;;RPWPCR;0e10c968-78fb-11d2-90d4-00c04f79dc55;;S-1-5-21-2288391267-384259729-2991373820-519)(A;;LCRPRC;;;S-1-5-21-2288391267-384259729-2991373820-1133)(A;;CCDCLCSWRPWPDTLOSDRCWDWO;;;DA)(A;;CCDCLCSWRPWPDTLOSDRCWDWO;;;S-1-5-21-2288391267-384259729-2991373820-519)(A;;CCDCLCSWRPWPDTLOSDRCWDWO;;;S-1-5-21-2288391267-384259729-2991373820-1131)(A;;LCRPLORC;;;AU)
+    Allow Enroll	DISTRICT\PKI-CBA-Pilot
+    Allow Enroll	DISTRICT\Domain Admins
+    Allow Enroll	DISTRICT\Domain Users
+    Allow Enroll	DISTRICT\Enterprise Admins
+    Allow Read	DISTRICT\PKI-CBA-Pilot
+    Allow Full Control	DISTRICT\Domain Admins
+    Allow Full Control	DISTRICT\Enterprise Admins
+    Allow Full Control	DISTRICT\tmp-cainstall
+
+Template[1], the built-in this template was duplicated from, quoted for comparison:
+
+  TemplatePropCommonName = ClientAuth
+  TemplatePropFriendlyName = Authenticated Session
+    Allow Enroll	DISTRICT\Domain Admins
+    Allow Enroll	DISTRICT\Domain Users
+    Allow Enroll	DISTRICT\Enterprise Admins
+    Allow Full Control	DISTRICT\Domain Admins
+    Allow Full Control	DISTRICT\Enterprise Admins
+
+--------------------------------------------------------------------------------
+Command:   certreq -enroll -user "district.local Client Authentication" > C:\Users\jsmith\d.txt 2>&1
+           run at CA01's console as DISTRICT\jsmith
+Host:      CA01 (VM 107)
+Timestamp: 2026-09-07T23:13:39Z (read back)
+--------------------------------------------------------------------------------
+
+{
+   "exitcode" : 0,
+   "exited" : 1,
+   "out-data" : "Active Directory Enrollment Policy\r\n  {77E088F6-C935-47BE-95DF-5242384B2AF6}\r\n  ldap:\r\nTemplate not found.  Do you wish to continue anyway?\r\n\r\ndistrict.local Client Authentication\r\nCertificate Request Processor: The request contains no certificate template information. 0x80094801 (-2146875391 CERTSRV_E_NO_CERT_TYPE)\r\n"
+}
+
+--------------------------------------------------------------------------------
+What this proves
+--------------------------------------------------------------------------------
+
+- jsmith's live token on CA01 carries DISTRICT\PKI-CBA-Pilot, SID
+  S-1-5-21-2288391267-384259729-2991373820-1133, "Enabled group".
+- jsmith's client enumerates 34 templates and Template[9] is the client-auth template.
+  The template is VISIBLE to jsmith. Read and Enroll are both present for
+  PKI-CBA-Pilot. Rights are not the blocker.
+- DISTRICT\Domain Users holds Allow Enroll on Template[9], via the SDDL ACE
+  (OA;;RPWPCR;0e10c968-78fb-11d2-90d4-00c04f79dc55;;DU). So do Domain Admins and
+  Enterprise Admins. DISTRICT\tmp-cainstall holds Allow Full Control.
+- The built-in ClientAuth template carries the identical Domain Users Enroll ACE.
+- certreq -enroll, given the FRIENDLY name, reports "Template not found" from the
+  Active Directory Enrollment Policy over ldap:, then fails with 0x80094801
+  CERTSRV_E_NO_CERT_TYPE.
+
+--------------------------------------------------------------------------------
+Corrections
+--------------------------------------------------------------------------------
+
+1. Claude proposed that jsmith's console token was stale and did not carry
+   PKI-CBA-Pilot, by analogy with the stale-ticket finding in evidence/26. The token
+   capture above disproves it. Recorded because the hypothesis was stated in session
+   before it was tested.
+
+2. The Confirmed ledger row "The `district.local Client Authentication` certificate
+   template is scoped as designed" is incomplete and its "scoped as designed" claim
+   does not hold. It cites evidence/28, which captured the enrollment ACEs as a
+   filtered list without principal names. The full ACL above shows Domain Users with
+   Allow Enroll. jsmith is the only member of PKI-CBA-Pilot, but PKI-CBA-Pilot is not
+   the only principal that can enroll. Retire and replace that row.
+
+--------------------------------------------------------------------------------
+Not proven
+--------------------------------------------------------------------------------
+
+Whether the enrollment failure is only a name-form artifact. Both certreq runs used
+the friendly name. The cn form, district.localClientAuthentication, is untested as of
+this file. The MMC failure message recorded on 2026-09-07 differs from 0x80094801 and
+is a separate observation.
