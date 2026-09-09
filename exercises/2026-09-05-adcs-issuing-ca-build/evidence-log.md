@@ -277,6 +277,101 @@ Exercise date derived from `date -u` on the Proxmox host: 2026-09-05T21:09:59Z.
   Enrollment wizard. The name form was a real artifact in earlier attempts and is not the
   underlying failure. `evidence/36`.
 
+- **The lab was fully stopped at session start, and the thin pool held 82.93 percent.** Metadata
+  4.03. Host up 15h32m with no reboot since 2026-09-07T22:28Z, so the four stopped guests were
+  stopped by hand. `evidence/40-preflight-ca-cert-reissue-session.txt`.
+- **The root CA had no `openssl ca` database, and the issuing CA's HTTP publication entries were
+  inert.** `rootca.cnf` carried no `[ ca ]` section, because `ca01.req` was signed with
+  `openssl x509 -req`, so no `index.txt`, `serial` or `crlnumber` existed. On the CA,
+  `CRLPublicationURLs` index 2 and `CACertPublicationURLs` index 2 both read `0:`, meaning no
+  flags: present in the configuration, applied to nothing. `SetupStatus` was 1, so no request was
+  pending. `CA cert count` was 3 with all three at `0x80092012`.
+  `evidence/41-root-config-and-ca-publication-urls.txt`.
+- **The root CRL was generated after building the database the root never had.** Issuer matches
+  the root, AKI matches the root's SKI, CRL number 4096, next update 2027-03-07, no revoked
+  certificates. `evidence/42-root-crl-generated-and-published-over-http.txt`, with the two
+  configurations stored verbatim as `evidence/rootca.cnf.20260905` and
+  `evidence/rootca.cnf.20260908`, and the CRL as `evidence/district-root.crl.pem`. Byte counts
+  match the container: 707, 2053, 995.
+- **The CDP name resolves inside the lab and serves the CRL over HTTP.** IIS installed on CA01 with
+  `RestartNeeded: No`. DC01 holds a domain-replicated primary zone `crl.districtsafetyphoto.com`
+  with an apex A record to 10.0.0.12. CA01 resolves the name to 10.0.0.12 and fetches the CRL with
+  status 200 and 697 bytes, matching the file.
+  `evidence/43-crl-published-over-http-and-split-horizon-zone.txt`.
+- **`certutil -renewcert ReuseKeys` writes its request and then hangs.** The request
+  `ca01(3).req`, 1974 bytes, appeared at 14:14:43Z and `SetupStatus` moved to 9,
+  `SETUP_SERVER_FLAG` plus `SETUP_REQUEST_FLAG`. The process never returned within 240 seconds.
+  `evidence/44-renewcert-writes-the-request-then-hangs-on-a-dialog.txt`.
+- **The hang is a user-interface wait, not a network wait.** Pid 3192 was `certutil` with 0.03125
+  CPU seconds and no TCP connections at all. `evidence/45-renewal-request-signed-with-cdp-and-aia.txt`.
+- **The renewal request was signed with a CDP and an AIA, reusing the key.** SKI
+  `B7:13:D8:86:24:A0:D2:2F:C1:64:28:38:03:80:71:E2:04:6D:4A:B7` matches the 2026-09-05 certificate,
+  which proves the key was reused. Serial 1000, valid to 2031-09-07, chain verifies against the
+  root. `evidence/45-renewal-request-signed-with-cdp-and-aia.txt`.
+- **The revocation blocker is fixed, and the remaining blocker is only the forest write.**
+  `certutil -urlfetch -verify` fetched the AIA and the CDP over HTTP, verified base CRL 1000, and
+  reported `dwErrorStatus=0` on both chain elements with "Leaf certificate revocation check
+  passed", exit 0. The same run's `-installcert` failed in under 90 seconds with
+  `0x80072098 ERROR_DS_INSUFF_ACCESS_RIGHTS`. Before the CDP existed the same call hung until
+  timeout. `evidence/46-revocation-check-passes-install-denied-for-rights.txt`.
+- **A certificate issued.** Request 5, disposition `0x14 (20) -- Issued`, status code 0, submitted
+  2026-09-08T00:40Z, resolved 2026-09-08T14:34Z. The disposition message reads "Issued
+  Resubmitted by DISTRICT\CA01$". After the console install, `CA cert count` moved from 3 to 5 and
+  the two new indices both verify at 0. `evidence/47-console-installcert-succeeds-and-request-5-issues.txt`.
+- **The CRL was published and the temporary grant was removed.** `certutil -CRL` returned success
+  and `SetupStatus` returned to 1, clearing `SETUP_FORCECRL_FLAG`. `Enterprise Admins` is back to
+  `Administrator` alone, which is disabled.
+  `evidence/48-crl-published-and-enterprise-admins-grant-removed.txt`.
+- **The issued certificate is a usable client-authentication certificate and the whole chain
+  verifies.** Subject `CN=John Smith, OU=Site 1, OU=Test Users`, template `district.local Client
+  Authentication` minor version 5, EKU Client Authentication only, SAN `Principal Name` carrying
+  the UPN, and no e-mail attribute anywhere. Every chain element reports `dwErrorStatus=0` and the
+  run ends "Leaf certificate revocation check passed".
+  `evidence/49-issued-certificate-and-full-chain-verify.txt`.
+
+### Continuing 2026-09-08, HTTP CDP on issued certificates
+
+- **The HTTP CDP entry now carries `CSURL_ADDTOCERTCDP`, and certificates the CA issues will carry
+  an HTTP CDP.** `CRLPublicationURLs` index 2 changed from `0:http://%1/CertEnroll/%3%8%9.crl` to
+  `2:http://crl.districtsafetyphoto.com/pki/issuingca.crl`, confirmed before and after the edit,
+  across two attempts. `CertSvc` restarted cleanly both times.
+  `evidence/50-http-cdp-on-issued-certificates-and-the-iis-404-11-fix.txt`.
+- **The first attempt kept the default `%3%8%9` filename template and IIS refused to serve it.**
+  `certutil -CRL` wrote `district.local Issuing CA+.crl`; `+` is the DeltaCRLAllowed marker,
+  standard AD CS naming. IIS returned 404.11, "the request filtering module is configured to deny
+  a request that contains a double escape sequence" — a documented AD CS and IIS interaction, not
+  a misconfiguration from this session. `evidence/50`.
+- **The fix: a fixed literal filename, not the default template.** Index 2 now reads
+  `issuingca.crl`. The file was copied under that name to `C:\inetpub\wwwroot\pki`, replacing the
+  first attempt's copy. Fetch over HTTP returned status 200, 1013 bytes, matching the file written
+  to `CertEnroll` exactly. `evidence/50`.
+- **The enrollment INF from requests 4 and 5 is confirmed still present on CA01.** `C:\c2\req.inf`
+  requests `CN=jsmith` under `district.localClientAuthentication`, unchanged. The next enrollment
+  reuses it rather than rebuilding it. `evidence/50`.
+- **Request 7, a fresh enrollment after the CDP fix, issued and carries an HTTP CDP.** Submitted
+  and resolved at CA01's console as `jsmith`, 2026-09-08 11:26 PM, Captured against the CA's own
+  database, not the console screenshot. The issued certificate's CRL Distribution Points extension
+  lists both the LDAP URL and `http://crl.districtsafetyphoto.com/pki/issuingca.crl`. Request 5,
+  issued before the fix, carries LDAP only. `evidence/51`.
+- **The full chain verifies for request 7.** `certutil -urlfetch -verify` returns `dwErrorStatus=0`
+  on all three chain elements and "Leaf certificate revocation check passed". The run satisfied
+  revocation over LDAP, since CA01 is domain-joined; it did not independently exercise the HTTP CDP
+  path, which the earlier direct HTTP fetch already proved separately. Whether Entra CBA — which
+  cannot use LDAP — succeeds against the HTTP path alone is not tested here. `evidence/51`.
+- **`DISTRICT\Domain Users`' Allow Enroll ACE is removed from `district.localClientAuthentication`,
+  before and after.** The object held exactly one `Domain Users` ACE, Allow, ReadProperty +
+  WriteProperty + ExtendedRight on the Certificate-Enrollment object type. `tmp-cainstall`'s Full
+  Control carried the write, at CA01's console, via a script staged through `qm guest exec` rather
+  than typed by hand. A second read from DC01, a different vantage than the console session that
+  made the change, confirms no `Domain Users` ACE remains. `evidence/52`.
+- **`tmp-cainstall` is disabled, before and after.** Moved from `Enabled: True` to `Enabled: False`.
+  `DISTRICT\DC01$`, as SYSTEM over `qm guest exec`, could disable the account, a different outcome
+  than the same identity's denied write on the certificate template in `evidence/39`. Disabled
+  rather than deleted, Raymond's decision after asking whether deletion was Microsoft best
+  practice: `district.local` has no AD Recycle Bin, so a delete would not be reversible; disabling
+  closes the practical risk the same way, since a disabled account cannot exercise its standing
+  Full Control ACE. `evidence/53`.
+
 ## Not captured, and why
 
 - **`InstallState: 1` is an unresolved enum, exactly like `RestartNeeded: 1`.**
@@ -319,6 +414,21 @@ Exercise date derived from `date -u` on the Proxmox host: 2026-09-05T21:09:59Z.
 - **The time of day of the CA certificate installs.** `CertEnroll` holds three `.crt` files
   timestamped 7:19:01 AM and 7:20:50 AM on 9/7/2026, which shows the certificate was installed
   more than once, but no capture records why or by which command.
+
+- **Why the renewal produced two CA certificates, not one.** `CA cert count` moved from 3 to 5.
+  `CertEnroll` holds `...Issuing CA(3).crt` written 14:34:40 local and `...Issuing CA(4).crt`
+  written 14:32:31 local, both 1562 bytes, the same size as the certificate that was installed.
+  The console install ran at about 14:32 local and the CertSvc restart at about 14:34. No capture
+  distinguishes which action created which index.
+- **Whether `CRL[1]` through `CRL[4]` reporting "No CRL for this Cert" is a display artifact.**
+  All five CA certificates share key index 0, and AD CS publishes one CRL per key, so one CRL
+  under index 0 may be the correct and complete state. `certutil -CRL` succeeded and
+  `SETUP_FORCECRL_FLAG` cleared, and the leaf's chain check passed, so nothing observable is
+  broken. The reading itself is not explained.
+- **Whether the public CDP URL is reachable from outside the lab.** It is not, and cannot be
+  tested. Raymond owns `districtsafetyphoto.com` and has no hosting for it. Inside the lab the name
+  resolves only because DC01 holds an overriding zone. VM 104 is stopped, so DC01 cannot reach its
+  forwarders and no public name resolves from the lab at all.
 
 ## Where Raymond was consulted
 
@@ -388,6 +498,38 @@ Exercise date derived from `date -u` on the Proxmox host: 2026-09-05T21:09:59Z.
   that Entra CBA accepts one CDP per trusted CA and it must be an HTTP URL, with LDAP and OCSP
   unsupported — so a workaround would issue one certificate and still block C2's goal. Open at the
   time of writing.
+
+- **Which name goes in the CDP, an internal one or the public one?** Claude named the cost of each:
+  an internal name unblocks issuance tonight and forces a second reissue when Entra CBA needs a
+  public HTTP CDP. Raymond: "use the public name so we don't have to reissue twice". He confirmed
+  he owns the domain and has no hosting yet. Claude therefore built split-horizon DNS on DC01 so
+  the baked URL resolves inside the lab now and needs no certificate change when hosting exists.
+- **Should VM 104 be running?** Raymond asked. Claude said no, for two captured reasons: the
+  evening's path needs no egress, and 1.0 GiB was available on a 15 GiB host with three guests up.
+  Claude also named what it had not captured, that pfSense's role and the identity of 10.0.0.1 were
+  assumed, and added the reads. DC01's forwarders are 1.1.1.1 and 8.8.8.8, and pfSense holds both
+  bridges, so no public name resolves in the lab while 104 is down.
+- **Re-grant `Enterprise Admins` to `tmp-cainstall`?** Raymond volunteered before being asked:
+  "Ready to grant tmp-cainstall Enterprise Admins again if needed". Claude confirmed it was needed,
+  named the object, and stated that the grant does not help `qm guest exec`, which authenticates as
+  `CA01$`. The install ran at CA01's console under a logon taken after the group change. The grant
+  was removed in the same session, 2026-09-08T14:37Z, about three minutes after the install.
+
+- **Fixed literal CRL filename, or `allowDoubleEscaping` on the IIS `/pki` path?** Raised
+  2026-09-08 after the default-template filename tripped IIS 404.11. Claude named the tradeoff:
+  the fixed name costs a rename on every future copy; `allowDoubleEscaping` matches Microsoft's own
+  cited workaround but disables a request-filtering guard against double-encoded paths for every
+  request under `/pki`, not only this filename. Raymond: "go with option A and we document the
+  reasoning against B." No queued exercise needs the default delta-CRL naming preserved on this
+  path, so the fixed name costs nothing else. `evidence/50`.
+- **Retire `tmp-cainstall` by deletion, or disable it?** Raised 2026-09-09, named as the follow-on
+  to the ACE removal. Claude first recommended delete. Raymond asked: "would that be microsoft
+  best practice?" Claude revised the recommendation on that question: Microsoft's general guidance
+  is disable, then delete after a retention window, not immediate hard delete, because
+  `district.local` has AD Recycle Bin disabled and a delete would not be reversible, and because a
+  deleted object's SID can persist unresolvable in ACLs nobody has checked yet. Disabling closes
+  the practical risk the same way a delete would, since a disabled account cannot exercise its
+  standing Full Control ACE. Raymond: "disable it". `evidence/53`.
 
 ## Corrections
 
@@ -536,6 +678,48 @@ Exercise date derived from `date -u` on the Proxmox host: 2026-09-05T21:09:59Z.
   CA01's grace does not end about 2026-09-15. Both rest on short `GracePeriodRemaining` readings
   taken within minutes of a restart or install. `evidence/31`, `evidence/35`.
 
+- **`CARRYOVER.md` said tonight's C2 work was unstaged.** It is not. `git status` returns a clean
+  tree, and commits `4fd32c1` and `97a1a7c` hold evidence 30 to 39, this log, `verified-claims.md`,
+  `EXPOSURES.md` and `references/gotchas.md`. The carryover block was Recalled and wrong. Caught
+  2026-09-08 at the start of the reissue session, before any command ran.
+- **`evidence/03` says the elided `rootca.cnf` heredoc "is reproduced verbatim in report.md".**
+  It is not. `report.md` contains no openssl configuration. The root CA configuration is captured
+  nowhere in this repository. The note miscites its own report. Re-capture from container 106 is
+  owed, and is needed anyway to add the CDP extension.
+
+- **Claude's inspection command failed on Claude's own quoting defect.** The doubled single quotes
+  around a `.ToString()` format string, written to escape a nested quote inside a bash
+  single-quoted argument, produced `Missing ')' in method call`. This was not a box behavior. It
+  was re-run correctly at 14:40:31Z. `evidence/48`, `evidence/49`.
+- **`CARRYOVER.md`'s plan for this session was wrong on its central step.** It said to re-sign
+  `ca01.req` and reinstall with `certutil -installcert`. `SetupStatus` was 1 with only
+  `SETUP_SERVER_FLAG`, so no request was pending and there was nothing for `-installcert` to
+  complete. The supported path was a renewal that reuses the key and emits a fresh request. Caught
+  before any command ran against the CA. `evidence/41`.
+- **`EXPOSURES.md` said reissuing the issuing CA certificate would fix on-premises issuance and the
+  tenant path together.** The first half is now Captured. The second half is not: the issued leaf
+  certificate carries an LDAP CDP only, because the CA's HTTP `CRLPublicationURLs` entry has no
+  flags set. Reissuing the CA certificate did not put an HTTP CDP on the certificates the CA
+  issues. That is a separate registry change. `evidence/49`, `evidence/41`.
+
+- **Claude repeated an already-documented gotcha, then misdiagnosed the result as a box behavior
+  twice before checking its own command.** `references/gotchas.md` has carried, since 2026-09-07,
+  "Quote every Windows path passed through `qm guest exec`. Bash consumes unquoted backslashes as
+  escapes." Claude sent `certutil.exe -dump -v C:\issued-7.cer` unquoted anyway. Outside quotes,
+  bash treats `\` as an escape character: `\i` became a literal `i`, so `certutil` received
+  `C:issued-7.cer` — a path relative to its own working directory, not the file at the drive root.
+  `certutil` correctly reported that relative path missing. Claude first attributed this to a
+  `certreq -retrieve` hang and an orphaned process (pid 3108), and drafted an Open question about
+  an "unexplained timing gap," instead of re-reading its own command against a gotcha already on
+  file. The certificate file had existed the whole time; every bare `certutil.exe` read against it
+  failed the same way until the path was quoted, matching evidence/49's precedent for request 5.
+  `evidence/51`.
+- **The console-typed `certreq -submit` first ran with the wrong arguments.** Console history
+  recall left `-new`'s arguments (`C:\c2\req.inf C:\Users\jsmith\req3.req`) in place after only the
+  verb was edited to `-submit`, which would have submitted the plain-text INF instead of the
+  generated request. Caught before the resulting Certification Authority List dialog was confirmed;
+  cancelled and retyped correctly. `evidence/51`.
+
 ## Open questions
 
 - **What `RestartNeeded: 1` and `InstallState: 1` mean.** Both are enums rendered as integers.
@@ -632,6 +816,29 @@ Exercise date derived from `date -u` on the Proxmox host: 2026-09-05T21:09:59Z.
   password in clear text. The value is in no artifact. Rotation was recommended in session and is
   not confirmed.
 
+- Why did the renewal create two CA certificate indices rather than one, and is index 3 or index 4
+  the one the CA now signs with?
+- Is `CRL[n]: 1 -- Error: No CRL for this Cert` on four of five indices correct behavior for a CA
+  whose certificates share one key?
+- Do the three superseded CA certificates, indices 0 to 2, still at `0x80092012`, cause any
+  practical failure, or are they inert history?
+- What breaks first when `district-root.crl` expires on 2027-03-07, and what regenerates it? The
+  root is an offline container that is normally stopped.
+- ~~Does turning on `CSURL_ADDTOCERTCDP` for the HTTP entry require reissuing every certificate
+  already issued, including request 5?~~ **Answered.** No. Request 5's certificate, retrieved
+  fresh from the CA database, still carries an LDAP-only CDP. The flag only affects certificates
+  issued after the change; nothing reissues retroactively. `evidence/51`.
+- **Why did the second `certreq -retrieve` attempt orphan pid 3108 on CA01?** 0.125 CPU seconds, no
+  TCP connections, never exited within 60 seconds. Retrieving an already-retrieved request ID may
+  trigger a UI prompt with no desktop to render into, matching the class of hang already known from
+  `-installcert`'s revocation dialog — not confirmed. Did not block the exercise, since the first
+  retrieval attempt's file was valid.
+- **Does Entra CBA succeed against the HTTP-only CDP path alone?** `certutil -urlfetch -verify`
+  satisfied revocation over LDAP, since CA01 is domain-joined; it never independently exercised the
+  HTTP path. The HTTP fetch itself works (evidence/50), but no test here removes LDAP from the
+  picture the way Entra actually would. Untested, and separately blocked on public hosting for
+  `crl.districtsafetyphoto.com`.
+
 ## Paused
 
 Session 1 paused 2026-09-05T22:29:21Z at Raymond's request, with the CA built but not running.
@@ -671,8 +878,13 @@ Enrollment did not resolve; it moved to a second blocker. One session should fin
 ### Session 5 close, 2026-09-08
 
 - The reissue of the issuing CA certificate with a CDP extension, and publication of the root CRL
-  over HTTP. Chosen by Raymond as the next session's work.
-- Removal of the `Domain Users` Enroll ACE from the client-auth template.
+  over HTTP. Chosen by Raymond as the next session's work. **Done, 2026-09-08. `evidence/40`
+  through `evidence/51`.**
+- ~~Removal of the `Domain Users` Enroll ACE from the client-auth template.~~ **Done, 2026-09-09.
+  `evidence/52`.**
 - Whether tenant CBA is P2-gated. `CURRICULUM.md` flags it as not captured, and A3 never tested
   CBA. It needs a read inside the trial window, which ends 2026-10-04.
-- B4's PT4H re-run, still owed and still trial-gated.
+- B4's PT4H re-run, still owed and still trial-gated at this heading's date. **Closed 2026-09-09
+  in the B4 exercise, not this one. See that exercise's own record.**
+- ~~Retiring `tmp-cainstall`, named 2026-09-08 as the follow-on to the ACE removal.~~ **Disabled
+  2026-09-09. `evidence/53`. Deletion deferred to a retention window, Raymond's decision.**

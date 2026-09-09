@@ -125,3 +125,26 @@ The fact that changes the decision is new. `a5270df` weighed two files holding t
 did not weigh whether the skill loads at all. It does not load by default. A session start shows
 only its `description`. That makes the duplication argument the wrong test, and makes load
 guarantee the right one.
+
+## `evidence-modified` cannot see the difference between new and altered, 2026-09-09
+
+`check_evidence_immutability` builds `changed` from `git diff --name-only` and
+`git diff --cached --name-only`. An exercise counts as closed once `report.md` exists. Adding new
+evidence to a closed exercise therefore raises one ERROR per file, and every one of them clears
+the moment the commit lands.
+
+Staging ADCS evidence 40 through 53 took the run from 1 ERROR to 18. Seventeen were this artifact.
+The check intends immutability of published evidence. A file that does not exist in `HEAD` is not
+published, so it cannot have been altered. Compare against `HEAD` rather than the index, or
+exclude paths absent from `HEAD`.
+
+**A correction on the record.** Commit `fdf8dcc` states "validate.py reports 1 ERROR, not 16",
+against the prior carryover's claim of 16. The 1 was measured with the ADCS evidence untracked, so
+those files were never examined. Staged, the same tree reports 18. The prior carryover's 16 was
+closer to the truth than that commit message allows. The count is conditional on what is tracked,
+and no bare number should be quoted without saying which.
+
+**Consequence for `validation.json`.** Regenerating it while the exercise is staged records 18
+ERRORs, a state that is false one second after the commit. The file was left at its committed
+value for the ADCS commit and refreshed afterward, which is what commits 97a1a7c and b1b4b9c
+already do.

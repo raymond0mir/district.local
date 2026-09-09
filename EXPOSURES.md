@@ -3,7 +3,7 @@
 A standing list of what's actually still wrong or open in `district.local`, built only from
 captured facts in `verified-claims.md` and the exercises' own evidence files — nothing here is
 inferred or remembered without a citation. Doubles as the queue for what the next exercise
-should be. Updated as of 2026-09-07; check `verified-claims.md` for anything more recent before
+should be. Updated as of 2026-09-08; check `verified-claims.md` for anything more recent before
 trusting a line here.
 
 ## Identity and access
@@ -203,65 +203,65 @@ has no working interactive logon path, recorded above; CA01 now makes two. *Evid
 `exercises/2026-09-05-adcs-issuing-ca-build/evidence/21-ca01-ldap-read-succeeds-write-denied.txt`,
 `exercises/2026-09-05-adcs-issuing-ca-build/evidence/19-tmp-cainstall-removed-from-enterprise-admins.txt`.
 
-**The issuing CA is live, and it cannot issue a certificate because it cannot check revocation
-on its own chain.** Supersedes the entry that said no client could enrol from it, and the earlier
-one that said the CA could not start. The enrolment question is answered and closed. Its cause was
-not trust, rights, publication or reachability: the `district.local Client Authentication` template
-required the e-mail attribute in both the subject and the subject alternative name, inherited
-verbatim from the built-in `User` template by duplication, and no user in `district.local` has
-`mail` populated. `certreq -submit` returned request 4 `Denied by Policy Module`,
-`0x80094812 CERTSRV_E_SUBJECT_EMAIL_REQUIRED`. Raymond chose to fix the template rather than
-populate `mail`; `msPKI-Certificate-Name-Flag` moved from `-1509949440` to `-2113929216` on
-2026-09-08, keeping the directory-path subject and UPN in the SAN. Request 5 then failed
-differently: `Error Constructing or Publishing Certificate`,
-`0x80092012 CRYPT_E_NO_REVOCATION_CHECK`. **That is now the blocker.** The root CA publishes no
-CRL and the issuing CA certificate carries no CDP, so the CA cannot validate revocation on its own
-chain while constructing a certificate. Two independent defects were stacked and the first hid the
-second. Whether revocation is the last one is unknown, because no stage past certificate
-construction has been exercised. Next step, decided by Raymond 2026-09-08: reissue the issuing CA
-certificate from the root with a CDP extension and publish the root CRL over HTTP. *Evidence:*
-`exercises/2026-09-05-adcs-issuing-ca-build/evidence/39-root-cause-template-required-email-and-no-user-has-one.txt`,
-`exercises/2026-09-05-adcs-issuing-ca-build/evidence/32-issuing-ca-chain-builds-revocation-unknown.txt`,
-`exercises/2026-09-05-adcs-issuing-ca-build/evidence/36-ca-security-allows-authenticated-users-to-enroll.txt`.
+**~~The issuing CA is live, and it cannot issue a certificate.~~ Closed 2026-09-08.** The CA
+issues. Request 5 resolved `0x14 (20) -- Issued` with status code 0 at 14:34Z, and the full
+three-element chain verifies with `dwErrorStatus=0` at every level and `Leaf certificate revocation
+check passed`. Two stacked defects caused the four-session block, and both are fixed: the template
+required an e-mail attribute no account has, corrected 2026-09-08 by moving
+`msPKI-Certificate-Name-Flag` from `-1509949440` to `-2113929216`; and the issuing CA certificate
+carried no CRL distribution point, corrected the same day by generating a root CRL, publishing it
+over HTTP, and reissuing the CA certificate with a CDP and an AIA while reusing the key. Kept here
+because the *sequence* is the lesson: the first defect hid the second for four sessions, and the
+second was visible in `evidence/32` a day before it became the active blocker. *Evidence:*
+`exercises/2026-09-05-adcs-issuing-ca-build/evidence/47-console-installcert-succeeds-and-request-5-issues.txt`,
+`exercises/2026-09-05-adcs-issuing-ca-build/evidence/49-issued-certificate-and-full-chain-verify.txt`.
 
-**The root CA certificate is published to AD with no CRL distribution point, by decision, and the
-consequence is now larger than the one accepted.** Raymond chose Option A on 2026-09-05: no public
-HTTP endpoint, and therefore no working revocation. The root certificate carries
-`basicConstraints`, `keyUsage`, SKI and AKI, and no CDP. It is already published into
-`CN=Certification Authorities` and `CN=AIA`. The accepted consequence was that a revoked
-certificate would not be blocked once CBA was live. **Two further consequences are now captured or
-documented.** First, the CA cannot issue at all: request 5 on 2026-09-08 was denied with
-`0x80092012 CRYPT_E_NO_REVOCATION_CHECK` while constructing the certificate, because the chain
-carries no AIA, CDP or OCSP URL at any level and `CERT_TRUST_REVOCATION_STATUS_UNKNOWN` is the only
-chain error. Second, Microsoft documents that Entra certificate-based authentication accepts exactly
-one CDP per trusted CA, that the CDP must be an HTTP URL, and that OCSP and LDAP URLs are not
-supported — so the LDAP CDP configured on the issuing CA cannot serve Entra CBA even once issuance
-works. That is Microsoft Learn, not a lab capture. Reissuing the issuing CA certificate with an
-HTTP CDP therefore fixes on-premises issuance and the tenant path together, which is why Raymond
-chose it on 2026-09-08. *Evidence:*
-`exercises/2026-09-05-adcs-issuing-ca-build/evidence/04-root-cert-extensions-and-vm-configs.txt`,
-`exercises/2026-09-05-adcs-issuing-ca-build/evidence/21-ca01-ldap-read-succeeds-write-denied.txt`.
+**The root CA now publishes a CRL over HTTP, and the URL is served by nothing public.** Raymond
+reversed the 2026-09-05 Option A decision on 2026-09-08: "use the public name so we don't have to
+reissue twice." The root CRL now exists, valid to 2027-03-07, and the reissued issuing CA
+certificate carries `http://crl.districtsafetyphoto.com/pki/district-root.crl` as its CDP and the
+matching `.crt` as its AIA. On-premises issuance works because of this. **The residual exposure is
+that the baked URL resolves only inside the lab.** DC01 holds a domain-replicated primary zone for
+`crl.districtsafetyphoto.com` with an apex A record to CA01, which overrides public DNS for that one
+name. Raymond owns the domain and has no hosting for it. Until hosting exists, any relying party
+outside `district.local` — Entra above all — cannot fetch the root CRL, and standing up that hosting
+is now a hard dependency of tenant CBA rather than an optional step. A second consequence: the CRL
+expires 2027-03-07 and nothing in the lab regenerates or republishes it, on a root container that is
+normally stopped. *Evidence:*
+`exercises/2026-09-05-adcs-issuing-ca-build/evidence/42-root-crl-generated-and-published-over-http.txt`,
+`exercises/2026-09-05-adcs-issuing-ca-build/evidence/43-crl-published-over-http-and-split-horizon-zone.txt`.
 
-**`DISTRICT\tmp-cainstall` holds standing Full Control over a production certificate template.**
-It was created 2026-09-05 for one task, stripped of Enterprise Admins the same day, and its Full
-Control ACE on `district.localClientAuthentication` was never removed. On 2026-09-08 that made it
-the only non-tier-0 identity able to change the template, because `Set-ADObject` as `DC01$` returns
-`Insufficient access rights` and no enabled account holds Enterprise Admins. The grant was used,
-deliberately and on the record, to apply the e-mail-flag fix. A grant in use is not a grant that is
-appropriate: this is the permission-sprawl pattern in a PKI trust object rather than a group — a
-temporary account whose standing access outlived its task. *Evidence:*
+**~~`DISTRICT\tmp-cainstall` holds standing Full Control over a production certificate template.~~
+Disabled 2026-09-09, not yet deleted.** It was created 2026-09-05 for one task, stripped of
+Enterprise Admins the same day, and its Full Control ACE on `district.localClientAuthentication`
+was never removed. The grant was used twice, deliberately and on the record: to apply the
+e-mail-flag fix 2026-09-08, and to remove `Domain Users`' Allow Enroll ACE 2026-09-09 — the same
+permission-sprawl pattern recurring rather than a one-off. Raymond asked in session whether
+deleting the account was Microsoft best practice; the answer is no, because `district.local` has
+AD Recycle Bin disabled and a delete would not be reversible, and a deleted object's SID can
+persist unresolvable in ACLs nobody has checked. `tmp-cainstall` is disabled instead: it cannot
+authenticate, so the Full Control ACE is unusable, and the object, the ACE, and its CA01
+local-admin membership all remain intact for inspection. Deletion is deferred to a retention
+window. *Evidence:*
 `exercises/2026-09-05-adcs-issuing-ca-build/evidence/34-jsmith-client-view-template-visible-domain-users-can-enroll.txt`,
-`exercises/2026-09-05-adcs-issuing-ca-build/evidence/39-root-cause-template-required-email-and-no-user-has-one.txt`.
+`exercises/2026-09-05-adcs-issuing-ca-build/evidence/39-root-cause-template-required-email-and-no-user-has-one.txt`,
+`exercises/2026-09-05-adcs-issuing-ca-build/evidence/52-domain-users-enroll-ace-removed-before-after.txt`,
+`exercises/2026-09-05-adcs-issuing-ca-build/evidence/53-tmp-cainstall-disabled.txt`.
 
-**`DISTRICT\Domain Users` holds Allow Enroll on the client-auth template.** The template was built
-to scope certificate enrolment to `PKI-CBA-Pilot`, whose only member is `jsmith`. The ACE
-`(OA;;RPWPCR;0e10c968-78fb-11d2-90d4-00c04f79dc55;;DU)` sits beside it and grants the same right to
-every domain user. The built-in `ClientAuth` template the object was duplicated from carries the
-identical ACE, so this arrived by duplication and was never removed — the same mechanism that
-brought in the e-mail requirement. `PKI-CBA-Pilot` restricts nothing while this ACE stands. Left
-unchanged on 2026-09-08 deliberately, to keep one variable at a time during the root-cause work; it
-needs its own before-and-after. *Evidence:*
-`exercises/2026-09-05-adcs-issuing-ca-build/evidence/34-jsmith-client-view-template-visible-domain-users-can-enroll.txt`.
+**~~`DISTRICT\Domain Users` holds Allow Enroll on the client-auth template.~~ Closed 2026-09-09.**
+The template was built to scope certificate enrolment to `PKI-CBA-Pilot`, whose only member is
+`jsmith`. The ACE `(OA;;RPWPCR;0e10c968-78fb-11d2-90d4-00c04f79dc55;;DU)` sat beside it and granted
+the same right to every domain user, arrived by duplication from the built-in `ClientAuth` template
+— the same mechanism that brought in the e-mail requirement, never independently removed. Left
+unchanged on 2026-09-08 deliberately, to keep one variable at a time during the root-cause work.
+Removed 2026-09-09 at CA01's console as `DISTRICT\tmp-cainstall`, using its standing Full Control
+on the object. A before-and-after from two vantages — the console session that made the change,
+and a separate read from DC01 over `qm guest exec` — both show no `Domain Users` ACE remains.
+`PKI-CBA-Pilot` now actually gates who can request this certificate type; that end-to-end claim
+is still untested, since no enrollment attempt as a non-member has been made either before or
+after. *Evidence:*
+`exercises/2026-09-05-adcs-issuing-ca-build/evidence/34-jsmith-client-view-template-visible-domain-users-can-enroll.txt`,
+`exercises/2026-09-05-adcs-issuing-ca-build/evidence/52-domain-users-enroll-ace-removed-before-after.txt`.
 
 **No user object in `district.local` has the `mail` attribute populated.** Captured for `jsmith`
 only; the domain-wide answer is not captured. It is recorded because it silently broke certificate
@@ -270,6 +270,53 @@ enrolment for every template that builds a subject from the directory, including
 Not fixed: on 2026-09-08 Raymond chose to change the template rather than populate the attribute,
 so this stays as directory hygiene rather than a remediation. *Evidence:*
 `exercises/2026-09-05-adcs-issuing-ca-build/evidence/39-root-cause-template-required-email-and-no-user-has-one.txt`.
+
+**~~The certificates the issuing CA hands out carry an LDAP CRL distribution point and no HTTP
+one, so Entra CBA is still blocked.~~ Closed 2026-09-08, on the CA side.** `CRLPublicationURLs`
+index 2 now reads `2:http://crl.districtsafetyphoto.com/pki/issuingca.crl` with
+`CSURL_ADDTOCERTCDP` set. The default filename template produced `district.local Issuing CA+.crl`;
+IIS refused it with 404.11, a documented AD CS and IIS interaction where the DeltaCRLAllowed `+`
+trips IIS's double-escaping guard. Fixed with a literal filename rather than `allowDoubleEscaping`,
+Raymond's decision, to avoid disabling a request-filtering protection for the sake of one filename.
+A fresh enrollment, request 7, confirms the fix on an actually-issued certificate: its CRL
+Distribution Points extension carries both the LDAP and the HTTP URL, and the full chain verifies.
+Request 5, issued before the fix, still carries LDAP only — the change does not reissue existing
+certificates. **Still open:** the verification that passed used LDAP, since CA01 is domain-joined;
+no test here removes LDAP the way Entra CBA actually would, and Entra CBA still needs public
+hosting for `crl.districtsafetyphoto.com` before it can be tried at all. *Evidence:*
+`exercises/2026-09-05-adcs-issuing-ca-build/evidence/51-fresh-enrollment-proves-http-cdp-on-issued-certificates.txt`,
+`exercises/2026-09-05-adcs-issuing-ca-build/evidence/50-http-cdp-on-issued-certificates-and-the-iis-404-11-fix.txt`.
+
+**`DISTRICT\CA01$` can approve certificate requests, so anything running as SYSTEM on CA01 can
+issue.** Request 5's disposition message reads `Issued  Resubmitted by DISTRICT\CA01$`. `qm guest
+exec` runs as SYSTEM and authenticates as the machine account, and that identity held enough CA
+rights to issue a certificate without any interactive credential. This is default AD CS behavior,
+which is exactly why it belongs here: the CA's own host account is an issuance authority by default,
+and nobody grants it deliberately. It is the permission-sprawl pattern in its purest form — a
+standing grant that arrives with the product. It does not extend to installing a CA certificate,
+which is a forest write and was denied to the same identity four minutes earlier. *Evidence:*
+`exercises/2026-09-05-adcs-issuing-ca-build/evidence/47-console-installcert-succeeds-and-request-5-issues.txt`,
+`exercises/2026-09-05-adcs-issuing-ca-build/evidence/46-revocation-check-passes-install-denied-for-rights.txt`.
+
+**CA01 now runs IIS, and it was installed to serve two static files.** `Install-WindowsFeature
+Web-Server -IncludeManagementTools` on 2026-09-08 put a web server and the IIS management tools on
+the issuing CA, to publish `district-root.crl` and `district-root.crt` from
+`C:\inetpub\wwwroot\pki`. The CA is the most sensitive machine in the lab and it now listens on
+port 80 with a default site. This is the standard AD CS pattern and it is still added surface that
+nothing has reviewed: no binding restriction, no separate application pool, no request filtering
+read, and the default site's other content unexamined. *Evidence:*
+`exercises/2026-09-05-adcs-issuing-ca-build/evidence/43-crl-published-over-http-and-split-horizon-zone.txt`.
+
+**The renewal left the CA holding five certificates, and two of them are unexplained.** `CA cert
+count` moved from 3 to 5 across one renewal and one install. Indices 3 and 4 both verify at 0;
+indices 0 to 2 remain at `0x80092012` because they carry no CDP. `CertEnroll` holds `...Issuing
+CA(3).crt` and `...Issuing CA(4).crt`, both 1562 bytes, written two minutes apart. Which action
+created which index is not captured, and which certificate the CA now signs with is not established.
+Four of the five report `CRL[n]: 1 -- Error: No CRL for this Cert` after a successful `certutil
+-CRL`; all five share one key, so a single CRL may be the complete state, but the reading is not
+explained. Nothing observable is broken. *Evidence:*
+`exercises/2026-09-05-adcs-issuing-ca-build/evidence/47-console-installcert-succeeds-and-request-5-issues.txt`,
+`exercises/2026-09-05-adcs-issuing-ca-build/evidence/48-crl-published-and-enterprise-admins-grant-removed.txt`.
 
 ## Infrastructure
 

@@ -1,0 +1,124 @@
+Command: certreq -new C:\c2\req.inf C:\Users\jsmith\req3.req
+Host: CA01 (VM 107) console, logged on as DISTRICT\jsmith
+Verified from the host shell: qm guest exec 107 --timeout 30 -- powershell.exe -NonInteractive -Command 'Test-Path C:\Users\jsmith\req3.req'
+--------------------------------------------------------------------------------
+
+Typed as one line at the console, no output redirection. Pasting the command with `>` output
+redirection at this console wrapped the line and split it in two, producing "Missing file
+specification after redirection operator." on the first attempt. Retyped without redirection.
+Result on screen: "CertReq: Request Created". Confirmed from the host shell:
+{
+   "exitcode" : 0,
+   "exited" : 1,
+   "out-data" : "True\r\n"
+}
+
+--------------------------------------------------------------------------------
+Command: certreq -submit C:\Users\jsmith\req3.req C:\Users\jsmith\cert3.cer
+Host: CA01 (VM 107) console, logged on as DISTRICT\jsmith
+--------------------------------------------------------------------------------
+
+First attempt at this command reused the previous line from console history and only edited
+`-new` to `-submit`, leaving the arguments as `C:\c2\req.inf C:\Users\jsmith\req3.req` — submitting
+the plain-text INF instead of the generated request. Caught before clicking OK on the resulting
+Certification Authority List dialog; cancelled. Retyped correctly, selected "district.local Issuing
+CA (Kerberos)" in the dialog. Result on screen:
+
+RequestId: 7
+RequestId: "7"
+Certificate retrieved(Issued) Issued
+
+Recalled — a screenshot, not a host-shell read. Confirmed against the CA's own database next.
+
+--------------------------------------------------------------------------------
+Command: qm guest exec 107 --timeout 60 -- certutil.exe -view -restrict "RequestID=7" -out "RequestID,Disposition,DispositionMessage,CommonName,SubmittedWhen,ResolvedWhen"
+Host: Proxmox host shell, reading CA01's request database
+--------------------------------------------------------------------------------
+
+Row 1:
+  Issued Request ID: 0x7
+  Request Disposition: 0x14 (20) -- Issued
+  Request Disposition Message: "Issued"
+  Issued Common Name: "John Smith"
+  Request Submission Date: 9/8/2026 11:26 PM
+  Request Resolution Date: 9/8/2026 11:26 PM
+
+Request 7 is Captured as Issued, independent of the console screenshot.
+
+--------------------------------------------------------------------------------
+Retrieval: a genuine Claude error, not a box behavior.
+
+Three attempts to retrieve the certificate to a file, in order:
+
+1. `qm guest exec 107 -- certreq.exe -retrieve -config "..." 7 "C:\issued-7.cer"` (bare, properly
+   quoted). Reported "Certificate retrieved(Issued) Issued", exit 0. Immediate follow-up
+   `certutil -dump -v C:\issued-7.cer` reported ERROR_FILE_NOT_FOUND.
+2. Re-ran the retrieve wrapped in `powershell.exe -NonInteractive -Command '...'`, matching the
+   pattern that worked for request 5 in evidence/48. This attempt timed out at 60 seconds and
+   orphaned pid 3108 on CA01. `Get-Process -Id 3108` afterward showed 0.125 CPU seconds and no TCP
+   connections — idle, not actively hung on network I/O.
+3. A direct `Get-Item C:\issued-7.cer` (inside a single-quoted PowerShell command) found the file:
+   2834 bytes, created 9/8/2026 11:28:50 PM — earlier than pid 3108's own start time of
+   9/8/2026 11:30:08 PM. The file came from attempt 1, not attempt 2.
+
+Root cause, found by re-reading the actual command sent for `-dump`:
+`qm guest exec 107 -- certutil.exe -dump -v C:\issued-7.cer` — the Windows path was **not quoted**
+in the bash command. Outside quotes, bash treats `\` as an escape character: `\i` in
+`C:\issued-7.cer` becomes a literal `i`, so certutil received the argument `C:issued-7.cer` — a
+path relative to certutil's own working directory on drive C, not the file at the drive root.
+certutil correctly reported that path missing. The file was present at `C:\issued-7.cer` the whole
+time. Every bare `certutil.exe` call against this path failed the same way until the path was
+quoted (`"C:\issued-7.cer"`), matching the quoting evidence/49 already used for request 5's
+retrieval. Attempt 2's orphaned process (pid 3108) is a separate, real finding — `certreq -retrieve`
+run a second time against an already-retrieved request ID appears to hang under `qm guest exec`,
+cause not established — but it did not prevent this thread from closing, since attempt 1's file
+was valid throughout.
+
+--------------------------------------------------------------------------------
+Command: qm guest exec 107 --timeout 60 -- certutil.exe -dump -v "C:\issued-7.cer"
+Host: Proxmox host shell, reading CA01 (VM 107)
+--------------------------------------------------------------------------------
+
+Certificate Extensions: 10, including:
+
+  2.5.29.31: CRL Distribution Points
+      [1]CRL Distribution Point
+           URL=ldap:///CN=district.local Issuing CA,CN=CA01,CN=CDP,CN=Public Key Services,
+               CN=Services,CN=Configuration,DC=district,DC=local?certificateRevocationList?base?
+               objectClass=cRLDistributionPoint
+           URL=http://crl.districtsafetyphoto.com/pki/issuingca.crl
+
+The certificate issued as request 7 carries both an LDAP and an HTTP CDP. Request 5's certificate,
+issued before tonight's registry change, carried LDAP only (evidence/49). This is the proof the
+fix works on a certificate actually issued by the CA, not only on the CA's own CRL file.
+
+Subject: CN=John Smith, OU=Site 1, OU=Test Users, DC=district, DC=local
+SAN: Principal Name=jsmith@raytakosharkygmail.onmicrosoft.com
+NotBefore: 9/8/2026 11:16 PM, NotAfter: 9/8/2027 11:16 PM (backdated ~10 minutes from issuance,
+AD CS's default ClockSkewMinutes)
+
+--------------------------------------------------------------------------------
+Command: qm guest exec 107 --timeout 120 -- certutil.exe -urlfetch -verify "C:\issued-7.cer"
+Host: Proxmox host shell, reading CA01 (VM 107)
+--------------------------------------------------------------------------------
+
+CertContext[0][0] (leaf, John Smith): dwErrorStatus=0
+  Certificate CDP: Verified "Base CRL (05)" and "Delta CRL (05)" via the LDAP URL; the HTTP URL
+  (http://crl.districtsafetyphoto.com/pki/issuingca.crl) is listed as "Expected Base CRL", not
+  separately marked Verified — CA01 is domain-joined, so LDAP satisfied the check first and the
+  HTTP path was not independently exercised by this run. The HTTP fetch itself was already proven
+  working, separately, in evidence/50 (status 200, byte-exact). Entra CBA cannot use LDAP at all
+  (EXPOSURES.md), so this run does not simulate what Entra will actually do — only a fetch from a
+  non-domain-joined context would. Not yet tested.
+CertContext[0][1] (issuing CA cert): dwErrorStatus=0, AIA and CDP both Verified over HTTP
+  (district-root.crt, district-root.crl) — the 2026-09-08 reissue, unchanged tonight.
+CertContext[0][2] (root CA, self-signed): dwErrorStatus=0, no URLs, as expected for a root.
+
+Verified Application Policies: 1.3.6.1.5.5.7.3.2 Client Authentication
+Leaf certificate revocation check passed
+CertUtil: -verify command completed successfully.
+
+The full chain verifies. The leaf certificate now carries a working HTTP CDP in addition to LDAP,
+confirmed both by extension inspection and by an independent HTTP fetch. Whether Entra CBA, which
+cannot reach LDAP, succeeds against this HTTP path specifically is not tested by this exercise —
+Entra CBA needs a public host for crl.districtsafetyphoto.com first, per the standing exposure.

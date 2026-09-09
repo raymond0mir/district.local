@@ -1,0 +1,48 @@
+Command: date -u; echo "--- verify rootca.cnf tail ---"; pct exec 106 -- sed -n '/v3_sub_ca/,$p' /root/ca/rootca.cnf; echo "--- CA01 addresses ---"; qm guest exec 107 --timeout 60 -- powershell.exe -NonInteractive -Command 'Get-NetIPAddress -AddressFamily IPv4 | Select-Object IPAddress,InterfaceAlias | Format-Table -AutoSize'; echo "--- install IIS on CA01 ---"; qm guest exec 107 --timeout 600 -- powershell.exe -NonInteractive -Command 'Install-WindowsFeature Web-Server -IncludeManagementTools | Format-List Success,ExitCode,RestartNeeded'; echo "--- copy CRL and root cert to CA01 ---"; CRL_B64=$(pct exec 106 -- base64 -w0 /root/ca/crl/district-root.crl); CRT_B64=$(pct exec 106 -- base64 -w0 /root/ca/certs/district-root.crt); echo "crl b64 len=${#CRL_B64} crt b64 len=${#CRT_B64}"; qm guest exec 107 --timeout 60 -- powershell.exe -NonInteractive -Command "New-Item -ItemType Directory -Force -Path 'C:\inetpub\wwwroot\pki' | Out-Null; [IO.File]::WriteAllBytes('C:\inetpub\wwwroot\pki\district-root.crl',[Convert]::FromBase64String('$CRL_B64')); [IO.File]::WriteAllBytes('C:\inetpub\wwwroot\pki\district-root.crt',[Convert]::FromBase64String('$CRT_B64'))"; qm guest exec 107 --timeout 60 -- powershell.exe -NonInteractive -Command 'Get-ChildItem "C:\inetpub\wwwroot\pki" | Format-Table Name,Length -AutoSize'; echo "--- create the split-horizon zone on DC01 ---"; qm guest exec 100 --timeout 120 -- powershell.exe -NonInteractive -Command 'Add-DnsServerPrimaryZone -Name "crl.districtsafetyphoto.com" -ReplicationScope Domain; $ip=(Resolve-DnsName -Name "CA01.district.local" -Type A).IPAddress; Add-DnsServerResourceRecordA -ZoneName "crl.districtsafetyphoto.com" -Name "@" -IPv4Address $ip; Get-DnsServerResourceRecord -ZoneName "crl.districtsafetyphoto.com" | Format-Table -AutoSize'; echo "--- fetch the CRL from CA01 ---"; qm guest exec 107 --timeout 120 -- powershell.exe -NonInteractive -Command 'Clear-DnsClientCache; Resolve-DnsName -Name "crl.districtsafetyphoto.com" -Type A | Format-Table Name,IPAddress -AutoSize; $r=Invoke-WebRequest -Uri "http://crl.districtsafetyphoto.com/pki/district-root.crl" -UseBasicParsing; "status=$($r.StatusCode) bytes=$($r.RawContentLength)"'
+Host: Proxmox host shell (Proxmox web console), acting on container 106, VM 100 and VM 107
+UTC: 2026-09-08T14:11:21Z
+
+Tue Sep  8 02:11:21 PM UTC 2026
+--- verify rootca.cnf tail ---
+[ v3_sub_ca ]
+basicConstraints       = critical,CA:true,pathlen:0
+keyUsage               = critical,keyCertSign,cRLSign
+subjectKeyIdentifier   = hash
+authorityKeyIdentifier = keyid:always
+crlDistributionPoints  = URI:http://crl.districtsafetyphoto.com/pki/district-root.crl
+authorityInfoAccess    = caIssuers;URI:http://crl.districtsafetyphoto.com/pki/district-root.crt
+--- CA01 addresses ---
+{
+   "exitcode" : 0,
+   "exited" : 1,
+   "out-data" : "\r\nIPAddress InterfaceAlias             \r\n--------- --------------             \r\n10.0.0.12 Ethernet                   \r\n127.0.0.1 Loopback Pseudo-Interface 1\r\n\r\n\r\n"
+}
+--- install IIS on CA01 ---
+{
+   "exitcode" : 0,
+   "exited" : 1,
+   "out-data" : "\r\n\r\nSuccess       : True\r\nExitCode      : Success\r\nRestartNeeded : No\r\n\r\n\r\n\r\n"
+}
+--- copy CRL and root cert to CA01 ---
+crl b64 len=932 crt b64 len=1852
+{
+   "exitcode" : 0,
+   "exited" : 1
+}
+{
+   "exitcode" : 0,
+   "exited" : 1,
+   "out-data" : "\r\nName              Length\r\n----              ------\r\ndistrict-root.crl    697\r\ndistrict-root.crt   1388\r\n\r\n\r\n"
+}
+--- create the split-horizon zone on DC01 ---
+{
+   "exitcode" : 0,
+   "exited" : 1,
+   "out-data" : "\r\nHostName RecordType Type Timestamp TimeToLive RecordData                                           \r\n-------- ---------- ---- --------- ---------- ----------                                           \r\n@        A          1    0         01:00:00   10.0.0.12                                            \r\n@        NS         2    0         01:00:00   dc01.district.local.                                 \r\n@        SOA        6    0         01:00:00   [2][dc01.district.local.][hostmaster.district.local.]\r\n\r\n\r\n"
+}
+--- fetch the CRL from CA01 ---
+{
+   "exitcode" : 0,
+   "exited" : 1,
+   "out-data" : "\r\nName                        IPAddress\r\n----                        ---------\r\ncrl.districtsafetyphoto.com 10.0.0.12\r\n\r\n\r\nstatus=200 bytes=697\r\n"
+}

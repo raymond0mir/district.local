@@ -1,8 +1,8 @@
 # Carryover
 
 ## Last verified
-2026-09-09. Lab readings below are from 2026-09-08T23:45:49Z and were not re-read this session.
-Git state and evidence files were read this session.
+2026-09-09T14:38:18Z, from `evidence/53`. Pool and VM readings below are older, from
+2026-09-08T23:45:49Z, and were not re-read.
 
 ## Next safe action
 Attempt enrollment on `district.localClientAuthentication` as a user outside `PKI-CBA-Pilot`.
@@ -25,11 +25,10 @@ Pool Data% at 85 or higher. Run pre-flight before the first state change.
 - `district-root.crl` expires 2027-03-07. Nothing regenerates it.
 
 ## Pending decisions
-- Delete `tmp-cainstall`. Consultation point 5 requires it. The account still exists, removed from
-  Enterprise Admins but not from the domain. Deletion needs Raymond. Default: leave it, and carry
-  the standing Full Control as a named exposure.
-- Split the tree into two commits. Asked 2026-09-08. Unanswered. Default: commit nothing. Do not
-  re-ask as new.
+- Delete `tmp-cainstall`. Decided 2026-09-09: disable now, delete after a retention window.
+  Disabled in `evidence/53`. Its Full Control ACE on `district.localClientAuthentication` still
+  stands as an object, unusable while the account is disabled. Deletion is irreversible because AD
+  Recycle Bin is disabled. Default: leave it disabled. Enable AD Recycle Bin before any deletion.
 - Credential scan passes 4 and 5 need Raymond: the Vaultwarden literal strings, and the current
   tenant Global Administrator's name. Default: passes stay owed, no commit until they run.
 
@@ -38,10 +37,10 @@ Entra CBA needs `crl.districtsafetyphoto.com` served over public HTTP. Owner: Ra
 domain and has not hosted it. The 2026-09-08 chain verify used LDAP, which Entra cannot use.
 
 ## Uncommitted and staged work
-Nothing is staged. The index is empty. The tree holds two unrelated bodies of work, all unstaged
-or untracked: the ADCS exercise (evidence 40 through 52, its evidence log and report,
-`EXPOSURES.md`, `references/gotchas.md`, `validate.py`), and the 2026-09-09 contract split
-(`CLAUDE.md`, `SKILL.md`, `CONSIDERATIONS.md`, `CARRYOVER.md`, `validation.json`).
+Nothing is staged. The contract split is committed and pushed as `fdf8dcc`. The ADCS exercise is
+the only body of work left in the tree: evidence 40 through 52, its evidence log and report,
+`EXPOSURES.md`, `references/gotchas.md`, `validate.py`, `verified-claims.md`. This file is
+modified again since `fdf8dcc` and carries the line you are reading.
 
 Corrections, 2026-09-09. Three prior carryover claims were wrong:
 `validate.py` reports 1 ERROR, not 16, and still writes `validation.json` on `--json`.

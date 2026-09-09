@@ -1,0 +1,25 @@
+[ req ]
+default_bits       = 4096
+default_md         = sha256
+distinguished_name = req_dn
+x509_extensions    = v3_root
+prompt             = no
+
+[ req_dn ]
+O  = district.local
+CN = district.local Root CA
+
+# No crlDistributionPoints anywhere in this file. Deliberate.
+# Entra is registered with no CRL, so revocation is not checked.
+
+[ v3_root ]
+basicConstraints       = critical,CA:true,pathlen:1
+keyUsage               = critical,keyCertSign,cRLSign
+subjectKeyIdentifier   = hash
+authorityKeyIdentifier = keyid:always
+
+[ v3_sub_ca ]
+basicConstraints       = critical,CA:true,pathlen:0
+keyUsage               = critical,keyCertSign,cRLSign
+subjectKeyIdentifier   = hash
+authorityKeyIdentifier = keyid:always

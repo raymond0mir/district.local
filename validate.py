@@ -15,6 +15,7 @@ Exit code 0 when no ERROR finding exists. Exit code 1 when one does.
 """
 
 import argparse
+from functools import lru_cache
 import json
 import os
 import re
@@ -100,7 +101,14 @@ def add(severity, check, message, path=None):
     )
 
 
+@lru_cache(maxsize=None)
 def read(path):
+    """Read a repository file once per validation run.
+
+    Several independent checks inspect the same reports, logs, and evidence.
+    The repository is treated as a stable snapshot for the duration of one
+    invocation, so caching avoids repeated disk reads without changing results.
+    """
     with open(path, encoding="utf-8") as handle:
         return handle.read()
 
@@ -109,28 +117,31 @@ def repo_path(*parts):
     return os.path.join(REPO, *parts)
 
 
+@lru_cache(maxsize=1)
 def exercises():
     root = repo_path("exercises")
     if not os.path.isdir(root):
-        return []
-    return sorted(
+        return ()
+    return tuple(sorted(
         d for d in os.listdir(root) if os.path.isdir(os.path.join(root, d))
-    )
+    ))
 
 
+@lru_cache(maxsize=1)
 def tracked_markdown():
     out = subprocess.run(
         ["git", "-C", REPO, "ls-files", "*.md"],
         capture_output=True, text=True, check=False,
     )
-    return [p for p in out.stdout.splitlines() if p]
+    return tuple(p for p in out.stdout.splitlines() if p)
 
 
+@lru_cache(maxsize=None)
 def git(*args):
     out = subprocess.run(
         ["git", "-C", REPO] + list(args), capture_output=True, text=True, check=False
     )
-    return out.stdout.splitlines() if out.returncode == 0 else []
+    return tuple(out.stdout.splitlines()) if out.returncode == 0 else ()
 
 
 def table_rows(text, start_heading, end_heading=None):

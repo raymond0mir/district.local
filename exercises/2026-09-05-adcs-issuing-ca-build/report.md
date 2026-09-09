@@ -6,10 +6,17 @@ Stand up a two-tier PKI in `district.local` — an offline root and an enterpris
 issue a client-authentication certificate to a real user, as the on-premises half of
 certificate-based authentication.
 
-**This exercise is not closed.** No certificate has been issued. The report is written now because
-the enrollment failure that blocked it for four sessions has a captured root cause, and because the
-method failure behind those four sessions is the more useful finding of the two. The remaining work
-is scoped and decided: reissue the issuing CA certificate with an HTTP CRL distribution point.
+**Closed 2026-09-08.** A certificate issued to `jsmith` at 14:34Z, and the full chain verifies
+with revocation checked at every level. The exercise took five sessions. Four of them debugged the
+wrong layer, and that method failure is the more useful of the two findings here. The first draft of
+this report was written before issuance and said so; the sections below now carry the outcome.
+
+**The HTTP CDP gap closed 2026-09-08, later the same day.** The CA's `CRLPublicationURLs` HTTP
+entry carried no flags and put nothing into issued certificates. Setting `CSURL_ADDTOCERTCDP`
+fixed that; a fresh enrollment, request 7, carries both an LDAP and an HTTP CDP, and the full chain
+verifies. The on-premises half is done. The tenant half is not: the verify that passed used LDAP,
+since CA01 is domain-joined, so it does not prove the HTTP-only path Entra will actually need, and
+Entra CBA still needs public hosting for `crl.districtsafetyphoto.com`, named in Open questions.
 
 ## The setup
 
@@ -60,8 +67,48 @@ Across five sessions, 2026-09-05 to 2026-09-08.
    ADSI, and bumped `msPKI-Template-Minor-Revision` from 4 to 5 in the same write.
 9. Restarted `CertSvc` and resubmitted. The request failed on a different error.
 
-## Where Raymond was consulted
+10. Read the state the plan rested on, and found it wrong. `SetupStatus` was 1, so no request was
+    pending and `certutil -installcert` had nothing to complete. Read `CRLPublicationURLs` and found
+    the HTTP entry already present with no flags, `0:`, applied to nothing. `evidence/41`.
+11. Built the `openssl ca` database the root never had — `[ ca ]`, `[ CA_default ]`, `index.txt`,
+    `serial`, `crlnumber` — because `ca01.req` had been signed with `openssl x509 -req`. Generated
+    the root CRL and converted it to DER. `evidence/42`.
+12. Published the CRL and the root certificate over HTTP from IIS on CA01, and created a
+    domain-replicated primary zone `crl.districtsafetyphoto.com` on DC01 with an apex A record to
+    10.0.0.12. CA01 fetched the CRL, status 200, 697 bytes. `evidence/43`.
+13. Renewed the CA certificate reusing the key:
 
+        certutil -renewcert ReuseKeys
+
+    It wrote `ca01(3).req` and then hung. `SetupStatus` moved to 9. `evidence/44`.
+14. Signed the renewal against the offline root with the CDP and AIA extensions, and confirmed the
+    subject key identifier matched the 2026-09-05 certificate. `evidence/45`.
+15. Verified the chain before installing anything:
+
+        certutil -urlfetch -verify C:\ca01-3.cer
+
+    It fetched both HTTP URLs and passed. The install attempt then failed in under 90 seconds with
+    `ERROR_DS_INSUFF_ACCESS_RIGHTS` instead of hanging. `evidence/46`.
+16. Added `tmp-cainstall` to `Enterprise Admins`, installed the certificate at CA01's console under
+    a fresh logon, restarted `CertSvc`, resubmitted request 5, published the CRL, and removed the
+    grant. Elapsed time under the grant: about three minutes. `evidence/47`, `48`.
+17. Set `CSURL_ADDTOCERTCDP` on the CA's HTTP `CRLPublicationURLs` entry, pointed at
+    `crl.districtsafetyphoto.com/pki/`, restarted `CertSvc`, and confirmed the change with
+    `certutil -getreg`. The default `%3%8%9` filename template produced a CRL named
+    `district.local Issuing CA+.crl`; IIS refused to serve it with a 404.11 double-escape error.
+    Fixed with a literal filename, `issuingca.crl`, instead of loosening IIS's request filtering.
+    `evidence/50`.
+18. Forced a fresh enrollment to prove the fix on an actually-issued certificate, not just on the
+    CA's own CRL file. At CA01's console, as `jsmith`:
+
+        certreq -new C:\c2\req.inf req3.req
+        certreq -submit req3.req cert3.cer
+
+    Request 7 issued. Its `CRL Distribution Points` extension carries both the LDAP URL and
+    `http://crl.districtsafetyphoto.com/pki/issuingca.crl`. `certutil -urlfetch -verify` returns
+    `dwErrorStatus=0` on all three chain elements. `evidence/51`.
+
+## Where Raymond was consulted
 - **Placement of the CA.** New VM, VM 102, or DC01. I recommended a new VM and rejected DC01.
   Raymond chose a new VM.
 - **Server Core or Desktop Experience.** I leaned Desktop Experience, because template management
@@ -89,8 +136,30 @@ Across five sessions, 2026-09-05 to 2026-09-08.
   LDAP and OCSP unsupported. A workaround would issue one certificate and still block the goal.
   Raymond: "lets go with the reissue for next session."
 
-## What the box said
+- **Internal CDP name, or the public one.** I named the cost of each: an internal name unblocks
+  issuance immediately and forces a second reissue when Entra CBA needs a public HTTP CDP. Raymond:
+  "use the public name so we don't have to reissue twice." He owns the domain and has no hosting
+  yet, so I built split-horizon DNS on DC01. The baked URL resolves inside the lab now, and needs no
+  certificate change when hosting exists.
+- **Re-grant `Enterprise Admins` to `tmp-cainstall`.** Raymond volunteered before I asked: "Ready to
+  grant tmp-cainstall Enterprise Admins again if needed." I confirmed it was needed and named the
+  limit: the grant does not help `qm guest exec`, which authenticates as `CA01$`. The install ran at
+  CA01's console. The grant was removed the same session.
+- **A fixed CRL filename, or loosen IIS's request filtering.** The default filename template
+  produced a `+` character that IIS's double-escape guard rejected. I named the tradeoff: a fixed
+  filename costs a rename on every future copy; `allowDoubleEscaping`, Microsoft's own cited
+  workaround for this exact error, disables a request-filtering protection for every request under
+  `/pki`, not only this filename. Raymond: "go with option A and we document the reasoning against
+  B." No queued exercise needs the default delta-CRL naming preserved on that path.
+- **Retire `tmp-cainstall` by deletion, or disable it.** I first recommended delete. Raymond asked
+  whether that was Microsoft best practice, and it was not: Microsoft's general guidance is
+  disable, then delete after a retention window, because a deleted object's SID can persist
+  unresolvable in other ACLs, and because `district.local` has AD Recycle Bin disabled, so a
+  delete here would not be reversible. I revised the recommendation on that question. Disabling
+  closes the practical risk the same way a delete would, since a disabled account cannot exercise
+  its standing Full Control ACE. Raymond: "disable it."
 
+## What the box said
 The enrollment wizard, at CA01's console, for both the custom template and the built-in `User`
 template. This is a screenshot and stays Recalled:
 
@@ -150,8 +219,94 @@ function was unable to check revocation for the certificate. 0x80092012 (-214688
 CRYPT_E_NO_REVOCATION_CHECK)
 ```
 
-## What broke, and why
 
+After the reissue, the same request:
+
+```
+Certificate issued.
+CertUtil: -resubmit command completed successfully.
+
+  Issued Request ID: 0x5
+  Request Disposition: 0x14 (20) -- Issued
+  Request Disposition Message: "Issued  Resubmitted by DISTRICT\CA01$"
+  Request Status Code: 0x0 (WIN32: 0) -- The operation completed successfully.
+```
+
+The chain, with revocation fetched at every level:
+
+```
+CertContext[0][0]: dwInfoStatus=102 dwErrorStatus=0
+  Subject: CN=John Smith, OU=Site 1, OU=Test Users, DC=district, DC=local
+  SubjectAltName: Other Name:Principal Name=jsmith@...onmicrosoft.com
+  Template: district.local Client Authentication
+CertContext[0][1]: dwInfoStatus=102 dwErrorStatus=0
+  Subject: CN=district.local Issuing CA, DC=district, DC=local
+  ----------------  Certificate CDP  ----------------
+  Verified "Base CRL (1000)" Time: 0
+    [0.0] http://crl.districtsafetyphoto.com/pki/district-root.crl
+...
+Leaf certificate revocation check passed
+CertUtil: -verify command completed successfully.
+```
+
+`evidence/47`, `evidence/49`.
+
+Request 7, after the CDP fix, carries two CDP entries instead of one:
+
+```
+2.5.29.31: CRL Distribution Points
+    [1]CRL Distribution Point
+         URL=ldap:///CN=district.local Issuing CA,CN=CA01,CN=CDP,...
+         URL=http://crl.districtsafetyphoto.com/pki/issuingca.crl
+```
+
+And its chain still verifies:
+
+```
+Verified Application Policies:
+    1.3.6.1.5.5.7.3.2 Client Authentication
+Leaf certificate revocation check passed
+CertUtil: -verify command completed successfully.
+```
+
+`evidence/51`.
+
+`Domain Users`' Allow Enroll ACE, before removal, on the client-auth template:
+
+```
+IdentityReference      : DISTRICT\Domain Users
+ActiveDirectoryRights  : ReadProperty, WriteProperty, ExtendedRight
+AccessControlType      : Allow
+ObjectType             : 0e10c968-78fb-11d2-90d4-00c04f79dc55
+```
+
+After removal, at the console that made the change and independently from DC01:
+
+```
+--- after ---
+No Domain Users ACE remains on this object.
+```
+
+`evidence/52`.
+
+`tmp-cainstall`, before and after the disable, both reads run as `DISTRICT\DC01$` over
+`qm guest exec`:
+
+```
+SamAccountName Enabled
+-------------- -------
+tmp-cainstall     True
+```
+
+```
+SamAccountName Enabled
+-------------- -------
+tmp-cainstall    False
+```
+
+`evidence/53`.
+
+## What broke, and why
 **The template required an attribute no account in the domain has.** It was duplicated from the
 built-in `User` template, and duplication copies the subject-name flags verbatim. `User` requires
 the e-mail attribute in both the subject and the subject alternative name. Nobody read that page of
@@ -195,8 +350,43 @@ is in no artifact. The control that failed is the same one the 2026-09-07 exerci
 the channel was a public repository; here it was a screenshot. The account is most likely
 `tmp-cainstall`, whose password was rotated into the vault on 2026-09-07.
 
-## What I'd do differently
 
+**`certutil -renewcert` hangs for the same reason `-installcert` did, and the hang is harmless.**
+The process wrote its request file and its registry state within the first second, then blocked
+until the 240-second timeout. Pid 3192 held 0.03 CPU seconds and zero TCP connections. Near-zero CPU
+with no socket is a user-interface wait, which rules out the network and matches the confirmed
+`-installcert` behavior. The output that mattered already existed on disk. I nearly read the timeout
+as a failure; the state read is what showed it had succeeded.
+
+**Reissuing the CA certificate fixed less than the exposure claimed it would.** `EXPOSURES.md` said
+the reissue would fix on-premises issuance and the tenant path together. It fixed the first. The
+certificate the CA now issues still carries an LDAP CRL distribution point only, because the CA's
+HTTP entry in `CRLPublicationURLs` reads `0:` — present, no flags, applied to nothing. Putting a CDP
+on the CA's own certificate and putting one on the certificates it issues are two different changes,
+and I wrote a plan that conflated them. Caught by inspecting the issued certificate rather than by
+stopping at "Certificate issued."
+
+**The CA's own machine account can issue certificates.** The disposition message reads "Issued
+Resubmitted by `DISTRICT\CA01$`". `qm guest exec` runs as SYSTEM, so it authenticates as the machine
+account, and that identity holds enough CA rights to approve a pending request. It does not hold
+enough to install a CA certificate, which is a forest write. Two different permissions, and the same
+session hit both boundaries within four minutes.
+
+**Two Microsoft defaults collided, and neither side was misconfigured.** AD CS's default CRL
+filename template appends a `+` when delta CRLs are enabled. IIS's default request filtering treats
+that `+`, adjacent to a space-containing name in the same path segment, as a double-escaped
+sequence and refuses to serve it. Each default is documented and sensible on its own; together they
+produce a 404 that names neither cause. The fix was a filename, not a setting on either system.
+
+**I repeated a gotcha already written down, and it cost two rounds of misdiagnosis.**
+`references/gotchas.md` has carried, since 2026-09-07, an entry on quoting Windows paths through
+`qm guest exec`. I sent an unquoted path to `certutil.exe -dump` anyway; bash stripped the
+backslash, and `certutil` correctly reported a file missing that had existed the whole time. I
+first attributed the result to a hung `certreq -retrieve` process, before checking the command
+that actually failed. Having the gotcha on file did not stop me from making it again — only
+rereading my own command did.
+
+## What I'd do differently
 **Issue one certificate before building anything on top of the CA.** This is the whole lesson and
 everything else in this section is a consequence of it.
 
@@ -246,16 +436,40 @@ established what the tradeoff actually is.
 
 ## Open questions
 
-- Is revocation the last blocker? Request 5 failed while constructing the certificate, so no stage
-  after that has been exercised. Unknown until a certificate issues.
+- ~~Is revocation the last blocker?~~ Answered 2026-09-08. It was. Request 5 issued as soon as the
+  CA could fetch a CRL for its own certificate, with no further defect behind it.
+- ~~Does setting `CSURL_ADDTOCERTCDP` require reissuing certificates already issued, including
+  request 5?~~ Answered 2026-09-08. No. Request 5's certificate still carries an LDAP-only CDP;
+  the flag only affects certificates issued after the change.
+- **Does Entra CBA succeed against the HTTP-only CDP path alone?** The chain verify that passed
+  used LDAP, since CA01 is domain-joined. It never independently exercised the HTTP path the way
+  Entra — which cannot use LDAP at all — actually would. The HTTP fetch itself works; whether
+  revocation checking succeeds with LDAP genuinely unavailable is untested.
+- The public CDP URL is baked into the CA certificate and nothing public serves it. Inside the lab
+  it resolves only because DC01 holds an overriding zone. Standing up hosting on
+  `districtsafetyphoto.com` is now a dependency of tenant CBA, not an optional step.
+- Why did a second `certreq -retrieve` against an already-retrieved request ID orphan a process on
+  CA01 — 0.125 CPU seconds, no TCP connections, never exited within 60 seconds? Did not block the
+  exercise; the first retrieval attempt's file was valid throughout.
+- Why did the renewal create two CA certificate indices rather than one, and which one does the CA
+  sign with? `CA cert count` moved from 3 to 5.
+- Four of five CA certificates report `CRL[n]: 1 -- Error: No CRL for this Cert` after a successful
+  `certutil -CRL`. All five share one key, so one CRL may be the complete and correct state. Nothing
+  observable is broken. The reading is not explained.
+- `district-root.crl` expires 2027-03-07. The root is an offline container that is normally stopped.
+  Nothing in the lab regenerates or republishes it.
 - Does any user object in `district.local` have `mail` populated? Only `jsmith` was checked. The
   domain-wide answer bears on which other templates are affected.
-- `DISTRICT\Domain Users` holds Allow Enroll on the client-auth template, inherited from `ClientAuth`
-  the same way the e-mail requirement was. It was left unchanged deliberately, to keep one variable
-  at a time during the root-cause work. It needs its own before-and-after.
-- `DISTRICT\tmp-cainstall` holds standing Full Control over the template and is now the only
-  non-tier-0 identity that can write it, because `Set-ADObject` as `DC01$` returns
-  `Insufficient access rights` and no enabled account holds Enterprise Admins.
+- ~~`DISTRICT\Domain Users` holds Allow Enroll on the client-auth template, inherited from
+  `ClientAuth` the same way the e-mail requirement was. It needs its own before-and-after.~~
+  Answered 2026-09-09. Removed, at CA01's console as `tmp-cainstall`, and confirmed from two
+  vantages. `evidence/52`. Untested: whether `PKI-CBA-Pilot` alone now gates enrollment
+  end to end — no non-member enrollment attempt has been made either before or after.
+- ~~`DISTRICT\tmp-cainstall` holds standing Full Control over the template and is now the only
+  non-tier-0 identity that can write it.~~ Disabled 2026-09-09, not deleted — `district.local` has
+  no AD Recycle Bin, so a delete would not be reversible; disabling closes the practical risk the
+  same way, since a disabled account cannot exercise the ACE. `evidence/53`. Deletion deferred to
+  a retention window.
 - What does `flags = 10` mean on the `pKIEnrollmentService` object? A Microsoft Learn search returned
   the schema definition and no value table. Recorded undecoded.
 - Was the credential shown in the 2026-09-08 screenshot rotated? Recommended in session, unconfirmed.

@@ -1,0 +1,119 @@
+Command: qm guest exec 107 --timeout 30 -- certutil.exe -getreg 'CA\CRLPublicationURLs';
+         qm guest exec 107 --timeout 30 -- certutil.exe -setreg 'CA\CRLPublicationURLs' '65:C:\Windows\system32\CertSrv\CertEnroll\%3%8%9.crl\n79:ldap:///CN=%7%8,CN=%2,CN=CDP,CN=Public Key Services,CN=Services,%6%10\n2:http://crl.districtsafetyphoto.com/pki/%3%8%9.crl\n0:file://%1/CertEnroll/%3%8%9.crl';
+         qm guest exec 107 --timeout 30 -- net.exe stop certsvc;
+         qm guest exec 107 --timeout 30 -- net.exe start certsvc;
+         qm guest exec 107 --timeout 30 -- certutil.exe -getreg 'CA\CRLPublicationURLs'
+Host: Proxmox host shell, acting on VM 107 (CA01)
+UTC: 2026-09-08T22:5x:xxZ (between the 22:55:22Z guest-agent check and the 23:11:06Z timestamp below; not independently captured for this sub-step)
+
+Before:
+  2: 0:http://%1/CertEnroll/%3%8%9.crl
+After:
+  2: 2:http://crl.districtsafetyphoto.com/pki/%3%8%9.crl
+    CSURL_ADDTOCERTCDP -- 2
+CertUtil: -setreg command completed successfully.
+The CertSvc service may need to be restarted for changes to take effect.
+The Active Directory Certificate Services service is stopping.
+The Active Directory Certificate Services service was stopped successfully.
+The Active Directory Certificate Services service is starting.
+The Active Directory Certificate Services service was started successfully.
+Confirmed post-restart: entry 2 reads 2:http://crl.districtsafetyphoto.com/pki/%3%8%9.crl, flag CSURL_ADDTOCERTCDP.
+
+--------------------------------------------------------------------------------
+Command: qm guest exec 107 --timeout 60 -- certutil.exe -CRL;
+         qm guest exec 107 --timeout 60 -- powershell.exe -NonInteractive -Command '$f = Get-ChildItem "C:\Windows\System32\CertSrv\CertEnroll" -Filter *.crl | Sort-Object LastWriteTime -Descending | Select-Object -First 1; Copy-Item $f.FullName -Destination "C:\inetpub\wwwroot\pki\$($f.Name)" -Force; Get-ChildItem "C:\inetpub\wwwroot\pki" | Select-Object Name,Length,LastWriteTime | Format-Table -AutoSize'
+Host: CA01 (VM 107), via qm guest exec from the Proxmox host shell
+--------------------------------------------------------------------------------
+
+CertUtil: -CRL command completed successfully.
+
+Name                           Length LastWriteTime
+----                           ------ -------------
+district-root.crl                 697 9/8/2026 7:12:01 AM
+district-root.crt                1388 9/8/2026 7:12:01 AM
+district.local Issuing CA+.crl   1013 9/8/2026 4:01:07 PM
+
+The `+` is the DeltaCRLAllowed marker, template token %9, present because CSURL_SERVERPUBLISHDELTA
+is set on this CA. It is standard AD CS naming, not an error.
+
+--------------------------------------------------------------------------------
+Command: qm guest exec 107 --timeout 60 -- powershell.exe -NonInteractive -Command 'Clear-DnsClientCache; $f = Get-ChildItem "C:\inetpub\wwwroot\pki" -Filter *.crl | Sort-Object LastWriteTime -Descending | Select-Object -First 1; $r = Invoke-WebRequest -Uri "http://crl.districtsafetyphoto.com/pki/$($f.Name)" -UseBasicParsing; "status=$($r.StatusCode) bytes=$($r.RawContentLength) name=$($f.Name)"'
+Host: CA01 (VM 107), via qm guest exec from the Proxmox host shell
+--------------------------------------------------------------------------------
+
+Invoke-WebRequest failed. IIS 10.0 Detailed Error 404.11:
+"The request filtering module is configured to deny a request that contains a double escape
+sequence."
+Requested URL: http://crl.districtsafetyphoto.com:80/pki/district.local Issuing CA+.crl
+Physical Path: C:\inetpub\wwwroot\pki\district.local Issuing CA+.crl
+Module: RequestFilteringModule, Notification: BeginRequest, Handler: StaticFile
+
+This is a documented AD CS and IIS interaction: a CRL filename carrying the DeltaCRLAllowed `+`
+trips IIS's default double-escaping guard when combined with the space-containing CA name in the
+same path segment. Not a misconfiguration introduced this session; a collision between two
+Microsoft defaults.
+
+--------------------------------------------------------------------------------
+Consultation: fixed literal filename (Option A) vs. allowDoubleEscaping="true" on the IIS /pki
+path (Option B, Microsoft's own commonly cited workaround for this exact error).
+Raymond: "go with option A and we document the reasoning against B."
+Reasoning against B, for the record: allowDoubleEscaping disables a request-filtering guard
+against a real attack class (a double-encoded path segment hiding a second, malicious decode)
+for every request under /pki, not only for this one filename. Option A costs a permanent small
+step (rename on every copy); Option B costs a permanent gap in one guard rail to avoid that step.
+No queued exercise needs delta CRL's default naming preserved on this one HTTP path, so nothing
+is lost by choosing A.
+--------------------------------------------------------------------------------
+
+Command: qm guest exec 107 --timeout 30 -- certutil.exe -setreg 'CA\CRLPublicationURLs' '65:C:\Windows\system32\CertSrv\CertEnroll\%3%8%9.crl\n79:ldap:///CN=%7%8,CN=%2,CN=CDP,CN=Public Key Services,CN=Services,%6%10\n2:http://crl.districtsafetyphoto.com/pki/issuingca.crl\n0:file://%1/CertEnroll/%3%8%9.crl';
+         qm guest exec 107 --timeout 30 -- net.exe stop certsvc;
+         qm guest exec 107 --timeout 30 -- net.exe start certsvc;
+         qm guest exec 107 --timeout 30 -- certutil.exe -getreg 'CA\CRLPublicationURLs';
+         qm guest exec 107 --timeout 60 -- powershell.exe -NonInteractive -Command 'Remove-Item "C:\inetpub\wwwroot\pki\district.local Issuing CA+.crl" -Force -ErrorAction SilentlyContinue; $f = Get-ChildItem "C:\Windows\System32\CertSrv\CertEnroll" -Filter *.crl | Sort-Object LastWriteTime -Descending | Select-Object -First 1; Copy-Item $f.FullName -Destination "C:\inetpub\wwwroot\pki\issuingca.crl" -Force; Get-ChildItem "C:\inetpub\wwwroot\pki" | Select-Object Name,Length,LastWriteTime | Format-Table -AutoSize';
+         qm guest exec 107 --timeout 60 -- powershell.exe -NonInteractive -Command 'Clear-DnsClientCache; $r = Invoke-WebRequest -Uri "http://crl.districtsafetyphoto.com/pki/issuingca.crl" -UseBasicParsing; "status=$($r.StatusCode) bytes=$($r.RawContentLength)"'
+Host: CA01 (VM 107) and the Proxmox host shell
+UTC: 2026-09-08T23:11:06Z (date -u captured immediately after this sequence, see the req.inf
+check below run in the same command block)
+--------------------------------------------------------------------------------
+
+Entry 2 after the second edit:
+  2: 2:http://crl.districtsafetyphoto.com/pki/issuingca.crl
+    CSURL_ADDTOCERTCDP -- 2
+CertUtil: -setreg command completed successfully.
+CertSvc stopped and restarted successfully.
+
+Pki folder after cleanup and copy:
+Name              Length LastWriteTime
+----              ------ -------------
+district-root.crl    697 9/8/2026 7:12:01 AM
+district-root.crt   1388 9/8/2026 7:12:01 AM
+issuingca.crl       1013 9/8/2026 4:01:07 PM
+
+Fetch result: status=200 bytes=1013
+
+1013 bytes matches the CRL written to CertEnroll exactly. The HTTP CDP for certificates this CA
+issues now resolves and serves, under a filename IIS's default request filtering accepts.
+
+--------------------------------------------------------------------------------
+Command: date -u;
+         qm guest exec 107 --timeout 30 -- powershell.exe -NonInteractive -Command 'Test-Path C:\c2\req.inf; Get-Content C:\c2\req.inf -Raw'
+Host: Proxmox host shell, read confirming a file on CA01 (VM 107)
+UTC: 2026-09-08T23:11:06Z
+--------------------------------------------------------------------------------
+
+Tue Sep  8 11:11:06 PM UTC 2026
+True
+[NewRequest]
+Subject = "CN=jsmith"
+KeyLength = 2048
+KeySpec = 1
+KeyUsage = 0xa0
+Exportable = TRUE
+MachineKeySet = FALSE
+ProviderName = "Microsoft Software Key Storage Provider"
+RequestType = PKCS10
+[RequestAttributes]
+CertificateTemplate = district.localClientAuthentication
+
+The request-signing INF used for requests 4 and 5 (evidence/39) is unchanged and still present.
+The next enrollment can reuse it without rebuilding it.

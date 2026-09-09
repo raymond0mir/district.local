@@ -1,0 +1,43 @@
+Command: date -u; echo "=== publish a CRL for the new CA certificates ==="; qm guest exec 107 --timeout 180 -- certutil.exe -CRL; qm guest exec 107 --timeout 60 -- certutil.exe -getreg 'CA\SetupStatus'; echo "=== CRL state per CA certificate ==="; qm guest exec 107 --timeout 120 -- powershell.exe -NonInteractive -Command 'certutil -cainfo | Select-String -Pattern "CA cert count","CRL\[","verify status"'; echo "=== retrieve and inspect the issued certificate ==="; qm guest exec 107 --timeout 120 -- powershell.exe -NonInteractive -Command 'certreq -retrieve -config "CA01.district.local\district.local Issuing CA" 5 "C:\issued-5.cer"'; qm guest exec 107 --timeout 120 -- powershell.exe -NonInteractive -Command '$c=New-Object System.Security.Cryptography.X509Certificates.X509Certificate2("C:\issued-5.cer"); ... .ToString(''o'') ...'; echo "=== remove the temporary Enterprise Admins grant ==="; qm guest exec 100 --timeout 60 -- powershell.exe -NonInteractive -Command 'Remove-ADGroupMember -Identity "Enterprise Admins" -Members "tmp-cainstall" -Confirm:$false; Get-ADGroupMember -Identity "Enterprise Admins" | Select-Object -ExpandProperty SamAccountName'
+Host: Proxmox host shell (Proxmox web console), acting on VM 100 and VM 107
+UTC: 2026-09-08T14:37:28Z
+Note: the fifth command failed on a quoting defect written by Claude, not on a box behavior. The
+doubled single quotes around the format string were an attempt to escape a nested quote inside a
+bash single-quoted argument. PowerShell rejected the result. The command is elided above and was
+re-run correctly at 14:40:31Z; see evidence/49.
+
+Tue Sep  8 02:37:28 PM UTC 2026
+=== publish a CRL for the new CA certificates ===
+{
+   "exitcode" : 0,
+   "exited" : 1,
+   "out-data" : "CertUtil: -CRL command completed successfully.\r\n"
+}
+{
+   "exitcode" : 0,
+   "exited" : 1,
+   "out-data" : "HKEY_LOCAL_MACHINE\\SYSTEM\\CurrentControlSet\\Services\\CertSvc\\Configuration\\district.local Issuing CA\\SetupStatus:\r\n\r\n  SetupStatus REG_DWORD = 1\r\n    SETUP_SERVER_FLAG -- 1\r\nCertUtil: -getreg command completed successfully.\r\n"
+}
+=== CRL state per CA certificate ===
+{
+   "exitcode" : 0,
+   "exited" : 1,
+   "out-data" : "\r\nCA cert count: 5\r\nCA cert verify status[0]: 0x80092012 (-2146885614)\r\nCA cert verify status[1]: 0x80092012 (-2146885614)\r\nCA cert verify status[2]: 0x80092012 (-2146885614)\r\nCA cert verify status[3]: 0\r\nCA cert verify status[4]: 0\r\nCRL[0]: 3 -- Valid\r\nCRL[1]: 1 -- Error: No CRL for this Cert\r\nCRL[2]: 1 -- Error: No CRL for this Cert\r\nCRL[3]: 1 -- Error: No CRL for this Cert\r\nCRL[4]: 1 -- Error: No CRL for this Cert\r\n\r\n\r\n"
+}
+=== retrieve and inspect the issued certificate ===
+{
+   "exitcode" : 0,
+   "exited" : 1,
+   "out-data" : "RequestId: 5\r\nRequestId: \"5\"\r\nCertificate retrieved(Issued) Issued  Resubmitted by DISTRICT\\CA01$\r\n"
+}
+{
+   "err-data" : "Missing ')' in method call.\r\n    + CategoryInfo          : ParserError: (:) [], ParentContainsErrorRecordException\r\n    + FullyQualifiedErrorId : MissingEndParenthesisInMethodCall\r\n \r\n",
+   "exitcode" : 1,
+   "exited" : 1
+}
+=== remove the temporary Enterprise Admins grant ===
+{
+   "exitcode" : 0,
+   "exited" : 1,
+   "out-data" : "Administrator\r\n"
+}

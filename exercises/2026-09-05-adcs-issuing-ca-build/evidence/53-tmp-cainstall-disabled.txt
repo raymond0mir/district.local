@@ -1,0 +1,79 @@
+# tmp-cainstall disabled, before and after
+
+Raymond's decision, following a Microsoft best-practice question in session: disable now, retire
+by deletion later after a retention window, because `district.local` has AD Recycle Bin disabled
+and a delete here would not be reversible. Disabling closes the practical risk immediately — a
+disabled account cannot authenticate, so the standing Full Control ACE on
+`district.localClientAuthentication` becomes unusable without needing to touch that ACE itself.
+
+--------------------------------------------------------------------------------
+Command:   date -u
+Host:      Proxmox host shell
+Timestamp: 2026-09-09T14:38:18Z
+--------------------------------------------------------------------------------
+
+Wed Sep  9 02:38:18 PM UTC 2026
+
+--------------------------------------------------------------------------------
+Command:   qm guest exec 100 --timeout 30 -- powershell.exe -NonInteractive -Command
+           "Get-ADUser -Identity tmp-cainstall -Properties Enabled |
+            Select-Object SamAccountName,Enabled"
+Host:      DC01 (VM 100), via qm guest exec from the Proxmox host shell
+Timestamp: 2026-09-09T14:38Z (individual per-command timestamps not captured; date -u above
+           precedes all three calls in this file)
+--------------------------------------------------------------------------------
+
+{
+   "exitcode" : 0,
+   "exited" : 1,
+   "out-data" : "\r\nSamAccountName Enabled\r\n-------------- -------\r\ntmp-cainstall     True\r\n\r\n\r\n"
+}
+
+--------------------------------------------------------------------------------
+Command:   qm guest exec 100 --timeout 30 -- powershell.exe -NonInteractive -Command
+           "Disable-ADAccount -Identity tmp-cainstall -Confirm:\$false"
+Host:      DC01 (VM 100), via qm guest exec from the Proxmox host shell
+Timestamp: 2026-09-09T14:38Z
+--------------------------------------------------------------------------------
+
+{
+   "exitcode" : 0,
+   "exited" : 1
+}
+
+--------------------------------------------------------------------------------
+Command:   qm guest exec 100 --timeout 30 -- powershell.exe -NonInteractive -Command
+           "Get-ADUser -Identity tmp-cainstall -Properties Enabled |
+            Select-Object SamAccountName,Enabled"
+Host:      DC01 (VM 100), via qm guest exec from the Proxmox host shell
+Timestamp: 2026-09-09T14:38Z
+--------------------------------------------------------------------------------
+
+{
+   "exitcode" : 0,
+   "exited" : 1,
+   "out-data" : "\r\nSamAccountName Enabled\r\n-------------- -------\r\ntmp-cainstall    False\r\n\r\n\r\n"
+}
+
+--------------------------------------------------------------------------------
+What this proves
+--------------------------------------------------------------------------------
+
+- `tmp-cainstall` moved from `Enabled: True` to `Enabled: False`, before and after both read
+  independently of the write.
+- `DISTRICT\DC01$`, running as SYSTEM over `qm guest exec`, could disable a regular user account.
+  This is a different outcome than the same identity's `Set-ADObject` denial on
+  `district.localClientAuthentication` in `evidence/39` — `Insufficient access rights to perform
+  the operation`. A domain controller's own machine account has different effective rights on a
+  standard user object than on a Configuration-partition certificate template object with a
+  custom ACL. No blanket rule about `DC01$`'s AD rights can be drawn from either result alone.
+- No credential beyond DC01's own machine identity was used. `tmp-cainstall`'s Full Control ACE on
+  the certificate template still stands as an object, unused for this action and unaffected by it.
+
+--------------------------------------------------------------------------------
+What this does not prove
+--------------------------------------------------------------------------------
+
+Whether `DC01$` could also disable a protected-group member (AdminSDHolder-governed) the same
+way. `tmp-cainstall` is not and has never been in a protected group at time of this capture.
+Untested.

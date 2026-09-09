@@ -1,0 +1,44 @@
+Command: date -u; echo "--- guests ---"; qm status 100; qm status 107; pct status 103; pct status 106; echo "--- pool ---"; lvs -a -o+data_percent,metadata_percent; echo "--- memory ---"; free -h
+Host: Proxmox host shell (Proxmox web console)
+UTC: 2026-09-08T13:56:24Z
+
+Tue Sep  8 01:56:24 PM UTC 2026
+--- guests ---
+status: stopped
+status: stopped
+status: stopped
+status: stopped
+--- pool ---
+  LV                                                     VG  Attr       LSize    Pool Origin                        Data%  Meta%  Move Log Cpy%Sync Convert Data%  Meta% 
+  data                                                   pve twi-aotz-- <155.23g                                    82.93  4.03                             82.93  4.03  
+  [data_tdata]                                           pve Twi-ao---- <155.23g                                                                                         
+  [data_tmeta]                                           pve ewi-ao----   <1.44g                                                                                         
+  [lvol0_pmspare]                                        pve ewi-------   <1.44g                                                                                         
+  root                                                   pve -wi-ao----  <69.37g                                                                                         
+  snap_vm-100-disk-0_clean-install                       pve Vri---tz-k    4.00m data vm-100-disk-0                                                                      
+  snap_vm-100-disk-0_pre-secure-admin-ws-relink-20260902 pve Vri---tz-k    4.00m data vm-100-disk-0                                                                      
+  snap_vm-100-disk-1_clean-install                       pve Vri---tz-k   60.00g data vm-100-disk-1                                                                      
+  snap_vm-100-disk-1_pre-secure-admin-ws-relink-20260902 pve Vri---tz-k   60.00g data vm-100-disk-1                                                                      
+  snap_vm-101-disk-0_win11-ootb                          pve Vri---tz-k    4.00m data                                                                                    
+  snap_vm-101-disk-1_win11-ootb                          pve Vri---tz-k   64.00g data                                                                                    
+  snap_vm-101-disk-2_win11-ootb                          pve Vri---tz-k    4.00m data                                                                                    
+  snap_vm-107-disk-0_pre-adcs-config                     pve Vri---tz-k    4.00m data vm-107-disk-0                                                                      
+  snap_vm-107-disk-1_pre-adcs-config                     pve Vri---tz-k   60.00g data vm-107-disk-1                                                                      
+  swap                                                   pve -wi-ao----    8.00g                                                                                         
+  vm-100-disk-0                                          pve Vwi-a-tz--    4.00m data                               14.06                                   14.06        
+  vm-100-disk-1                                          pve Vwi-a-tz--   60.00g data                               44.47                                   44.47        
+  vm-100-state-clean-install                             pve Vwi---tz--   <8.49g data                                                                                    
+  vm-101-disk-0                                          pve Vwi---tz--    4.00m data snap_vm-101-disk-0_win11-ootb                                                      
+  vm-101-disk-1                                          pve Vwi---tz--   64.00g data snap_vm-101-disk-1_win11-ootb                                                      
+  vm-101-disk-2                                          pve Vwi---tz--    4.00m data snap_vm-101-disk-2_win11-ootb                                                      
+  vm-101-state-win11-ootb                                pve Vwi---tz--   <8.49g data                                                                                    
+  vm-102-disk-0                                          pve Vwi---tz--    4.00m data                                                                                    
+  vm-102-disk-1                                          pve Vwi---tz--   60.00g data                                                                                    
+  vm-104-disk-0                                          pve Vwi---tz--   20.00g data                                                                                    
+  vm-106-disk-0                                          pve Vwi---tz--    4.00g data                                                                                    
+  vm-107-disk-0                                          pve Vwi-a-tz--    4.00m data                               14.06                                   14.06        
+  vm-107-disk-1                                          pve Vwi-a-tz--   60.00g data                               21.85                                   21.85        
+--- memory ---
+               total        used        free      shared  buff/cache   available
+Mem:            15Gi       2.2Gi        12Gi        48Mi       828Mi        12Gi
+Swap:          8.0Gi          0B       8.0Gi

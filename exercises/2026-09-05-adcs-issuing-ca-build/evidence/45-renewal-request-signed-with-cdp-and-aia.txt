@@ -1,0 +1,51 @@
+Command: date -u; echo "=== diagnose the hung renewcert, pid 3192 ==="; qm guest exec 107 --timeout 60 -- powershell.exe -NonInteractive -Command 'Get-Process -Id 3192 -ErrorAction SilentlyContinue | Format-List Id,ProcessName,CPU,StartTime; Get-NetTCPConnection -OwningProcess 3192 -ErrorAction SilentlyContinue | Format-Table LocalAddress,LocalPort,RemoteAddress,RemotePort,State -AutoSize'; echo "=== pull the renewal request off CA01 ==="; REQ_B64=$(qm guest exec 107 --timeout 60 -- powershell.exe -NonInteractive -Command 'Write-Output ([Convert]::ToBase64String([IO.File]::ReadAllBytes("C:\ca01(3).req")))' | perl -MJSON::PP -0777 -ne 'my $j=decode_json($_); my $o=$j->{"out-data"}; $o =~ s/\s+//g; print $o'); echo "req b64 len=${#REQ_B64}"; echo "$REQ_B64" | base64 -d > /tmp/ca01-3.req; ls -l /tmp/ca01-3.req; head -1 /tmp/ca01-3.req; pct push 106 /tmp/ca01-3.req /root/ca/csr/ca01-3.req; echo "=== verify and sign with the CDP ==="; pct exec 106 -- openssl req -in /root/ca/csr/ca01-3.req -noout -verify -subject; pct exec 106 -- openssl ca -config /root/ca/rootca.cnf -batch -notext -extensions v3_sub_ca -days 1825 -in /root/ca/csr/ca01-3.req -out /root/ca/certs/ca01-3.cert.pem; echo "ca exit=$?"; echo "=== inspect the new issuing CA certificate ==="; pct exec 106 -- openssl x509 -in /root/ca/certs/ca01-3.cert.pem -noout -subject -issuer -serial -dates; pct exec 106 -- openssl x509 -in /root/ca/certs/ca01-3.cert.pem -noout -ext basicConstraints,keyUsage,subjectKeyIdentifier,authorityKeyIdentifier,crlDistributionPoints,authorityInfoAccess; pct exec 106 -- openssl verify -CAfile /root/ca/certs/root.cert.pem /root/ca/certs/ca01-3.cert.pem; pct exec 106 -- cat /root/ca/index.txt
+Host: Proxmox host shell (Proxmox web console), acting on container 106 and VM 107
+UTC: 2026-09-08T14:20:59Z
+
+Tue Sep  8 02:20:59 PM UTC 2026
+=== diagnose the hung renewcert, pid 3192 ===
+{
+   "exitcode" : 1,
+   "exited" : 1,
+   "out-data" : "\r\n\r\nId          : 3192\r\nProcessName : certutil\r\nCPU         : 0.03125\r\nStartTime   : 9/8/2026 7:14:43 AM\r\n\r\n\r\n\r\n"
+}
+=== pull the renewal request off CA01 ===
+req b64 len=2632
+-rw-r--r-- 1 root root 1974 Sep  8 07:21 /tmp/ca01-3.req
+-----BEGIN NEW CERTIFICATE REQUEST-----
+=== verify and sign with the CDP ===
+Certificate request self-signature verify OK
+subject=DC = local, DC = district, CN = district.local Issuing CA
+Using configuration from /root/ca/rootca.cnf
+Check that the request matches the signature
+Signature ok
+The Subject's Distinguished Name is as follows
+domainComponent       :IA5STRING:'local'
+domainComponent       :IA5STRING:'district'
+commonName            :PRINTABLE:'district.local Issuing CA'
+Certificate is to be certified until Sep  7 14:21:03 2031 GMT (1825 days)
+
+Write out database with 1 new entries
+Database updated
+ca exit=0
+=== inspect the new issuing CA certificate ===
+subject=DC = local, DC = district, CN = district.local Issuing CA
+issuer=O = district.local, CN = district.local Root CA
+serial=1000
+notBefore=Sep  8 14:21:03 2026 GMT
+notAfter=Sep  7 14:21:03 2031 GMT
+X509v3 Basic Constraints: critical
+    CA:TRUE, pathlen:0
+X509v3 Key Usage: critical
+    Certificate Sign, CRL Sign
+X509v3 Subject Key Identifier: 
+    B7:13:D8:86:24:A0:D2:2F:C1:64:28:38:03:80:71:E2:04:6D:4A:B7
+X509v3 Authority Key Identifier: 
+    95:64:33:9E:6C:1A:7F:45:F5:C6:9D:1D:50:C0:78:F9:FF:06:BB:82
+X509v3 CRL Distribution Points: 
+    Full Name:
+      URI:http://crl.districtsafetyphoto.com/pki/district-root.crl
+Authority Information Access: 
+    CA Issuers - URI:http://crl.districtsafetyphoto.com/pki/district-root.crt
+/root/ca/certs/ca01-3.cert.pem: OK
+V       310907142103Z           1000    unknown /DC=local/DC=district/CN=district.local Issuing CA

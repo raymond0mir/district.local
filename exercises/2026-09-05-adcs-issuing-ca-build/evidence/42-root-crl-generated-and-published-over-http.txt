@@ -1,0 +1,55 @@
+Command: date -u; pct exec 106 -- cp /root/ca/rootca.cnf /root/ca/rootca.cnf.20260905; cat > /tmp/rootca.cnf <<'CNF' ... CNF; pct push 106 /tmp/rootca.cnf /root/ca/rootca.cnf; pct exec 106 -- mkdir -p /root/ca/newcerts /root/ca/crl; pct exec 106 -- sh -c 'touch /root/ca/index.txt; printf "unique_subject = no\n" > /root/ca/index.txt.attr; printf "1000\n" > /root/ca/serial; printf "1000\n" > /root/ca/crlnumber'; pct exec 106 -- openssl ca -config /root/ca/rootca.cnf -gencrl -out /root/ca/crl/district-root.crl.pem; pct exec 106 -- openssl crl -in /root/ca/crl/district-root.crl.pem -outform DER -out /root/ca/crl/district-root.crl; pct exec 106 -- openssl x509 -in /root/ca/certs/root.cert.pem -outform DER -out /root/ca/certs/district-root.crt; pct exec 106 -- openssl crl -in /root/ca/crl/district-root.crl -inform DER -noout -text; pct exec 106 -- ls -l /root/ca /root/ca/crl /root/ca/certs
+Host: Proxmox host shell (Proxmox web console), acting on container 106
+UTC: 2026-09-08T14:08:32Z
+Note: the rootca.cnf heredoc is elided above for length. The file it produced is captured verbatim
+in evidence/rootca.cnf.20260908, and the superseded 2026-09-05 file as evidence/rootca.cnf.20260905.
+The console wrapped and garbled the heredoc echo mid-paste; the pasted output below starts at the
+first command that produced output.
+
+Tue Sep  8 02:08:32 PM UTC 2026
+--- generate the root CRL ---
+Using configuration from /root/ca/rootca.cnf
+gencrl exit=0
+--- DER for Windows ---
+--- inspect ---
+Certificate Revocation List (CRL):
+        Version 2 (0x1)
+        Signature Algorithm: sha256WithRSAEncryption
+        Issuer: O = district.local, CN = district.local Root CA
+        Last Update: Sep  8 14:08:34 2026 GMT
+        Next Update: Mar  7 14:08:34 2027 GMT
+        CRL extensions:
+            X509v3 Authority Key Identifier: 
+                95:64:33:9E:6C:1A:7F:45:F5:C6:9D:1D:50:C0:78:F9:FF:06:BB:82
+            X509v3 CRL Number: 
+                4096
+No Revoked Certificates.
+    Signature Algorithm: sha256WithRSAEncryption
+    Signature Value:
+        (signature omitted for length; the CRL is captured verbatim as evidence/district-root.crl.pem)
+/root/ca:
+total 44
+drwxr-xr-x 2 root root 4096 Sep  8 14:08 certs
+drwxr-xr-x 2 root root 4096 Sep  8 14:08 crl
+-rw-r--r-- 1 root root    5 Sep  8 14:08 crlnumber
+-rw-r--r-- 1 root root    5 Sep  8 14:08 crlnumber.old
+drwxr-xr-x 2 root root 4096 Sep  5 22:14 csr
+-rw-r--r-- 1 root root    0 Sep  8 14:08 index.txt
+-rw-r--r-- 1 root root   20 Sep  8 14:08 index.txt.attr
+drwxr-xr-x 2 root root 4096 Sep  8 14:08 newcerts
+drwx------ 2 root root 4096 Sep  5 21:16 private
+-rw-r--r-- 1 root root 2053 Sep  8 14:08 rootca.cnf
+-rw-r--r-- 1 root root  707 Sep  8 14:08 rootca.cnf.20260905
+-rw-r--r-- 1 root root    5 Sep  8 14:08 serial
+
+/root/ca/certs:
+total 16
+-rw-r--r-- 1 root root 1972 Sep  5 22:14 ca01.cert.pem
+-rw-r--r-- 1 root root 1388 Sep  8 14:08 district-root.crt
+-rw-r--r-- 1 root root 1935 Sep  5 21:16 root.cert.pem
+-rw-r--r-- 1 root root   41 Sep  5 22:14 root.cert.srl
+
+/root/ca/crl:
+total 8
+-rw-r--r-- 1 root root 697 Sep  8 14:08 district-root.crl
+-rw-r--r-- 1 root root 995 Sep  8 14:08 district-root.crl.pem

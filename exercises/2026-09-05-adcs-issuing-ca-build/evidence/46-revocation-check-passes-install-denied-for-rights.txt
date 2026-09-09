@@ -1,0 +1,36 @@
+Command: date -u; echo "=== kill the orphaned renewcert ==="; qm guest exec 107 --timeout 60 -- powershell.exe -NonInteractive -Command 'Stop-Process -Id 3192 -Force -ErrorAction SilentlyContinue; Start-Sleep -Seconds 2; "alive=" + [bool](Get-Process -Id 3192 -ErrorAction SilentlyContinue)'; echo "=== push the renewed certificate to CA01 ==="; pct exec 106 -- openssl x509 -in /root/ca/certs/ca01-3.cert.pem -outform DER -out /root/ca/certs/ca01-3.cer; CER_B64=$(pct exec 106 -- base64 -w0 /root/ca/certs/ca01-3.cer); echo "cer b64 len=${#CER_B64}"; qm guest exec 107 --timeout 60 -- powershell.exe -NonInteractive -Command "[IO.File]::WriteAllBytes('C:\ca01-3.cer',[Convert]::FromBase64String('$CER_B64')); (Get-Item 'C:\ca01-3.cer').Length"; echo "=== does the chain now check revocation? ==="; qm guest exec 107 --timeout 120 -- certutil.exe -urlfetch -verify "C:\ca01-3.cer"; echo "=== attempt install under guest exec ==="; qm guest exec 107 --timeout 90 -- certutil.exe -installcert "C:\ca01-3.cer"; echo "=== state ==="; qm guest exec 107 --timeout 60 -- certutil.exe -getreg 'CA\SetupStatus'
+Host: Proxmox host shell (Proxmox web console), acting on container 106 and VM 107
+UTC: 2026-09-08T14:22:12Z
+
+Tue Sep  8 02:22:12 PM UTC 2026
+=== kill the orphaned renewcert ===
+{
+   "exitcode" : 0,
+   "exited" : 1,
+   "out-data" : "alive=False\r\n"
+}
+=== push the renewed certificate to CA01 ===
+cer b64 len=2084
+{
+   "exitcode" : 0,
+   "exited" : 1,
+   "out-data" : "1562\r\n"
+}
+=== does the chain now check revocation? ===
+{
+   "exitcode" : 0,
+   "exited" : 1,
+   "out-data" : "Issuer:\r\n    CN=district.local Root CA\r\n    O=district.local\r\n  Name Hash(sha1): 0725062b9386d2a6ecb3533b8a882c396907578c\r\n  Name Hash(md5): b40cd0eae55d36a8ef49fb4cca12c30b\r\nSubject:\r\n    CN=district.local Issuing CA\r\n    DC=district\r\n    DC=local\r\n  Name Hash(sha1): 61c683e2f1ecd721de927c4c04d3cc56b3583183\r\n  Name Hash(md5): 674c049fea4253b9b05a44f648f15f2a\r\nCert Serial Number: 1000\r\n\r\ndwFlags = CA_VERIFY_FLAGS_CONSOLE_TRACE (0x20000000)\r\ndwFlags = CA_VERIFY_FLAGS_DUMP_CHAIN (0x40000000)\r\nChainFlags = CERT_CHAIN_REVOCATION_CHECK_CHAIN_EXCLUDE_ROOT (0x40000000)\r\nHCCE_LOCAL_MACHINE\r\nCERT_CHAIN_POLICY_BASE\r\n-------- CERT_CHAIN_CONTEXT --------\r\nChainContext.dwInfoStatus = CERT_TRUST_HAS_PREFERRED_ISSUER (0x100)\r\nChainContext.dwRevocationFreshnessTime: 7 Hours, 13 Minutes, 44 Seconds\r\n\r\nSimpleChain.dwInfoStatus = CERT_TRUST_HAS_PREFERRED_ISSUER (0x100)\r\nSimpleChain.dwRevocationFreshnessTime: 7 Hours, 13 Minutes, 44 Seconds\r\n\r\nCertContext[0][0]: dwInfoStatus=102 dwErrorStatus=0\r\n  Issuer: CN=district.local Root CA, O=district.local\r\n  NotBefore: 9/8/2026 7:21 AM\r\n  NotAfter: 9/7/2031 7:21 AM\r\n  Subject: CN=district.local Issuing CA, DC=district, DC=local\r\n  Serial: 1000\r\n  Cert: b81c8f45616e31fe8555875884831902938bc487\r\n  Element.dwInfoStatus = CERT_TRUST_HAS_KEY_MATCH_ISSUER (0x2)\r\n  Element.dwInfoStatus = CERT_TRUST_HAS_PREFERRED_ISSUER (0x100)\r\n  ----------------  Certificate AIA  ----------------\r\n  Verified \"Certificate (0)\" Time: 0 578ea69b32fc2e21b190ac0a24dc2e947adde045\r\n    [0.0] http://crl.districtsafetyphoto.com/pki/district-root.crt\r\n\r\n  ----------------  Certificate CDP  ----------------\r\n  Verified \"Base CRL (1000)\" Time: 0 35eff0a390ca24f692478311c698248fb811ea33\r\n    [0.0] http://crl.districtsafetyphoto.com/pki/district-root.crl\r\n\r\n  ----------------  Base CRL CDP  ----------------\r\n  No URLs \"None\" Time: 0 (null)\r\n  ----------------  Certificate OCSP  ----------------\r\n  No URLs \"None\" Time: 0 (null)\r\n  --------------------------------\r\n    CRL 1000:\r\n    Issuer: CN=district.local Root CA, O=district.local\r\n    ThisUpdate: 9/8/2026 7:08 AM\r\n    NextUpdate: 3/7/2027 7:08 AM\r\n    CRL: 35eff0a390ca24f692478311c698248fb811ea33\r\n\r\nCertContext[0][1]: dwInfoStatus=10a dwErrorStatus=0\r\n  Issuer: CN=district.local Root CA, O=district.local\r\n  NotBefore: 9/5/2026 2:16 PM\r\n  NotAfter: 9/2/2036 2:16 PM\r\n  Subject: CN=district.local Root CA, O=district.local\r\n  Serial: 025958bfad1a543a977540380545a04ee952b6cc\r\n  Cert: 578ea69b32fc2e21b190ac0a24dc2e947adde045\r\n  Element.dwInfoStatus = CERT_TRUST_HAS_KEY_MATCH_ISSUER (0x2)\r\n  Element.dwInfoStatus = CERT_TRUST_IS_SELF_SIGNED (0x8)\r\n  Element.dwInfoStatus = CERT_TRUST_HAS_PREFERRED_ISSUER (0x100)\r\n  ----------------  Certificate AIA  ----------------\r\n  No URLs \"None\" Time: 0 (null)\r\n  ----------------  Certificate CDP  ----------------\r\n  No URLs \"None\" Time: 0 (null)\r\n  ----------------  Certificate OCSP  ----------------\r\n  No URLs \"None\" Time: 0 (null)\r\n  --------------------------------\r\n\r\nExclude leaf cert:\r\n  Chain: e7af90796abd49210af9dd20b6fac5efc462ff4b\r\nFull chain:\r\n  Chain: 5813256c10f58dddf8636fdb7bd0fbf88d7fc68f\r\n------------------------------------\r\nVerified Issuance Policies: None\r\nVerified Application Policies: All\r\nCert is a CA certificate\r\nLeaf certificate revocation check passed\r\nCertUtil: -verify command completed successfully.\r\n"
+}
+=== attempt install under guest exec ===
+{
+   "exitcode" : -2147016552,
+   "exited" : 1,
+   "out-data" : "CertUtil: -installCert command FAILED: 0x80072098 (WIN32: 8344 ERROR_DS_INSUFF_ACCESS_RIGHTS)\r\nCertUtil: Insufficient access rights to perform the operation.\r\n"
+}
+=== state ===
+{
+   "exitcode" : 0,
+   "exited" : 1,
+   "out-data" : "HKEY_LOCAL_MACHINE\\SYSTEM\\CurrentControlSet\\Services\\CertSvc\\Configuration\\district.local Issuing CA\\SetupStatus:\r\n\r\n  SetupStatus REG_DWORD = 9\r\n    SETUP_SERVER_FLAG -- 1\r\n    SETUP_REQUEST_FLAG -- 8\r\nCertUtil: -getreg command completed successfully.\r\n"
+}

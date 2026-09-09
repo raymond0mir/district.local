@@ -1,0 +1,71 @@
+# Domain Users' Allow Enroll ACE removed from the client-auth template, before and after
+
+This closes the before-and-after `EXPOSURES.md` named as owed for the finding that
+`DISTRICT\Domain Users` held Allow Enroll on `district.localClientAuthentication` alongside
+`PKI-CBA-Pilot`. `PKI-CBA-Pilot` restricted nothing while this ACE stood.
+
+The script ran at CA01's console, signed in as `DISTRICT\tmp-cainstall`, using raw ADSI against
+`ObjectSecurity`. It was staged to disk first through `qm guest exec` on CA01 (SYSTEM, filesystem
+write only, no AD rights used or needed for that step), to avoid retyping the script by hand at
+the console. The console run itself carries no independently captured `date -u`; the DC01
+cross-check below timestamps persistence, not execution.
+
+--------------------------------------------------------------------------------
+Command:   powershell -NoProfile -File C:\Users\Public\remove-du-enroll.ps1
+           run at CA01's console as DISTRICT\tmp-cainstall
+Host:      CA01 (VM 107), console
+Timestamp: not captured at this console
+--------------------------------------------------------------------------------
+
+PS C:\Windows\system32> powershell -NoProfile -File C:\Users\Public\remove-du-enroll.ps1
+--- before ---
+
+IdentityReference      : DISTRICT\Domain Users
+ActiveDirectoryRights  : ReadProperty, WriteProperty, ExtendedRight
+AccessControlType      : Allow
+ObjectType             : 0e10c968-78fb-11d2-90d4-00c04f79dc55
+
+
+--- after ---
+No Domain Users ACE remains on this object.
+PS C:\Windows\system32>
+
+--------------------------------------------------------------------------------
+Command:   date -u
+           qm guest exec 100 --timeout 30 -- powershell.exe -NonInteractive -Command
+           "(Get-ADObject -Identity 'CN=district.localClientAuthentication,CN=Certificate
+            Templates,CN=Public Key Services,CN=Services,CN=Configuration,DC=district,
+            DC=local' -Properties nTSecurityDescriptor).nTSecurityDescriptor.Access |
+            Where-Object { $_.IdentityReference -like '*Domain Users' }"
+Host:      Proxmox host shell, reading DC01 (VM 100) via qm guest exec
+Timestamp: 2026-09-09T14:31:59Z
+--------------------------------------------------------------------------------
+
+Wed Sep  9 02:31:59 PM UTC 2026
+{
+   "exitcode" : 0,
+   "exited" : 1
+}
+
+--------------------------------------------------------------------------------
+What this proves
+--------------------------------------------------------------------------------
+
+- Before the change, the object's security descriptor held exactly one `Domain Users` ACE:
+  Allow, ReadProperty + WriteProperty + ExtendedRight, scoped to ObjectType
+  `0e10c968-78fb-11d2-90d4-00c04f79dc55` (Certificate-Enrollment). This matches evidence/34's
+  finding, one ACE, nothing else for this trustee.
+- After the change, the CA01-side read-back shows no `Domain Users` ACE remains.
+- The DC01-side read, from a second vantage over `qm guest exec` rather than the console
+  session that made the change, returns empty `out-data` for the same filter. The removal
+  replicated and persisted, not a transient in one session's view.
+- `tmp-cainstall`'s Full Control on the object carried the write. `DISTRICT\CA01$`, the
+  identity `qm guest exec` on CA01 authenticates as, was never used for the write itself, only
+  for staging the script file, a local filesystem operation.
+
+--------------------------------------------------------------------------------
+What this does not prove
+--------------------------------------------------------------------------------
+
+Whether `PKI-CBA-Pilot` alone, without the removed ACE, actually gates enrollment end to end.
+No enrollment attempt as a non-`PKI-CBA-Pilot` user has been made, before or after this change.

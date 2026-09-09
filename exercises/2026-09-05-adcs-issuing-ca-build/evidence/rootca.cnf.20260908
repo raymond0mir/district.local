@@ -1,0 +1,66 @@
+[ req ]
+default_bits       = 4096
+default_md         = sha256
+distinguished_name = req_dn
+x509_extensions    = v3_root
+prompt             = no
+
+[ req_dn ]
+O  = district.local
+CN = district.local Root CA
+
+# 2026-09-05: no crlDistributionPoints anywhere in this file. Deliberate.
+# 2026-09-08: reversed. The issuing CA could not construct a certificate,
+# because it could not check revocation on its own chain
+# (0x80092012 CRYPT_E_NO_REVOCATION_CHECK). Entra CBA also accepts exactly
+# one HTTP CDP per trusted CA. One URL serves both.
+
+[ ca ]
+default_ca = CA_default
+
+[ CA_default ]
+dir               = /root/ca
+certs             = $dir/certs
+new_certs_dir     = $dir/newcerts
+database          = $dir/index.txt
+serial            = $dir/serial
+crlnumber         = $dir/crlnumber
+crl               = $dir/crl/district-root.crl.pem
+certificate       = $dir/certs/root.cert.pem
+private_key       = $dir/private/root.key.pem
+default_md        = sha256
+default_days      = 1825
+default_crl_days  = 180
+crl_extensions    = crl_ext
+preserve          = yes
+unique_subject    = no
+email_in_dn       = no
+copy_extensions   = none
+policy            = policy_loose
+
+[ policy_loose ]
+domainComponent        = optional
+countryName            = optional
+stateOrProvinceName    = optional
+localityName           = optional
+organizationName       = optional
+organizationalUnitName = optional
+commonName             = supplied
+emailAddress           = optional
+
+[ crl_ext ]
+authorityKeyIdentifier = keyid:always
+
+[ v3_root ]
+basicConstraints       = critical,CA:true,pathlen:1
+keyUsage               = critical,keyCertSign,cRLSign
+subjectKeyIdentifier   = hash
+authorityKeyIdentifier = keyid:always
+
+[ v3_sub_ca ]
+basicConstraints       = critical,CA:true,pathlen:0
+keyUsage               = critical,keyCertSign,cRLSign
+subjectKeyIdentifier   = hash
+authorityKeyIdentifier = keyid:always
+crlDistributionPoints  = URI:http://crl.districtsafetyphoto.com/pki/district-root.crl
+authorityInfoAccess    = caIssuers;URI:http://crl.districtsafetyphoto.com/pki/district-root.crt

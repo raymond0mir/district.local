@@ -1,0 +1,29 @@
+Command: date -u; echo "=== rootca.cnf 20260908 verbatim ==="; pct exec 106 -- cat /root/ca/rootca.cnf; echo "=== district-root.crl.pem verbatim ==="; pct exec 106 -- cat /root/ca/crl/district-root.crl.pem; echo "=== renew the issuing CA certificate, reusing the key ==="; qm guest exec 107 --timeout 240 -- certutil.exe -renewcert ReuseKeys; echo "=== state after renew ==="; qm guest exec 107 --timeout 60 -- certutil.exe -getreg 'CA\SetupStatus'; qm guest exec 107 --timeout 60 -- certutil.exe -getreg 'CA\RequestFileName'; qm guest exec 107 --timeout 60 -- powershell.exe -NonInteractive -Command 'Get-ChildItem C:\ -Filter *.req | Format-Table Name,Length,LastWriteTime -AutoSize; Get-Service CertSvc | Format-List Name,Status'
+Host: Proxmox host shell (Proxmox web console), acting on container 106 and VM 107
+UTC: 2026-09-08T14:14:43Z
+Note: the two file dumps are elided below. They are stored verbatim as evidence/rootca.cnf.20260908
+and evidence/district-root.crl.pem, and their byte counts match the container: 2053 and 995.
+The superseded configuration is evidence/rootca.cnf.20260905, 707 bytes.
+
+Tue Sep  8 02:14:43 PM UTC 2026
+=== renew the issuing CA certificate, reusing the key ===
+timeout reached, returning pid
+{
+   "pid" : 3192
+}
+=== state after renew ===
+{
+   "exitcode" : 0,
+   "exited" : 1,
+   "out-data" : "HKEY_LOCAL_MACHINE\\SYSTEM\\CurrentControlSet\\Services\\CertSvc\\Configuration\\district.local Issuing CA\\SetupStatus:\r\n\r\n  SetupStatus REG_DWORD = 9\r\n    SETUP_SERVER_FLAG -- 1\r\n    SETUP_REQUEST_FLAG -- 8\r\nCertUtil: -getreg command completed successfully.\r\n"
+}
+{
+   "exitcode" : 0,
+   "exited" : 1,
+   "out-data" : "HKEY_LOCAL_MACHINE\\SYSTEM\\CurrentControlSet\\Services\\CertSvc\\Configuration\\district.local Issuing CA\\RequestFileName:\r\n\r\n  RequestFileName REG_SZ = C:\\ca01%4.req\r\nCertUtil: -getreg command completed successfully.\r\n"
+}
+{
+   "exitcode" : 0,
+   "exited" : 1,
+   "out-data" : "\r\nName        Length LastWriteTime      \r\n----        ------ -------------      \r\nca01(3).req   1974 9/8/2026 7:14:43 AM\r\nca01.req      1920 9/5/2026 3:08:21 PM\r\n\r\n\r\n\r\n\r\nName   : CertSvc\r\nStatus : Running\r\n\r\n\r\n\r\n"
+}
