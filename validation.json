@@ -1,17 +1,11 @@
 {
-  "commit": "1d37d8d7989ac4407ebca4c5ceec9c7ca43154bd",
+  "commit": "0990fe52b4bd41dfe42743cae0f1ce064273401d",
   "counts": {
-    "ERROR": 1,
+    "ERROR": 0,
     "INFO": 24,
     "WARN": 29
   },
   "findings": [
-    {
-      "check": "report-section-missing",
-      "message": "report is missing the required section: What the box said",
-      "path": "exercises/2026-08-31-member-server-build/report.md",
-      "severity": "ERROR"
-    },
     {
       "check": "evidence-log-grandfathered",
       "message": "predates the six-section schema, kept as a historical record",

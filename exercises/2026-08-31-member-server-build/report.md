@@ -34,6 +34,96 @@ Post-join, Server Manager confirmed `Workgroup: DISTRICT.LOCAL` (domain membersh
 
 **Static IP versus leaving it on DHCP.** Once the NetKVM driver was loaded, DHCP had already handed out a fully correct configuration (right gateway, right DNS, right suffix) — meaning static wasn't strictly required to proceed. I recommended static anyway (a server intended to run Entra Connect shouldn't have an address that can shift on lease renewal) but framed it as Raymond's call given DHCP was already working. His answer: *"set static now."* Documented because the technically-correct default (static) and the already-working state (DHCP) genuinely diverged here, not a case where there was only one reasonable answer.
 
+## What the box said
+
+A provenance note first, in this project's later terms. Four of the five evidence files record
+raw terminal scrollback pasted by Raymond, which the capture contract labels **Recalled**, not
+Captured. Only `evidence/guest-agent-verified.json` carries a command run through the automation
+channel with an exit code. This section quotes all five and says which is which. The distinction
+is stated here rather than corrected in the dated files.
+
+**Pre-flight, before anything was created.** Scrollback, `evidence/proxmox-preflight-before-build.txt`.
+
+```
+--- qm status 100 ---
+status: running
+
+--- lvs (load-bearing rows) ---
+  data      pve twi-aotz-- <141.23g      78.63  3.68
+
+--- free -h ---
+               total        used        free      shared  buff/cache   available
+Mem:            15Gi        11Gi       3.7Gi        52Mi       382Mi       3.8Gi
+```
+
+The pool passed at 78.63%, under the 85% gate. Memory did not have the same margin: 3.8Gi
+available, because VM 100 and VM 104 together held 12GB of the host's 15GB. That reading is the
+direct cause of the 3072 MiB allocation, below Microsoft's documented 4GB minimum.
+
+**Host inventory.** Scrollback, `evidence/iso-inventory-and-vm-list.txt`.
+
+```
+      VMID NAME                 STATUS     MEM(MB)    BOOTDISK(GB) PID
+       100 winserver2022        running    10000             60.00 27910
+       101 win11-client01       stopped    4096              64.00 0
+       104 pfsense-fw           running    2048              20.00 17647
+       105 kali-red             stopped    4096              40.00 0
+```
+
+Both ISOs were already on the host, dated 2025-09-11 and 2025-09-29, from the window of DC01's own
+build. VMIDs 102 and 103 were free. Raymond confirmed 102.
+
+**DC01's hardware profile, captured to mirror.** Scrollback, `evidence/dc01-hardware-config-baseline.txt`.
+
+```
+bios: ovmf
+machine: q35
+scsihw: virtio-scsi-single
+ostype: l26
+memory: 10000
+```
+
+`ostype: l26` is Proxmox's code for a Linux guest, set on a Windows Server 2022 VM. The command
+was run to copy a working profile and returned a defect instead. It was not fixed on VM 100, and
+it was not propagated: VM 102 uses `ostype: win11`.
+
+**VM creation.** Scrollback, `evidence/vm102-created.txt`.
+
+```
+efidisk0: successfully created disk 'local-lvm:vm-102-disk-0,efitype=4m,pre-enrolled-keys=1,size=4M'
+scsi0: successfully created disk 'local-lvm:vm-102-disk-1,iothread=1,size=60G'
+pinning machine type to 'pc-q35-10.0' for Windows guest OS
+  WARNING: Sum of all thin volume sizes (<590.97 GiB) exceeds the size of thin pool pve/data
+  and the size of whole volume group (237.47 GiB).
+```
+
+Both disks provisioned without error. The machine type pinned automatically, which is expected for
+a Windows-typed guest and locks the ABI against a later host upgrade. The overcommit warning
+reports allocated virtual size, not consumption. Real usage stayed at the 78.63% above.
+
+**The guest agent, and the only command here with an exit code.**
+`evidence/guest-agent-verified.json`.
+
+```
+Command 1: qm agent 102 ping
+Output: (empty -- no output is success for this subcommand)
+
+Command 2: qm guest exec 102 --timeout 30 -- cmd.exe /c hostname
+{
+   "exitcode" : 0,
+   "exited" : 1,
+   "out-data" : "ENTRACONNECT01\r\n"
+}
+```
+
+`exitcode: 0` and the returned hostname prove the automation channel works against VM 102. Both
+commands failed before `vioserial` was loaded, with "QEMU guest agent is not running".
+
+**What the box did not say.** Everything between the start of Windows Setup and the domain join
+was read from Proxmox console screenshots: the edition selection, three VirtIO driver loads, the
+computer rename, the DHCP lease, the static address, and Server Manager's post-join state. No
+command output backs any of it. Those claims are Recalled and cannot enter the ledger.
+
 ## What broke, and why
 
 **A wrong claim, made and corrected in real time.** After the disk-selection screen, Raymond's status update ("disk showed up, installing now") didn't confirm whether a driver load had occurred. That ambiguity was read as "it auto-detected without one," stated as a small finding ("no driver load needed — worth noting, since I expected that step to be necessary"), and it was wrong — Raymond clarified he had in fact loaded the driver. The lesson isn't really about VirtIO drivers; it's that an ambiguous status update should prompt a direct question about the actual mechanism, not an inference dressed up as an observation. This project's whole premise is not letting exactly this kind of gap stand, and it happened anyway, inside the same session — corrected as soon as caught, not smoothed over.
