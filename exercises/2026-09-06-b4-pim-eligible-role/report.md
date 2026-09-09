@@ -138,9 +138,12 @@ the same error would have sent the work to the portal unnecessarily.
 Evidence: `13-approval-chain.md`.
 
 A deliberate over-limit activation request at PT4H, intended to capture the PT2H ceiling as a
-refusal, has no captured response. Raymond believes he sent it. The request endpoint holds no
-PT4H object, which does not settle the question, because Entra may reject an over-limit request
-during validation before any object persists. It is being re-run from a clean state.
+refusal, had no captured response on 2026-09-06. Raymond believes he sent it. The request endpoint
+held no PT4H object. **Re-run 2026-09-09, and resolved.** An over-limit request is refused during
+validation. The error is `RoleAssignmentRequestPolicyValidationFailed`, and it names
+`ExpirationRule`. No request object persists. The empty endpoint on 2026-09-06 is the expected
+result of a refused request. It is no longer evidence that the request was never sent.
+Evidence: `16-over-limit-activation-refused-at-validation.md`.
 
 `roleDefinitions` rejects the `or` operator in `$filter` and accepts `and`. One query was lost to
 that.
@@ -170,8 +173,9 @@ Never abbreviate an identifier in an instruction that will be pasted verbatim.
 
 ## Open questions
 
-- Does a PT4H activation request get refused? Unresolved. The ceiling currently rests on the
-  policy read alone, which is a weaker claim than a captured refusal.
+- ~~Does a PT4H activation request get refused?~~ **Resolved 2026-09-09.** The request is refused
+  during validation, and the error names `ExpirationRule`. The ceiling is enforced, not advisory.
+  Evidence: `16-over-limit-activation-refused-at-validation.md`.
 - Should `adm-jsmith` become the account used for routine tenant work, returning break-glass to a
   control that is never used? The exercise built the account. Adopting it is a change in habit,
   not configuration, and habit is where break-glass accounts fail.

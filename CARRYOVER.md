@@ -1,55 +1,57 @@
 # Carryover
 
-Open items, 2026-09-08.
+Open items, 2026-09-09.
 
 Read `EXPOSURES.md` next.
 
-## Uncommitted work in the tree
-
-Tonight's C2 work is unstaged: ten evidence files, 30 to 39, under
-`exercises/2026-09-05-adcs-issuing-ca-build/evidence/`, plus that exercise's `evidence-log.md`,
-`verified-claims.md`, `EXPOSURES.md` and `references/gotchas.md`. Plugin copy synced. Run the
-credential scan before committing; passes 4 and 5 are owed.
-
-## C2 — root cause found, one defect fixed, one blocking
-
-The enrolment question is answered. The template required the e-mail attribute in the subject and
-the SAN, inherited from the built-in `User` template by duplication, and no user has `mail`. Fixed
-2026-09-08: `msPKI-Certificate-Name-Flag` `-1509949440` to `-2113929216`, minor revision 4 to 5.
-Rollback is a write back to `-1509949440`.
-
-Request 5 then failed on `0x80092012 CRYPT_E_NO_REVOCATION_CHECK`, "Error Constructing or
-Publishing Certificate". The CA cannot check revocation on its own chain.
-
-**Next session, decided by Raymond: reissue the issuing CA certificate with a CDP.** Generate a
-CRL on the offline root in container 106, publish it over HTTP, re-sign `ca01.req` with
-`crlDistributionPoints`, reinstall with `certutil -installcert`. This also serves the tenant path:
-Entra CBA needs one HTTP CDP; LDAP and OCSP are unsupported.
-
-Template writes need a console. `qm guest exec` gets `Insufficient access rights`; `tmp-cainstall`
-at CA01's console holds Full Control.
-
-`report.md` is written and says in section one that the exercise is not closed. When a certificate
-issues, update What the box said, What broke, and Open questions. Leave What I'd do differently
-alone; it is complete.
-
 ## Lab state
 
-Read 2026-09-07T22:28Z: pool `Data%` 82.91, metadata 4.03, about 3.2 GiB under the 85% gate.
-Running at close: VM 100 (10000 MB), VM 107 (2048 MB), container 103 (1024 MB) on a 15 GiB host,
-about 1.4 GiB free. Stopped: VM 101, 102, 104, container 106. Only container 103 has `onboot: 1`.
-Re-read pool and memory before any state change.
+Not re-read this session. As of 2026-09-08T23:45:49Z: VM 100 (DC01), VM 107 (CA01) and container
+106 are stopped. Pool Data% 83.69, metadata 4.19, under the 85% gate. That margin is thin. The
+snapshots `snap_vm-107-disk-{0,1}_pre-cdp-setup-20260908` cover the pre-CDP state, so a new
+snapshot is not needed. Run pre-flight before the first state change.
+
+## Uncommitted, and staged
+
+The index holds two unrelated bodies of work. Staged 2026-09-08: ADCS evidence 40 through 51, that
+exercise's `evidence-log.md` and `report.md`, `EXPOSURES.md`, `references/gotchas.md`, `validate.py`.
+Staged 2026-09-09: B4's `evidence/16`, `evidence-log.md` and `report.md`, plus `CURRICULUM.md`,
+`CARRYOVER.md` and `verified-claims.md`.
+
+Nothing is committed. Raymond was asked to split the two into separate commits and did not answer.
+Do not commit both as one without asking again.
+
+Credential scan passes 1, 1b, 2 and 3 were re-run 2026-09-09 and are clean on the whole tree.
+Passes 4 and 5 are still owed and need Raymond: the Vaultwarden literal strings, and the current
+tenant Global Administrator's name.
+
+## B4 closed 2026-09-09
+
+The PT4H over-limit request is captured. Entra refuses it during validation, names
+`ExpirationRule`, and writes no request object. `evidence/16`. Ledger row added, CURRICULUM
+updated.
+
+## Next in the ADCS exercise
+
+Neither step started 2026-09-09. Both are on-premises and need no public hosting.
+
+1. Remove `DISTRICT\Domain Users`' Allow Enroll ACE from `district.localClientAuthentication`.
+   Use `tmp-cainstall`'s Full Control on the template object. Do not re-grant Enterprise Admins.
+2. Retire `tmp-cainstall` after step 1. Standing Full Control outliving its task.
+
+## Still blocked
+
+Entra CBA needs `crl.districtsafetyphoto.com` served over public HTTP. Raymond owns the domain and
+has not hosted it. The 2026-09-08 chain verify used LDAP, which Entra cannot use.
 
 ## Time-sensitive
 
-- P2 trial ends 2026-10-04T00:00:00Z. B4's PT4H re-run is owed. Whether tenant CBA is P2-gated is
-  still not captured and needs a read inside the window.
+- `districtsafetyphoto.com` registration may lapse this month. Never verified. `whois` not run.
+- P2 trial ends 2026-10-04T00:00:00Z. B2 runs inside it. Whether tenant CBA is P2-gated is not captured.
 - `svc-entraconnect` password expires about 2026-10-13.
-- Neither Windows Server guest expires in September. DC01 runs to about 2027-03-02, CA01 to about
-  2027-03-04. Both September dates were retracted 2026-09-08.
+- `district-root.crl` expires 2027-03-07. Nothing regenerates it.
 
-## Still open elsewhere
+## Tooling
 
-B1: `d9a6a116` report-only, `75882b6a`'s block unexercised. `Domain Users` still holds Enroll on
-the client-auth template. A Vaultwarden password was shown in a screenshot 2026-09-08; rotation was
-recommended and is unconfirmed.
+`validate.py` reports 16 errors, all pre-existing. It is modified in the tree and no longer writes
+`validation.json`, so `validation.json` is stale.

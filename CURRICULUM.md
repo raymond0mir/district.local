@@ -387,10 +387,11 @@ the role 0.9 seconds later with `initiatedBy.app.displayName` `MS-PIM`. PIM logg
 seconds after that, actor "Azure AD PIM", null `userPrincipalName`, null `ipAddress`. Neither
 audit entry names a human. The eligibility survived, so the control is repeatable.
 
-**Still open.** A deliberate PT4H over-limit request was planned, to capture the PT2H ceiling as
-a refusal. It was never captured. The ceiling currently rests on the policy read alone. An
-over-limit request may be rejected during validation without persisting a request object, so the
-attempt cannot be reconstructed after the fact.
+**Closed 2026-09-09.** The PT4H over-limit request was re-run and captured. Entra refuses it
+during validation with `RoleAssignmentRequestPolicyValidationFailed`, and the message names
+`ExpirationRule`. The ceiling is enforced, not advisory, and it no longer rests on the policy read
+alone. No request object is written, which explains the empty endpoint on 2026-09-06. Evidence:
+`exercises/2026-09-06-b4-pim-eligible-role/evidence/16-over-limit-activation-refused-at-validation.md`.
 
 **The on-prem contrast is the report's strongest section.** `adm-jsmith` cannot use User
 Administrator without MFA, a stated reason, another party's approval, and a clock. `sysadmin`

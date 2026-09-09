@@ -26,6 +26,10 @@ B1-before-B4 swap.
 - `adm-jsmith` created, cloud-native, id `03ee6546-f113-4ec5-ba9d-e57381b0c928`. Password typed
   by Raymond in Graph Explorer, never sent to Claude, redacted in the evidence file.
   `evidence/05-adm-jsmith-created.md`
+- An over-limit activation request at PT4H is refused during validation. The error is
+  `RoleAssignmentRequestPolicyValidationFailed` and it names `ExpirationRule`. No request object
+  persists. Captured 2026-09-09, with the PT2H ceiling re-read in the same session.
+  `evidence/16-over-limit-activation-refused-at-validation.md`
 
 ## Not captured, and why
 
@@ -81,6 +85,12 @@ B1-before-B4 swap.
   `UnknownError` / `MissingProvider`. Claude read the first failure as a request-body problem and
   proposed a body change, which was the wrong hypothesis. The URL was the fault. Recorded in
   `evidence/11`. Goes to `references/gotchas.md` at close.
+- **Claude stated that B4 had not started, 2026-09-09.** Asked for the biggest blocker, Claude
+  read `CARRYOVER.md`'s line "B4's PT4H re-run is owed" and reported B4 as not started, with a
+  deadline of 2026-10-04. Claude repeated the error in a management-level summary and asked
+  Raymond to reserve four hours. `CURRICULUM.md` line 137 records B4 complete 2026-09-07. The
+  owed work was one unresolved question, and it took one API call. The cause was reading carryover
+  without reading `CURRICULUM.md`'s status column. Corrected before the re-run began.
 
 ## Open questions
 
@@ -99,7 +109,9 @@ B1-before-B4 swap.
 
 ## Not started
 
-- B4 steps 2 through 8.
+- ~~B4 steps 2 through 8.~~ **Stale, corrected 2026-09-09.** This line was written mid-exercise and
+  never updated. Steps 2 through 8 ran. `CURRICULUM.md` records B4 complete 2026-09-07, and
+  `report.md` covers the steps. Nothing in B4 is unstarted.
 
 ## Design change, 2026-09-06
 
