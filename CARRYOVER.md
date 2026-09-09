@@ -37,9 +37,9 @@ Entra CBA needs `crl.districtsafetyphoto.com` served over public HTTP. Owner: Ra
 domain and has not hosted it. The 2026-09-08 chain verify used LDAP, which Entra cannot use.
 
 ## Uncommitted and staged work
-Nothing is staged. `fdf8dcc`, the contract split, is committed and pushed. `ad1263e`, the ADCS
-exercise, is committed and not pushed. The tree holds only this file and `validation.json`, both
-refreshed after `ad1263e`.
+Nothing is staged. Everything through `1d37d8d` is committed and pushed. The tree holds the
+`evidence-modified` fix in `validate.py`, plus `CONSIDERATIONS.md`, `validation.json` and this
+file. Uncommitted.
 
 Corrections, 2026-09-09. `validate.py` still writes `validation.json` on `--json`. Its ERROR
 count depends on what is tracked: 1 with the ADCS evidence untracked, 18 staged, 1 again after

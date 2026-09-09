@@ -315,18 +315,29 @@ def check_layout():
 
 
 def check_evidence_immutability():
-    """A closed exercise has a report. Its evidence is a historical record."""
+    """A closed exercise has a report. Its published evidence is a historical record.
+
+    Compare against HEAD, not against the index. A file absent from HEAD has
+    never been published, so it cannot have been altered, and adding evidence to
+    a closed exercise is ordinary work. The earlier form unioned `git diff` with
+    `git diff --cached`, which flagged every newly staged file and cleared the
+    findings the moment the commit landed. Staging ADCS evidence 40 through 53
+    on 2026-09-09 raised seventeen such errors, all of them artifacts.
+
+    `--diff-filter=MDRT` keeps modification, deletion, rename and typechange.
+    It drops addition, which is the case that produced the false errors.
+    """
     closed = {
         name for name in exercises()
         if os.path.exists(repo_path("exercises", name, "report.md"))
     }
-    changed = set(git("diff", "--name-only")) | set(git("diff", "--cached", "--name-only"))
-    for rel in sorted(changed):
+    altered = git("diff", "HEAD", "--diff-filter=MDRT", "--name-only")
+    for rel in sorted(set(altered)):
         parts = rel.split("/")
         if len(parts) > 3 and parts[0] == "exercises" and parts[2] == "evidence":
             if parts[1] in closed:
                 add("ERROR", "evidence-modified",
-                    "evidence of a closed exercise is modified in the tree", rel)
+                    "published evidence of a closed exercise is altered", rel)
 
 
 def check_carryover():

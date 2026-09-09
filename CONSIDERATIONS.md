@@ -135,8 +135,13 @@ the moment the commit lands.
 
 Staging ADCS evidence 40 through 53 took the run from 1 ERROR to 18. Seventeen were this artifact.
 The check intends immutability of published evidence. A file that does not exist in `HEAD` is not
-published, so it cannot have been altered. Compare against `HEAD` rather than the index, or
-exclude paths absent from `HEAD`.
+published, so it cannot have been altered.
+
+**Fixed 2026-09-09.** The check now reads `git diff HEAD --diff-filter=MDRT --name-only`. That
+keeps modification, deletion, rename and typechange, and drops addition, which is the case that
+produced the false errors. Five cases were tested: a clean tree, an altered file unstaged, the same
+file staged, a new file staged, and a deletion. Only the alterations and the deletion raise the
+error. Adding evidence to a closed exercise is ordinary work and is now silent.
 
 **A correction on the record.** Commit `fdf8dcc` states "validate.py reports 1 ERROR, not 16",
 against the prior carryover's claim of 16. The 1 was measured with the ADCS evidence untracked, so
