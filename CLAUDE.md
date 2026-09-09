@@ -119,7 +119,8 @@ Keep failed attempts and error output. Failure is evidence.
 
 ## Public repository rules
 
-- Run the credential scan before every commit. Follow `references/credential-scan.md`. A literal
+- Run the credential scan before every commit. `.githooks/pre-commit` enforces it once
+  `git config core.hooksPath .githooks` is set. Follow `references/credential-scan.md`. A literal
   password reached report prose on 2026-08-31.
 - Keep Raymond's personal situation out of every artifact: legal, medical, leave, benefits, salary,
   and money pressure. Express a real constraint as the lab fact it produces: a deadline, a license
@@ -145,7 +146,7 @@ Close every exercise with a handoff. Work may span sessions.
 3. Add or retire ledger claims that meet Ledger scope. Add no others.
 4. Update `EXPOSURES.md` and `references/gotchas.md` when the session changed either.
 5. Overwrite `CARRYOVER.md` using the template below.
-6. Run the credential scan.
+6. Run `.githooks/pre-commit --all` for a whole-tree credential sweep.
 7. Run `python3 validate.py --json validation.json`.
 8. Do not commit unless Raymond asks.
 

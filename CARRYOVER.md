@@ -29,8 +29,10 @@ Pool Data% at 85 or higher. Run pre-flight before the next state change.
 - When to delete `tmp-cainstall`. Decided 2026-09-09: disable now, delete after a retention
   window — `evidence/53`. The window itself is not yet named. Default: leave it disabled. Enable
   AD Recycle Bin before any deletion, since a delete is not otherwise reversible.
-- Credential scan passes 4 and 5 need Raymond: the Vaultwarden literal strings, and the current
-  tenant Global Administrator's name. Default: passes stay owed, no commit until they run.
+- Credential scan passes 4 and 5 need a patterns file at
+  `~/.config/district-local/scan-patterns.txt`, one literal string per line: the Vaultwarden values
+  and the current tenant Global Administrator's name. Raymond holds both. Until it exists the hook
+  prints SKIPPED and does not block. Default: leave the file absent, and keep the passes owed.
 
 ## Blockers
 Entra CBA needs `crl.districtsafetyphoto.com` served over public HTTP. Owner: Raymond. He owns the

@@ -126,6 +126,7 @@ validate.py           deterministic repository checks; binary answers only
 validation.json       the last validate.py run, overwritten each run
 README.md             repo entry point, written for a public reader
 .gitignore            excludes local editor state
+.githooks/pre-commit  the credential scan; enable with core.hooksPath
 .claude/skills/tech-compass/
   SKILL.md            this file, the canonical copy
   references/

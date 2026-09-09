@@ -1,0 +1,125 @@
+#!/usr/bin/env bash
+# Credential scan for district.local. Runs before every commit.
+#
+# The repository is public. A literal password reached report prose on
+# 2026-08-31, which is why this control exists. Rotating a leaked lab
+# credential is cheap; unpublishing it is not. A pushed object stays
+# retrievable by SHA after a force-push until GitHub garbage-collects it.
+#
+# Passes 1, 1b, 2 and 3 read the staged diff. Passes 4 and 5 read the whole
+# tracked tree, because a literal string may already sit in an earlier commit.
+#
+# Usage:
+#   .githooks/pre-commit          scan the staged diff  (git runs this)
+#   .githooks/pre-commit --all    scan every tracked file, for a periodic sweep
+#
+# Pass 4 and 5 patterns live OUTSIDE the repository, one literal string per
+# line. Default path, override with DISTRICT_SCAN_PATTERNS:
+#   ~/.config/district-local/scan-patterns.txt
+#
+# Bypass with `git commit --no-verify` only when you have read every hit.
+
+set -u
+
+REPO="$(git rev-parse --show-toplevel)" || exit 1
+PATTERNS="${DISTRICT_SCAN_PATTERNS:-$HOME/.config/district-local/scan-patterns.txt}"
+MODE="staged"
+[ "${1:-}" = "--all" ] && MODE="all"
+
+BLOCKED=0
+
+# credential-scan.md documents these patterns, so it matches them by writing
+# them down. Exclude it rather than teaching every pass to ignore prose.
+EXCLUDE=':(exclude).claude/skills/tech-compass/references/credential-scan.md'
+
+# A value written as "[REDACTED...]" is the marker the procedure asks for, not
+# a leak. Drop those lines before counting hits.
+drop_redactions() {
+  grep -v '"\[REDACTED'
+}
+
+# hits <regex> <i|I>   I means case-sensitive
+hits() {
+  _re="$1"; _case="$2"; _flags="-nE"
+  [ "$_case" = "i" ] && _flags="-nEi"
+  if [ "$MODE" = "all" ]; then
+    [ "$_case" = "i" ] && _gflags="-InEi" || _gflags="-InE"
+    git -C "$REPO" grep $_gflags "$_re" -- . "$EXCLUDE" 2>/dev/null
+  else
+    git -C "$REPO" diff --cached -U0 -- . "$EXCLUDE" | grep $_flags "$_re"
+  fi
+}
+
+report() {
+  _label="$1"; _out="$2"; _block="$3"
+  if [ -n "$_out" ]; then
+    _n=$(printf '%s\n' "$_out" | grep -c .)
+    if [ "$_block" = "block" ]; then
+      printf '  %-38s %s hit(s)  BLOCKS THE COMMIT\n' "$_label" "$_n"
+      BLOCKED=1
+    else
+      printf '  %-38s %s hit(s)  read each one\n' "$_label" "$_n"
+    fi
+    printf '%s\n' "$_out" | sed 's/^/      /'
+  else
+    printf '  %-38s clean\n' "$_label"
+  fi
+}
+
+echo "credential scan (${MODE})"
+
+report "pass 1  assignment forms" \
+  "$(hits '(password|passwd|secret|api[_-]?key|client[_-]?secret|bearer|token)[[:space:]]*[:=][[:space:]]*[^[:space:]&]' i)" block
+
+report "pass 1b JSON-quoted keys" \
+  "$(hits '"(password|passwd|secret|api[_-]?key|client[_-]?secret|bearer|token)"[[:space:]]*:[[:space:]]*"[^"]' i | drop_redactions)" block
+
+# Pass 2 expects hits. This lab rotates passwords with inline random
+# generation, so a hit is normal and needs a human read, not a block.
+report "pass 2  PowerShell plaintext idioms" \
+  "$(hits '(AsPlainText|ConvertTo-SecureString|--password|net user )' i)" warn
+
+report "pass 3  key material" \
+  "$(hits 'BEGIN ([A-Z]+ )?PRIVATE KEY' I)" block
+
+# Passes 4 and 5: literal strings held outside the repository.
+case "$PATTERNS" in
+  "$REPO"/*)
+    echo "  passes 4+5                             REFUSED"
+    echo "      the patterns file is inside the repository: $PATTERNS"
+    echo "      move it outside the working tree and retry"
+    BLOCKED=1
+    ;;
+  *)
+    if [ ! -f "$PATTERNS" ]; then
+      echo "  passes 4+5                             SKIPPED, no patterns file"
+      echo "      expected at: $PATTERNS"
+      echo "      one literal string per line: Vaultwarden values, and the"
+      echo "      current tenant Global Administrator's name"
+    elif [ ! -s "$PATTERNS" ]; then
+      echo "  passes 4+5                             SKIPPED, patterns file is empty"
+    else
+      # Match against the whole tracked tree. Print file and line only; never
+      # echo the matched text, which would put the secret on screen and into
+      # terminal scrollback.
+      out="$(git -C "$REPO" grep -InFf "$PATTERNS" -- . 2>/dev/null | cut -d: -f1,2)"
+      if [ -n "$out" ]; then
+        n=$(printf '%s\n' "$out" | grep -c .)
+        printf '  %-38s %s hit(s)  BLOCKS THE COMMIT\n' "passes 4+5 known literal strings" "$n"
+        echo "      matched text is withheld on purpose. locations:"
+        printf '%s\n' "$out" | sed 's/^/      /'
+        BLOCKED=1
+      else
+        printf '  %-38s clean\n' "passes 4+5 known literal strings"
+      fi
+    fi
+    ;;
+esac
+
+if [ "$BLOCKED" -ne 0 ]; then
+  echo
+  echo "commit blocked. clear every hit above, or use --no-verify once you have read them."
+  exit 1
+fi
+
+exit 0

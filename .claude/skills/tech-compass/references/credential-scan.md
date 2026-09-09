@@ -2,9 +2,34 @@
 
 Run this before every commit. The repo is public. A literal password reached report prose on 2026-08-31.
 
-Run each pass in Terminal on the Mac Mini, from the repo root. Each pass prints file, line, and text.
+Rotating a leaked lab credential is cheap. Unpublishing it is not. A pushed object stays
+retrievable by its SHA after a force-push until GitHub garbage-collects it, and public repositories
+are copied by forks and code-search indexes within minutes. The scan is portfolio hygiene as much
+as a security control: a literal secret in the public history of a repository written to
+demonstrate identity engineering is read as a judgment signal.
 
-Run every pass. Do not stop at the first clean pass.
+## The hook
+
+`.githooks/pre-commit` runs the scan automatically. Enable it once per clone:
+
+```
+git config core.hooksPath .githooks
+```
+
+The hook blocks a commit on passes 1, 1b, 3, 4 and 5. Pass 2 prints its hits and does not block,
+because hits are expected there and need a human read.
+
+Run the whole tracked tree instead of the staged diff for a periodic sweep:
+
+```
+.githooks/pre-commit --all
+```
+
+Two exclusions keep the hook quiet without hiding anything. This file is excluded, because it
+matches the patterns by documenting them. A value written as `"[REDACTED...]"` is dropped from
+pass 1b, because that marker is what the procedure asks for.
+
+Bypass with `git commit --no-verify` only after reading every hit.
 
 ## Pass 1: assignment forms
 
@@ -44,33 +69,31 @@ git grep -InE 'BEGIN ([A-Z]+ )?PRIVATE KEY'
 
 Expect zero hits. A hit blocks the commit.
 
-## Pass 4: known secret values
+## Passes 4 and 5: literal strings
 
-Ask Raymond for the literal strings to check. He holds them in Vaultwarden.
+Pass 4 is the known secret values Raymond holds in Vaultwarden. Pass 5 is the current tenant
+Global Administrator's name, which stays out of every repo artifact. A name cannot be rotated, so
+pass 5 is the one string here whose publication is genuinely irreversible.
 
-Write the strings to a file outside the repo. Then run:
-
-```
-git grep -Inf /tmp/scan-patterns.txt
-```
-
-Expect zero hits. Delete the pattern file after the pass. Never write these strings into a repo file.
-
-## Pass 5: unpublished identity
-
-The current tenant Global Administrator's name stays out of every repo artifact. Ask Raymond for the name in session.
+Both read from one file of literal strings, one per line, held outside the repository:
 
 ```
-git grep -In '<name>'
+~/.config/district-local/scan-patterns.txt
 ```
 
-Expect zero hits. Redact each hit before the commit.
+Override the path with `DISTRICT_SCAN_PATTERNS`. The hook refuses to run if the file sits inside
+the working tree. It searches the whole tracked tree, not the staged diff, because a string may
+already sit in an earlier commit. It prints file and line only, never the matched text, so the
+value does not reach the terminal or its scrollback.
+
+Expect zero hits. Redact each hit before the commit. Never write these strings into a repo file.
 
 ## Scope
 
-Each pass reads tracked files. Run the passes after `git add` and before `git commit`.
+The hook reads the staged diff for passes 1, 1b, 2 and 3, and the whole tracked tree for passes 4
+and 5. `--all` puts every pass on the whole tree.
 
-Scan the staged set alone when the tree holds unrelated work:
+Run the passes by hand only when the hook is unavailable. Then scan the staged set:
 
 ```
 git diff --cached -U0 | grep -InE -i '<the pattern from the pass above>'
