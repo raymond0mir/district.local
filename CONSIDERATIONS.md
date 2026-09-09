@@ -74,3 +74,54 @@ consequences:
 3. Then add step 7a to `SKILL.md`, and sync the plugin copy.
 4. `AGENTS.md` last. Codify the behaviour that survived contact with the repository, not the
    behaviour predicted for it.
+
+## The contract split, 2026-09-09
+
+`CLAUDE.md` now holds the operating rules. `SKILL.md` holds the playbook. This fills the slot the
+Order section reserved for `AGENTS.md`, and it fills it first, not last. State the reason and the
+cost.
+
+**Reason.** The skill body is not always-on. A session start showed only the skill's `description`
+in context, about 50 words. The 276-line body loaded only when the skill triggered. A session that
+opens with "what's next" never loaded the rules at all. `CLAUDE.md` loads in every session in this
+directory, so the rules bind whether or not the skill triggers.
+
+**Cost.** Always-on context grows from about 50 words to about 1400. This buys enforcement. It
+does not save tokens. Any claim that the split reduces context is wrong.
+
+**What moved.** Claim labels, session start and close, state-change gates, public-repository
+rules, the carryover template, output style, cross-surface, and working rules moved to `CLAUDE.md`.
+Command paths, templates, layout, the loop, the nine questions, recommendation-label definitions,
+portfolio framing, and token discipline stayed in `SKILL.md`. `SKILL.md` fell from 276 lines to
+219 and gained a routing line at the top.
+
+**Three defects fixed in the move.**
+
+- `SKILL.md` said "Publish on completion" and "Commit only when Raymond asks". In a public
+  repository those conflict. `CLAUDE.md` separates report-ready from published.
+- Every Captured claim earned a ledger row. `verified-claims.md` reached 14,503 words and 218
+  rows, and the skill mitigated its own rule with "do not read the ledger whole". `CLAUDE.md`
+  adds a three-part Ledger scope test.
+- "Start a new session for each exercise" was already abandoned in practice. Two exercises span
+  sessions right now. `CLAUDE.md` replaces it with a handoff at close.
+
+**The anti-loop rule.** Carryover now records each unanswered decision with a default action.
+`CLAUDE.md` forbids re-asking an unanswered question as new. Looping came from unanswered
+decisions with no recorded state, not from instruction length.
+
+**Not done, and still open.** The `AGENTS.md` question stands: whether a second file is needed for
+agents that do not read `CLAUDE.md`. The two-copy plugin sync rule survived. Raymond proposed
+removing it as deployment work. The counter-argument is that the plugin copy is what loads at
+runtime, so dropping the rule makes drift silent. `validate.py` raises an ERROR on drift, which is
+the current guarantee. Decide whether to remove the second copy instead of the rule.
+
+**This reverses `a5270df`.** That commit dropped an earlier `CLAUDE.md` candidate and moved seven
+of its rules into `SKILL.md`. It gave two reasons: the draft duplicated the skill's close-out,
+consult list, and style rules, and it set the opposite commit default. Both reasons are answered
+here. The duplication is gone, because `SKILL.md` lost the sections `CLAUDE.md` now owns. The
+commit default matches: commit only when Raymond asks.
+
+The fact that changes the decision is new. `a5270df` weighed two files holding the same rules. It
+did not weigh whether the skill loads at all. It does not load by default. A session start shows
+only its `description`. That makes the duplication argument the wrong test, and makes load
+guarantee the right one.

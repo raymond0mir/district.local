@@ -1,9 +1,9 @@
 {
-  "commit": "4fd32c1a3cb2b4ff99e09405cd970098e7a4a9fd",
+  "commit": "979186a79c7062982254ccaa54878487a9f8c2fb",
   "counts": {
     "ERROR": 1,
     "INFO": 24,
-    "WARN": 27
+    "WARN": 29
   },
   "findings": [
     {
@@ -160,6 +160,18 @@
       "check": "evidence-header",
       "message": "capture header has no host, UTC timestamp",
       "path": "exercises/2026-09-04-b1-security-defaults-and-ca-report-only/evidence/00-lab-state-preflight.txt",
+      "severity": "WARN"
+    },
+    {
+      "check": "evidence-header",
+      "message": "capture header has no host, UTC timestamp",
+      "path": "exercises/2026-09-05-adcs-issuing-ca-build/evidence/rootca.cnf.20260905",
+      "severity": "WARN"
+    },
+    {
+      "check": "evidence-header",
+      "message": "capture header has no host, UTC timestamp",
+      "path": "exercises/2026-09-05-adcs-issuing-ca-build/evidence/rootca.cnf.20260908",
       "severity": "WARN"
     },
     {

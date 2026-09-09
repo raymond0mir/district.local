@@ -5,33 +5,40 @@ description: Capture lab evidence and write after-action reports for the distric
 
 # Tech Compass
 
-Reports for district.local are portfolio work. Readers use them to decide whether Raymond can do identity engineering. An unverified claim in a report is worse than no report. It invites an interview question with no answer.
+**Read `CLAUDE.md` at the repository root for the operating rules.** It holds the claim labels,
+the session start and close sequences, the state-change gates, the public-repository rules, the
+carryover template, and the output style. Those rules apply in every session.
 
-Canonical copy: `.claude/skills/tech-compass/SKILL.md` in the repo. If a plugin copy differs, the repo copy wins.
-Copy a changed `SKILL.md` or `references/` file to the plugin copy in the same session.
+Read this skill when you run an exercise, draft evidence, write a report, update the ledger, or
+resolve an exception. It holds the templates, the command paths, and the reasoning.
+
+Canonical copy: `.claude/skills/tech-compass/SKILL.md` in the repo. If a plugin copy differs, the
+repo copy wins. Copy a changed `SKILL.md` or `references/` file to the plugin copy in the same
+session. `validate.py` raises an ERROR when the copies differ.
+
+## Why this skill exists
+
+The October 2025 build was paired with another assistant. Its audit baseline was imported. Nobody
+can separate verified facts from assumed facts in that baseline. This skill stops that from
+recurring.
 
 ## Terms
 
-Use these words for these meanings. Do not substitute synonyms.
+`CLAUDE.md` defines Captured, Recalled, Inherited, Confirmed, and Retired. These terms extend that
+list.
 
-- **Captured**: a file in `evidence/` holds the machine output that backs the claim.
-- **Recalled**: no machine output backs the claim. A memory, a screenshot, and scrollback are each Recalled. A screenshot is a file, and it is still Recalled.
-- **Inherited**: the claim comes from the October 2025 build or its imported baseline. No file backs it.
-- **Confirmed**: a ledger row with a live evidence path.
-- **Retired**: a Confirmed row moved out of Confirmed, with the reason recorded. Four reasons apply:
-  - the evidence file is gone
-  - the state changed, and a newer row supersedes this one
-  - the claim was wrong when it was written
-  - the row miscited its evidence file
 - **Ledger**: `verified-claims.md` at the repo root.
 - **Carryover**: `CARRYOVER.md` at the repo root.
 - **Lab state**: the carryover block that holds VM inventory, VM state, and pool readings.
 - **Exposures**: `EXPOSURES.md` at the repo root.
 - **Host shell**: the Proxmox host shell, opened in the Proxmox web console.
 
-## Why this skill exists
+**The four reasons to Retire a Confirmed row.** Write the reason in the row.
 
-The October 2025 build was paired with another assistant. Its audit baseline was imported. Nobody can separate verified facts from assumed facts in that baseline. This skill stops that from recurring.
+- The evidence file is gone.
+- The state changed, and a newer row supersedes this one.
+- The claim was wrong when it was written.
+- The row miscited its evidence file.
 
 ## The loop
 
@@ -61,65 +68,46 @@ The goal is fluency in identity systems, and work that shows that fluency to an 
 - What design alternatives exist?
 - What tradeoffs do the alternatives introduce?
 
-One exercise does not answer all nine. Write each unanswered question in Open questions. It becomes the next exercise.
+One exercise does not answer all nine. Write each unanswered question in Open questions. It becomes
+the next exercise.
 
-## Session start
+## Command paths
 
-Never state lab state from memory. Never state it from a previous session. Never state it from a summary. Read the repo first. Every claim about what exists, what is proven, and what is open comes from a file read in this session.
-
-Read in this order:
-
-1. `git status`, then `git log --oneline -15`.
-2. Carryover.
-3. Exposures.
-4. The latest exercise's `evidence-log.md`, when the session continues that exercise.
-
-Search the ledger by claim. Do not read the ledger whole. Read a report only when the session continues that exercise.
-
-When a file named here is missing, say so. List the files that exist. Do not substitute a similar file in silence.
-
-Then state three things in four sentences or fewer: where the last session stopped, what is open, and what is uncommitted. That statement answers "what have we been working on".
-
-## Capture contract
-
-Evidence is what the machine printed. A summary is not evidence. A recollection is not evidence. Put uncaptured claims in Open questions. Do not state them as fact.
-
-**Access.** Claude has no live access to the lab. Raymond runs each command and pastes the output back. Give him one self-contained command block per turn.
-
-**Where commands run.** Raymond works from a Mac Mini. The Proxmox host is a Dell laptop. He reaches the host through its web console in a browser. Say "in the Proxmox console" for host and guest commands. Say "in Terminal on the Mac Mini" for SSH tunnels and browser access. Do not say "on your laptop".
-
-**DC01 path.** DC01 (VM 100) has no WinRM, RDP, or PowerShell remoting. This is by design, and it is a finding. Reach DC01 and VM 102 (entraconnect01) through the QEMU guest agent from the host shell:
+**DC01 path.** DC01 (VM 100) has no WinRM, RDP, or PowerShell remoting. This is by design, and it
+is a finding. Reach DC01 and VM 102 (entraconnect01) through the QEMU guest agent from the host
+shell:
 
 ```
 qm guest exec 100 --timeout 30 -- powershell.exe -NonInteractive -Command "<command>"
 ```
 
-Keep all four JSON fields: `out-data`, `err-data`, `exitcode`, `exited`. The exit code makes the record trustworthy.
+Keep all four JSON fields: `out-data`, `err-data`, `exitcode`, `exited`. The exit code makes the
+record trustworthy.
 
-**No TTY.** `qm guest exec` attaches no TTY. A command that waits for input hangs until timeout and orphans a process on the guest. Pass `-NonInteractive` on every PowerShell call. Run any command that needs a typed secret on the VM's own console. Read `references/gotchas.md` before the first command on DC01 or in the tenant.
+Run any command that needs a typed secret on the VM's own console. Read `references/gotchas.md`
+before the first command on DC01 or in the tenant.
 
-**Tenant path.** Entra and Graph work does not use guest exec. Raymond runs Graph Explorer for API calls and the Entra admin center for portal-only flows. A portal screenshot is Recalled. Follow it with a Graph read to make the claim Captured.
+**Tenant path.** Entra and Graph work does not use guest exec. Raymond runs Graph Explorer for API
+calls and the Entra admin center for portal-only flows. A portal screenshot is Recalled. Follow it
+with a Graph read to make the claim Captured.
 
-**Tier rule.** Tier 0 credentials never land on a member server. Run Domain Admin tasks from DC01's console.
+**Snapshots.** Keep the `clean-install` baseline for each VM. Keep the last few distinct states for
+each VM. Retire an exercise's before/after snapshot after Raymond confirms the after-state. Run
+`qm delsnapshot` only after Raymond names the snapshot and says go.
 
-**Pre-flight.** Run these in the host shell before the first state change that touches DC01:
+Derive the exercise date and snapshot names from `date -u`. The host clock runs
+America/Los_Angeles.
 
-```
-date -u
-qm status 100
-lvs -a -o+data_percent,metadata_percent
-free -h
-```
+## Evidence files
 
-If thin pool Data% is 85 or higher, stop. Ask Raymond to name the snapshots to prune. Record the readings in The setup.
+Write one file per diagnostic thread. Name the file for what it proves.
 
-**Live state.** Read carryover's Lab state block for VM inventory, VM state, and pool readings. Do not take state from this file or from memory.
+Start each capture block with three lines: the command verbatim, the host, and the UTC timestamp
+from `date -u`. Put only machine output below those lines. Put analysis in the report or the
+evidence log.
 
-**Snapshots.** Keep the `clean-install` baseline for each VM. Keep the last few distinct states for each VM. Retire an exercise's before/after snapshot after Raymond confirms the after-state. Run `qm delsnapshot` only after Raymond names the snapshot and says go.
-
-**Evidence files.** Write one file per diagnostic thread. Name the file for what it proves. Start each capture block with three lines: the command verbatim, the host, the UTC timestamp from `date -u`. Put only machine output below those lines. Put analysis in the report or the evidence-log. Screenshot or scrollback output is Recalled. Say so in the report. Recalled output cannot enter the ledger.
-
-**Failure is evidence.** Keep error output. Keep failed attempts. A `Get-ADDomain` failure while ADWS initializes after boot is publishable behavior.
+Screenshot or scrollback output is Recalled. Say so in the report. Recalled output cannot enter the
+ledger.
 
 ## Layout
 
@@ -128,9 +116,10 @@ exercises/YYYY-MM-DD-slug/
   evidence/           one file per thread, named for what it proves
   evidence-log.md     the running record; see Evidence-log structure
   report.md           the portfolio artifact; see Report structure
+CLAUDE.md             the operating contract, read in every session
 verified-claims.md    ledger
 EXPOSURES.md          open risks, each cited to an evidence file; doubles as the exercise queue
-CARRYOVER.md          Lab state, open items, next steps; overwritten at every close
+CARRYOVER.md          current state and open items; overwritten at every close
 CURRICULUM.md         exercise plan
 CONSIDERATIONS.md     design decisions for the repository's own tooling
 validate.py           deterministic repository checks; binary answers only
@@ -146,11 +135,9 @@ README.md             repo entry point, written for a public reader
 
 This block lists every tracked path. Update it when a path is added or removed.
 
-Derive the exercise date and snapshot names from `date -u`. The host clock runs America/Los_Angeles.
-
 ## Report structure
 
-Use these eight sections in this order. Include every section.
+Use these eight sections in this order. Include every section. `validate.py` checks them.
 
 ```
 # [Exercise name]
@@ -164,13 +151,14 @@ Use these eight sections in this order. Include every section.
 ## Open questions                mandatory; never empty by default
 ```
 
-Write one exercise per report. Two hypotheses make two reports. Keep repo chores out of exercise reports. A retrospective report says so in its first section.
+Write one exercise per report. Two hypotheses make two reports. Keep repo chores out of exercise
+reports. A retrospective report says so in its first section.
 
 ## Evidence-log structure
 
 Write `evidence-log.md` during the session, not at the close. It is the running record.
 
-Use these six sections in this order. Include every section.
+Use these six sections in this order. Include every section. `validate.py` checks them.
 
 ```
 # [Exercise name] — evidence log
@@ -182,57 +170,23 @@ Use these six sections in this order. Include every section.
 ## Not started                   planned work the session did not reach
 ```
 
-The evidence-log and the report share two sections. The evidence-log is the source. The report quotes it. When the two disagree, correct the report.
+The evidence log and the report share two sections. The evidence log is the source. The report
+quotes it. When the two disagree, correct the report.
 
-## Claims
+## Resolving claims
 
-Label every factual claim while drafting: Captured, Recalled, or Inherited. Resolve every label before finishing. Check the ledger before you label a claim Inherited or Recalled.
+Label every factual claim while drafting. Resolve every label before finishing. Check the ledger
+before you label a claim Inherited or Recalled.
 
-- Recalled: re-run and capture, or move the claim to Open questions.
-- Inherited: re-run first. These claims carry the highest value.
+- **Recalled**: re-run and capture, or move the claim to Open questions.
+- **Inherited**: re-run first. These claims carry the highest value.
 
-Add a Confirmed row for every Captured claim: claim, evidence file, exercise, date. This is the normal path. A capture that retires an Inherited or Recalled claim also adds a Confirmed row. Retire the old row in the same edit.
+Apply `CLAUDE.md`'s Ledger scope before adding a row. A capture that retires an Inherited or
+Recalled claim always earns a row. Retire the old row in the same edit.
 
-Move a Confirmed row to Retired when any of the four reasons in Terms applies. Write the reason in the row.
+## Recommendation labels
 
-A retraction is a Retired row. Never fix a wrong claim by silent edit. Retract on the record, in the ledger and in the report. This includes Claude's own errors. State them in the evidence-log when caught.
-
-## Output style
-
-Apply these rules to every output: chat replies, command blocks, evidence-logs, carryover, exposures, and reports. Quoted exchanges and machine output are exempt.
-
-- Use literal words. Use no idioms, metaphors, or adverbs.
-- Keep descriptive sentences to 25 words or fewer.
-- Keep instruction sentences to 20 words or fewer.
-- Use active voice.
-- Write one instruction per sentence.
-- Use imperative verbs for steps.
-- Limit noun clusters to three nouns.
-- Write lists as single-action steps.
-- Use a bullet list instead of a sentence joined by semicolons.
-- Omit greetings, polite phrasing, and closing summaries.
-- Use the defined terms above. Do not substitute synonyms.
-
-## Token discipline
-
-- Read other files on demand.
-- Search the ledger by claim when you label a claim. Do not read the ledger whole.
-- Do not re-read a file that is already in context.
-- Start a new session for each exercise. Close the session after the report.
-- Keep carryover under 400 words. Carryover holds one Lab state block, open items, and next steps. Resolved work lives in reports, evidence-logs, the ledger, and exposures.
-- Do not restate the capture contract in carryover, the README, or reports. Link to this file.
-- Put standing command gotchas in `references/gotchas.md`, not in carryover.
-
-## Working with Raymond
-
-- Give structural pushback with receipts. Do not give encouragement.
-- Rewrite a draft only when he asks.
-- When a draft claim has no evidence file, name the claim. Ask: re-run, or move to Open questions.
-- Ask before any action that touches standing privilege, changes security posture, or deletes data. Name the object. Examples: account removal, re-enabling a disabled account, UPN re-stamp, lowering LDAP signing, snapshot deletion.
-- Proceed on routine technical defaults. Flag the choice afterward. Examples: RAM sizing, mirroring config from another VM, snapshot naming, next port in a diagnostic chain.
-- State disproven hypotheses as plainly as confirmed ones.
-
-**Classify every recommendation.** Use one of these five labels:
+`CLAUDE.md` requires a label on every recommendation. These are the definitions.
 
 - **Necessary**: required to unlock the next experiment.
 - **Useful**: improves understanding or evidence.
@@ -240,37 +194,26 @@ Apply these rules to every output: chat replies, command blocks, evidence-logs, 
 - **Polishing**: process or tooling work that can wait. Name the label. Redirect him.
 - **High-value**: strong technical content, or portfolio material. Do it first.
 
-Answer a gap with the next thing to learn, build, or break, and the reason it matters. Do not answer a gap with a retrospective on the previous session.
+Answer a gap with the next thing to learn, build, or break, and the reason it matters. Do not
+answer a gap with a retrospective on the previous session.
 
-Teach a missing foundation. Do not work around it. Connect the concept to the experiment in front of him.
+## Portfolio framing
 
-Say a point once. Do not reopen a decision he has closed.
-
-## Portfolio rules
-
-- The repo is public. Run the credential scan before every commit. Follow `references/credential-scan.md`. A literal password reached report prose on 2026-08-31.
-- Keep Raymond's personal situation out of every repo artifact: legal, medical, leave, benefits, salary, and money pressure. Express a real constraint as the lab fact it produces: a deadline, a license limit, a sequencing dependency.
-- Do not write the current tenant Global Administrator's name in any repo artifact. Raymond supplies it in session.
-- The permission-sprawl thesis leads the series: access provisioned by copying a named user, and standing grants nobody removes. Connect an exercise to it when the link is real. Do not force it.
+- The permission-sprawl thesis leads the series: access provisioned by copying a named user, and
+  standing grants nobody removes. Connect an exercise to it when the link is real. Do not force it.
 - A grant in use is not a grant that is appropriate.
-- When removing a grant breaks something, the lesson is sequencing and break-glass. The lesson is not restoration.
-- Watch for reports outpacing verified lab work. If the inherited baseline is still Inherited, say so.
-- Publish on completion. The order is experiment, evidence, analysis, publish, next experiment. A short honest report has more value than a delayed complete one. Do not gate publication on a future exercise.
-- Raymond built every condition in this lab. The lab cannot show that such conditions arise on their own. His operational history is the observation. The lab is the demonstration. Frame the series that way.
+- When removing a grant breaks something, the lesson is sequencing and break-glass. The lesson is
+  not restoration.
+- Watch for reports outpacing verified lab work. If the inherited baseline is still Inherited, say
+  so.
+- Raymond built every condition in this lab. The lab cannot show that such conditions arise on
+  their own. His operational history is the observation. The lab is the demonstration. Frame the
+  series that way.
 
-## Cross-surface
+## Token discipline
 
-Claude on claude.ai cannot read Code sessions. Chat history stops at that boundary. A lab-state answer given there from chat history is stale and wrong.
-
-Carryover is the only bridge. Write anything that must reach a chat conversation into carryover. Write it for a reader with no access to this repo.
-
-## Session close
-
-1. Finish `evidence-log.md`.
-2. Write `report.md`.
-3. Update the ledger.
-4. Update exposures.
-5. Update `references/gotchas.md`. Add each new standing behavior. Correct each line the session disproved. Sync the plugin copy.
-6. Overwrite carryover.
-7. Run the credential scan. Follow `references/credential-scan.md`.
-8. Commit only when Raymond asks.
+- Read other files on demand.
+- Search the ledger by claim when you label a claim. Do not read the ledger whole.
+- Do not re-read a file that is already in context.
+- Do not restate `CLAUDE.md` in carryover, the README, or a report. Link to it.
+- Put standing command gotchas in `references/gotchas.md`, not in carryover.

@@ -1,57 +1,50 @@
 # Carryover
 
-Open items, 2026-09-09.
+## Last verified
+2026-09-09. Lab readings below are from 2026-09-08T23:45:49Z and were not re-read this session.
+Git state and evidence files were read this session.
 
-Read `EXPOSURES.md` next.
+## Next safe action
+Attempt enrollment on `district.localClientAuthentication` as a user outside `PKI-CBA-Pilot`.
+`evidence/52` names this gap: it proves the `Domain Users` ACE is gone, and does not prove
+`PKI-CBA-Pilot` alone gates enrollment. Run pre-flight first. It touches CA01.
 
 ## Lab state
+As of 2026-09-08T23:45:49Z: VM 100 (DC01), VM 107 (CA01) and container 106 are stopped. Pool Data%
+83.69, metadata 4.19. That margin is thin. Snapshots
+`snap_vm-107-disk-{0,1}_pre-cdp-setup-20260908` cover the pre-CDP state.
+Evidence: `exercises/2026-09-05-adcs-issuing-ca-build/evidence/`.
 
-Not re-read this session. As of 2026-09-08T23:45:49Z: VM 100 (DC01), VM 107 (CA01) and container
-106 are stopped. Pool Data% 83.69, metadata 4.19, under the 85% gate. That margin is thin. The
-snapshots `snap_vm-107-disk-{0,1}_pre-cdp-setup-20260908` cover the pre-CDP state, so a new
-snapshot is not needed. Run pre-flight before the first state change.
+## Stop conditions
+Pool Data% at 85 or higher. Run pre-flight before the first state change.
 
-## Uncommitted, and staged
-
-The index holds two unrelated bodies of work. Staged 2026-09-08: ADCS evidence 40 through 51, that
-exercise's `evidence-log.md` and `report.md`, `EXPOSURES.md`, `references/gotchas.md`, `validate.py`.
-Staged 2026-09-09: B4's `evidence/16`, `evidence-log.md` and `report.md`, plus `CURRICULUM.md`,
-`CARRYOVER.md` and `verified-claims.md`.
-
-Nothing is committed. Raymond was asked to split the two into separate commits and did not answer.
-Do not commit both as one without asking again.
-
-Credential scan passes 1, 1b, 2 and 3 were re-run 2026-09-09 and are clean on the whole tree.
-Passes 4 and 5 are still owed and need Raymond: the Vaultwarden literal strings, and the current
-tenant Global Administrator's name.
-
-## B4 closed 2026-09-09
-
-The PT4H over-limit request is captured. Entra refuses it during validation, names
-`ExpirationRule`, and writes no request object. `evidence/16`. Ledger row added, CURRICULUM
-updated.
-
-## Next in the ADCS exercise
-
-Neither step started 2026-09-09. Both are on-premises and need no public hosting.
-
-1. Remove `DISTRICT\Domain Users`' Allow Enroll ACE from `district.localClientAuthentication`.
-   Use `tmp-cainstall`'s Full Control on the template object. Do not re-grant Enterprise Admins.
-2. Retire `tmp-cainstall` after step 1. Standing Full Control outliving its task.
-
-## Still blocked
-
-Entra CBA needs `crl.districtsafetyphoto.com` served over public HTTP. Raymond owns the domain and
-has not hosted it. The 2026-09-08 chain verify used LDAP, which Entra cannot use.
-
-## Time-sensitive
-
-- `districtsafetyphoto.com` registration may lapse this month. Never verified. `whois` not run.
-- P2 trial ends 2026-10-04T00:00:00Z. B2 runs inside it. Whether tenant CBA is P2-gated is not captured.
+## Hard deadlines
+- `districtsafetyphoto.com` registration may lapse this month. Unverified. `whois` not run.
+- P2 trial ends 2026-10-04T00:00:00Z. B2 runs inside it.
 - `svc-entraconnect` password expires about 2026-10-13.
 - `district-root.crl` expires 2027-03-07. Nothing regenerates it.
 
-## Tooling
+## Pending decisions
+- Delete `tmp-cainstall`. Consultation point 5 requires it. The account still exists, removed from
+  Enterprise Admins but not from the domain. Deletion needs Raymond. Default: leave it, and carry
+  the standing Full Control as a named exposure.
+- Split the tree into two commits. Asked 2026-09-08. Unanswered. Default: commit nothing. Do not
+  re-ask as new.
+- Credential scan passes 4 and 5 need Raymond: the Vaultwarden literal strings, and the current
+  tenant Global Administrator's name. Default: passes stay owed, no commit until they run.
 
-`validate.py` reports 16 errors, all pre-existing. It is modified in the tree and no longer writes
-`validation.json`, so `validation.json` is stale.
+## Blockers
+Entra CBA needs `crl.districtsafetyphoto.com` served over public HTTP. Owner: Raymond. He owns the
+domain and has not hosted it. The 2026-09-08 chain verify used LDAP, which Entra cannot use.
+
+## Uncommitted and staged work
+Nothing is staged. The index is empty. The tree holds two unrelated bodies of work, all unstaged
+or untracked: the ADCS exercise (evidence 40 through 52, its evidence log and report,
+`EXPOSURES.md`, `references/gotchas.md`, `validate.py`), and the 2026-09-09 contract split
+(`CLAUDE.md`, `SKILL.md`, `CONSIDERATIONS.md`, `CARRYOVER.md`, `validation.json`).
+
+Corrections, 2026-09-09. Three prior carryover claims were wrong:
+`validate.py` reports 1 ERROR, not 16, and still writes `validation.json` on `--json`.
+Work described as staged was never staged; the index was empty.
+The `Domain Users` Allow Enroll ACE removal was described as not started. It is done, in
+`evidence/52`.
