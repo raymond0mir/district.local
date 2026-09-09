@@ -25,9 +25,9 @@ Run the whole tracked tree instead of the staged diff for a periodic sweep:
 .githooks/pre-commit --all
 ```
 
-Two exclusions keep the hook quiet without hiding anything. This file is excluded, because it
-matches the patterns by documenting them. A value written as `"[REDACTED...]"` is dropped from
-pass 1b, because that marker is what the procedure asks for.
+Three exclusions keep the hook quiet without hiding anything. This file and `.githooks/pre-commit`
+are both excluded, because each matches the patterns by writing them down. A value written as
+`"[REDACTED...]"` is dropped from pass 1b, because that marker is what the procedure asks for.
 
 Bypass with `git commit --no-verify` only after reading every hit.
 

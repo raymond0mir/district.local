@@ -39,6 +39,7 @@ Entra CBA needs `crl.districtsafetyphoto.com` served over public HTTP. Owner: Ra
 domain and has not hosted it. The 2026-09-08 chain verify used LDAP, which Entra cannot use.
 
 ## Uncommitted and staged work
-None. Working tree clean, `HEAD` at `20c3ac9`, matches `origin/main`. Everything through the ADCS
-exercise, the `validate.py` immutability fix, and the member-server report's missing section is
-committed and pushed.
+Nothing is staged. `HEAD` is `1094d13`, the pre-commit credential scan, committed and not pushed.
+Everything through `20c3ac9` is pushed. The tree holds one follow-up: `.githooks/pre-commit` now
+excludes itself from its own pattern scan, with `references/credential-scan.md` and
+`validation.json` updated to match. `validate.py` reports 0 ERROR.

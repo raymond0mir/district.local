@@ -28,9 +28,10 @@ MODE="staged"
 
 BLOCKED=0
 
-# credential-scan.md documents these patterns, so it matches them by writing
-# them down. Exclude it rather than teaching every pass to ignore prose.
-EXCLUDE=':(exclude).claude/skills/tech-compass/references/credential-scan.md'
+# Two files match these patterns by writing them down: the procedure doc, and
+# this script. Exclude both rather than teaching every pass to ignore prose.
+EXCLUDE_DOC=':(exclude).claude/skills/tech-compass/references/credential-scan.md'
+EXCLUDE_SELF=':(exclude).githooks/pre-commit'
 
 # A value written as "[REDACTED...]" is the marker the procedure asks for, not
 # a leak. Drop those lines before counting hits.
@@ -44,9 +45,9 @@ hits() {
   [ "$_case" = "i" ] && _flags="-nEi"
   if [ "$MODE" = "all" ]; then
     [ "$_case" = "i" ] && _gflags="-InEi" || _gflags="-InE"
-    git -C "$REPO" grep $_gflags "$_re" -- . "$EXCLUDE" 2>/dev/null
+    git -C "$REPO" grep $_gflags "$_re" -- . "$EXCLUDE_DOC" "$EXCLUDE_SELF" 2>/dev/null
   else
-    git -C "$REPO" diff --cached -U0 -- . "$EXCLUDE" | grep $_flags "$_re"
+    git -C "$REPO" diff --cached -U0 -- . "$EXCLUDE_DOC" "$EXCLUDE_SELF" | grep $_flags "$_re"
   fi
 }
 
