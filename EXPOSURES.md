@@ -257,11 +257,17 @@ unchanged on 2026-09-08 deliberately, to keep one variable at a time during the 
 Removed 2026-09-09 at CA01's console as `DISTRICT\tmp-cainstall`, using its standing Full Control
 on the object. A before-and-after from two vantages — the console session that made the change,
 and a separate read from DC01 over `qm guest exec` — both show no `Domain Users` ACE remains.
-`PKI-CBA-Pilot` now actually gates who can request this certificate type; that end-to-end claim
-is still untested, since no enrollment attempt as a non-member has been made either before or
-after. *Evidence:*
+**`PKI-CBA-Pilot` now actually gates who can request this certificate type. Closed 2026-09-09.**
+`jsmith`, the group's only member, was removed from it, given a fresh console logon at CA01 to
+rule out a stale-ticket confound, and denied enrollment: `certreq -submit` returned
+`Denied by Policy Module, 0x80094012 CERTSRV_E_TEMPLATE_DENIED`. Membership was restored the same
+session. Only one non-member was tested, by toggling one known account's membership rather than
+using a second identity — this rules out a user-specific confound but not a second,
+independently-provisioned non-member, and the template's full ACL has not been re-read since the
+`Domain Users` removal to confirm no other broad grant exists. *Evidence:*
 `exercises/2026-09-05-adcs-issuing-ca-build/evidence/34-jsmith-client-view-template-visible-domain-users-can-enroll.txt`,
-`exercises/2026-09-05-adcs-issuing-ca-build/evidence/52-domain-users-enroll-ace-removed-before-after.txt`.
+`exercises/2026-09-05-adcs-issuing-ca-build/evidence/52-domain-users-enroll-ace-removed-before-after.txt`,
+`exercises/2026-09-05-adcs-issuing-ca-build/evidence/54-pki-cba-pilot-gates-enrollment-non-member-denied.txt`.
 
 **No user object in `district.local` has the `mail` attribute populated.** Captured for `jsmith`
 only; the domain-wide answer is not captured. It is recorded because it silently broke certificate

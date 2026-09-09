@@ -371,6 +371,14 @@ Exercise date derived from `date -u` on the Proxmox host: 2026-09-05T21:09:59Z.
   practice: `district.local` has no AD Recycle Bin, so a delete would not be reversible; disabling
   closes the practical risk the same way, since a disabled account cannot exercise its standing
   Full Control ACE. `evidence/53`.
+- **`PKI-CBA-Pilot` gates enrollment end to end, closing the gap `evidence/52` left open.**
+  `jsmith`, the group's only member, was removed from it via `qm guest exec` on DC01, given a
+  fresh console logon at CA01 to rule out the stale-ticket confound `evidence/26` found for a
+  different account, and denied: `certreq -submit` returned `Denied by Policy Module,
+  0x80094012 CERTSRV_E_TEMPLATE_DENIED`. Membership was restored the same session; `jsmith`'s
+  groups after restore match the pre-test state exactly. Only one non-member was tested, by
+  toggling one known account rather than provisioning a second identity, and the template's full
+  ACL has not been re-read since the `Domain Users` removal. `evidence/54`.
 
 ## Not captured, and why
 
@@ -805,9 +813,11 @@ Exercise date derived from `date -u` on the Proxmox host: 2026-09-05T21:09:59Z.
   Server 2016 compatibility theory, a stale CA certificate in AD — was correct all along.
 - **Is revocation the last blocker?** Request 5 failed while constructing the certificate, so no
   stage after that has been exercised. Unknown until a certificate issues.
-- **Which principals besides `jsmith` can now enroll?** `Domain Users` still holds Allow Enroll on
-  the template. Left deliberately unchanged this session, one variable at a time. It needs its own
-  before-and-after.
+- ~~Which principals besides `jsmith` can now enroll?~~ **Answered, in two steps.** `Domain Users`'
+  Allow Enroll ACE is removed, `evidence/52`. A non-member, tested by removing `jsmith` from
+  `PKI-CBA-Pilot` under a fresh logon, is denied with `CERTSRV_E_TEMPLATE_DENIED`, `evidence/54`.
+  Not re-checked: whether the template's full ACL still holds another broad grant beyond
+  `PKI-CBA-Pilot` and the standing admin groups `evidence/34` found.
 - **Does any user object in `district.local` have `mail` populated?** Only `jsmith` was checked.
   The domain-wide answer is not captured, and it bears on whether other templates are affected.
 - **What is the `flags` value 10 on the `pKIEnrollmentService` object?** A Microsoft Learn search

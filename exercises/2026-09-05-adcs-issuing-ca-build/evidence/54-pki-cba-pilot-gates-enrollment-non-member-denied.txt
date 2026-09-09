@@ -1,0 +1,167 @@
+# PKI-CBA-Pilot gates enrollment end to end: a non-member is denied
+
+This closes the gap `evidence/52` left open: whether `PKI-CBA-Pilot` alone, without the removed
+`Domain Users` ACE, actually gates enrollment on `district.localClientAuthentication`. No
+enrollment attempt as a non-member had been made before or after that ACE removal, until this
+exercise.
+
+The test reused `jsmith`, the group's only member, rather than a second account. `jsmith`'s login
+at CA01's console was already proven working across `evidence/34`, `39`, and `51`. Removing and
+restoring one group membership on a known-good identity avoided a password reset on an untested
+account, and isolated one variable: the group, not the user.
+
+--------------------------------------------------------------------------------
+Command:   date -u;
+           qm guest exec 100 --timeout 30 -- powershell.exe -NonInteractive -Command
+           'Get-ADUser jsmith -Properties MemberOf | Select-Object SamAccountName,@{n="Groups";
+            e={($_.MemberOf) -join ";"}} | ConvertTo-Json -Compress'
+           qm guest exec 100 --timeout 30 -- powershell.exe -NonInteractive -Command
+           'Remove-ADGroupMember -Identity "PKI-CBA-Pilot" -Members jsmith -Confirm:$false'
+           qm guest exec 100 --timeout 30 -- powershell.exe -NonInteractive -Command
+           'Get-ADGroupMember "PKI-CBA-Pilot" | Select-Object -ExpandProperty SamAccountName'
+           qm guest exec 100 --timeout 30 -- powershell.exe -NonInteractive -Command
+           'Get-ADUser jsmith -Properties MemberOf | Select-Object SamAccountName,@{n="Groups";
+            e={($_.MemberOf) -join ";"}} | ConvertTo-Json -Compress'
+Host:      Proxmox host shell, acting on DC01 (VM 100)
+Timestamp: 2026-09-09T20:01:56Z
+--------------------------------------------------------------------------------
+
+Wed Sep  9 08:01:56 PM UTC 2026
+
+--- before ---
+{"SamAccountName":"jsmith","Groups":"CN=PKI-CBA-Pilot,CN=Users,DC=district,DC=local;CN=SG_Share_Site1_RW,OU=Resources,OU=Security,OU=Groups,DC=district,DC=local"}
+
+--- remove (no output on success) ---
+{"exitcode":0,"exited":1}
+
+--- PKI-CBA-Pilot membership after removal ---
+{"exitcode":0,"exited":1}
+(empty out-data: no members)
+
+--- after ---
+{"SamAccountName":"jsmith","Groups":"CN=SG_Share_Site1_RW,OU=Resources,OU=Security,OU=Groups,DC=district,DC=local"}
+
+--------------------------------------------------------------------------------
+Command:   whoami /groups > C:\Users\jsmith\out-negtest-whoami.txt 2>&1
+           certreq -new C:\c2\req.inf C:\Users\jsmith\req-negtest.req > C:\Users\jsmith\out-negtest-new.txt 2>&1
+           certreq -submit -config "CA01.district.local\district.local Issuing CA" C:\Users\jsmith\req-negtest.req C:\Users\jsmith\cert-negtest.cer > C:\Users\jsmith\out-negtest-submit.txt 2>&1
+           run at CA01's console as DISTRICT\jsmith, a fresh logon taken after the removal above
+Host:      CA01 (VM 107), console
+Timestamp: not independently captured at this console
+--------------------------------------------------------------------------------
+
+--------------------------------------------------------------------------------
+Command:   date -u;
+           qm guest exec 107 --timeout 30 -- powershell.exe -NonInteractive -Command
+           "Get-Content 'C:\Users\jsmith\out-negtest-whoami.txt' -Raw"
+           qm guest exec 107 --timeout 30 -- powershell.exe -NonInteractive -Command
+           "Get-Content 'C:\Users\jsmith\out-negtest-new.txt' -Raw"
+           qm guest exec 107 --timeout 30 -- powershell.exe -NonInteractive -Command
+           "Get-Content 'C:\Users\jsmith\out-negtest-submit.txt' -Raw"
+Host:      Proxmox host shell, reading CA01 (VM 107) via qm guest exec
+Timestamp: 2026-09-09T20:08:49Z
+--------------------------------------------------------------------------------
+
+Wed Sep  9 08:08:49 PM UTC 2026
+
+--- fresh-session whoami /groups ---
+GROUP INFORMATION
+-----------------
+Everyone                                   Well-known group
+BUILTIN\Users                              Alias
+BUILTIN\Certificate Service DCOM Access    Alias
+NT AUTHORITY\INTERACTIVE                   Well-known group
+CONSOLE LOGON                              Well-known group
+NT AUTHORITY\Authenticated Users           Well-known group
+NT AUTHORITY\This Organization             Well-known group
+LOCAL                                      Well-known group
+DISTRICT\SG_Share_Site1_RW                 Group
+Authentication authority asserted identity Well-known group
+Mandatory Label\Medium Mandatory Level     Label
+
+No PKI-CBA-Pilot SID present.
+
+--- certreq -new ---
+Active Directory Enrollment Policy
+  {77E088F6-C935-47BE-95DF-5242384B2AF6}
+  ldap:
+
+CertReq: Request Created
+
+--- certreq -submit ---
+RequestId: 8
+RequestId: "8"
+Certificate not issued (Denied) Denied by Policy Module The permissions on the certificate
+template do not allow the current user to enroll for this type of certificate. 0x80094012
+(-2146877422 CERTSRV_E_TEMPLATE_DENIED)
+Certificate Request Processor: The permissions on the certificate template do not allow the
+current user to enroll for this type of certificate. 0x80094012 (-2146877422
+CERTSRV_E_TEMPLATE_DENIED)
+Denied by Policy Module
+
+A GUI dialog carrying the identical text appeared at the console (screenshot taken, Recalled,
+not the basis for this claim). The captured file output above is the Captured basis.
+
+--------------------------------------------------------------------------------
+What this proves
+--------------------------------------------------------------------------------
+
+- `jsmith` held only `PKI-CBA-Pilot` and `SG_Share_Site1_RW` before the change; only
+  `SG_Share_Site1_RW` after. The removal took, on the AD side.
+- The console logon after removal was fresh, not stale: `whoami /groups` in that session carries
+  no `PKI-CBA-Pilot` SID. This rules out the confound `evidence/26` found for `tmp-cainstall`'s
+  Enterprise Admins removal, where a live session kept a revoked group's SID.
+- `certreq -new` succeeds regardless of enrollment rights: it builds the request locally and
+  contacts no CA. It is not a test of the template's ACL.
+- `certreq -submit`, run under a token that provably does not carry `PKI-CBA-Pilot`, returns
+  `Denied by Policy Module, 0x80094012 CERTSRV_E_TEMPLATE_DENIED`. The CA's policy module itself
+  refused the request on the caller's identity, not a client-side or network failure.
+- Read together with `evidence/34` (a `PKI-CBA-Pilot` member enrolls successfully) and `evidence/52`
+  (the broader `Domain Users` grant is gone), `PKI-CBA-Pilot` now gates enrollment on
+  `district.localClientAuthentication` end to end, for both the positive and the negative case.
+
+--------------------------------------------------------------------------------
+What this does not prove
+--------------------------------------------------------------------------------
+
+Only one non-member was tested, using membership toggled off a single known account rather than a
+second identity. This rules out a user-specific confound (a different account's own permissions or
+profile state) but does not test a second, independently-provisioned non-member. Not tested here:
+whether any other principal — a group nesting, a delegated ACE elsewhere, `Enterprise Admins`, a
+future addition to the template — could still bypass this gate. The template's full ACL was last
+read whole in `evidence/34`; it has not been re-read since the `Domain Users` removal to confirm no
+other broad grant exists.
+
+--------------------------------------------------------------------------------
+Command:   date -u;
+           qm guest exec 100 --timeout 30 -- powershell.exe -NonInteractive -Command
+           'Add-ADGroupMember -Identity "PKI-CBA-Pilot" -Members jsmith -Confirm:$false'
+           qm guest exec 100 --timeout 30 -- powershell.exe -NonInteractive -Command
+           'Get-ADGroupMember "PKI-CBA-Pilot" | Select-Object -ExpandProperty SamAccountName'
+           qm guest exec 100 --timeout 30 -- powershell.exe -NonInteractive -Command
+           'Get-ADUser jsmith -Properties MemberOf | Select-Object SamAccountName,@{n="Groups";
+            e={($_.MemberOf) -join ";"}} | ConvertTo-Json -Compress'
+Host:      Proxmox host shell, acting on DC01 (VM 100)
+Timestamp: 2026-09-09T20:12:05Z
+--------------------------------------------------------------------------------
+
+Wed Sep  9 08:12:05 PM UTC 2026
+
+--- add (no output on success) ---
+{"exitcode":0,"exited":1}
+
+--- PKI-CBA-Pilot membership after restore ---
+jsmith
+
+--- jsmith's groups after restore ---
+{"SamAccountName":"jsmith","Groups":"CN=PKI-CBA-Pilot,CN=Users,DC=district,DC=local;CN=SG_Share_Site1_RW,OU=Resources,OU=Security,OU=Groups,DC=district,DC=local"}
+
+--------------------------------------------------------------------------------
+Restoration
+--------------------------------------------------------------------------------
+
+`jsmith`'s membership matches the pre-test state captured at the top of this file exactly: both
+`PKI-CBA-Pilot` and `SG_Share_Site1_RW`, nothing added or dropped. The pilot's actual member holds
+a working enrollment path again. The console session used for the negative test still lacks
+`PKI-CBA-Pilot` in its token — a fresh logon is needed before `jsmith` can enroll again, the same
+fact this file's negative test relied on.

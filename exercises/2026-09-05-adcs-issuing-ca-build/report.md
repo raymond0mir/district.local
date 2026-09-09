@@ -18,6 +18,13 @@ verifies. The on-premises half is done. The tenant half is not: the verify that 
 since CA01 is domain-joined, so it does not prove the HTTP-only path Entra will actually need, and
 Entra CBA still needs public hosting for `crl.districtsafetyphoto.com`, named in Open questions.
 
+**The `PKI-CBA-Pilot` gate closed 2026-09-09.** The two changes above proved the CA works and that
+the template's broad `Domain Users` grant was gone; neither proved the surviving `PKI-CBA-Pilot`
+restriction actually holds. `jsmith`, the group's only member, was removed from it and denied
+enrollment under a fresh console logon — `CERTSRV_E_TEMPLATE_DENIED` — then restored. Toggling one
+known-good account's membership, rather than provisioning a second test identity, avoided a
+password reset and isolated the group as the only variable. `evidence/54`.
+
 ## The setup
 
 Proxmox host, 15 GiB. Container 106 (`rootca-offline`, 512 MB) holds a hand-built OpenSSL root CA,
@@ -306,6 +313,23 @@ tmp-cainstall    False
 
 `evidence/53`.
 
+`jsmith`'s fresh-session token, after removal from `PKI-CBA-Pilot`, carries no trace of the group:
+
+```
+DISTRICT\SG_Share_Site1_RW                 Group            S-1-5-21-2288391267-384259729-2991373820-1115
+```
+
+No `PKI-CBA-Pilot` SID — only `SG_Share_Site1_RW` remains. The submit under that token:
+
+```
+RequestId: 8
+Certificate not issued (Denied) Denied by Policy Module The permissions on the certificate
+template do not allow the current user to enroll for this type of certificate. 0x80094012
+(-2146877422 CERTSRV_E_TEMPLATE_DENIED)
+```
+
+`evidence/54`.
+
 ## What broke, and why
 **The template required an attribute no account in the domain has.** It was duplicated from the
 built-in `User` template, and duplication copies the subject-name flags verbatim. `User` requires
@@ -463,8 +487,12 @@ established what the tradeoff actually is.
 - ~~`DISTRICT\Domain Users` holds Allow Enroll on the client-auth template, inherited from
   `ClientAuth` the same way the e-mail requirement was. It needs its own before-and-after.~~
   Answered 2026-09-09. Removed, at CA01's console as `tmp-cainstall`, and confirmed from two
-  vantages. `evidence/52`. Untested: whether `PKI-CBA-Pilot` alone now gates enrollment
-  end to end — no non-member enrollment attempt has been made either before or after.
+  vantages. `evidence/52`. ~~Untested: whether `PKI-CBA-Pilot` alone now gates enrollment
+  end to end.~~ Answered 2026-09-09: `jsmith`, removed from the group under a fresh console
+  logon, was denied with `CERTSRV_E_TEMPLATE_DENIED`; membership was restored the same session.
+  `evidence/54`. Not tested: a second, independently-provisioned non-member, or whether the
+  template's full ACL still holds another broad grant beyond `PKI-CBA-Pilot` and the standing
+  admin groups.
 - ~~`DISTRICT\tmp-cainstall` holds standing Full Control over the template and is now the only
   non-tier-0 identity that can write it.~~ Disabled 2026-09-09, not deleted — `district.local` has
   no AD Recycle Bin, so a delete would not be reversible; disabling closes the practical risk the
