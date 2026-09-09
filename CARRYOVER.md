@@ -1,22 +1,23 @@
 # Carryover
 
 ## Last verified
-2026-09-09T14:38:18Z, from `evidence/53`. Pool and VM readings below are older, from
-2026-09-08T23:45:49Z, and were not re-read.
+2026-09-09T14:41:18Z, pool and VM state, read directly this session. `validate.py` re-run clean
+in this session, 0 ERROR, 29 WARN, 24 INFO — not lab-timestamped, a local repo check.
 
 ## Next safe action
 Attempt enrollment on `district.localClientAuthentication` as a user outside `PKI-CBA-Pilot`.
 `evidence/52` names this gap: it proves the `Domain Users` ACE is gone, and does not prove
-`PKI-CBA-Pilot` alone gates enrollment. Run pre-flight first. It touches CA01.
+`PKI-CBA-Pilot` alone gates enrollment. VM 100 and VM 107 are already running; pre-flight is only
+needed again if resuming after a gap.
 
 ## Lab state
-As of 2026-09-08T23:45:49Z: VM 100 (DC01), VM 107 (CA01) and container 106 are stopped. Pool Data%
-83.69, metadata 4.19. That margin is thin. Snapshots
-`snap_vm-107-disk-{0,1}_pre-cdp-setup-20260908` cover the pre-CDP state.
-Evidence: `exercises/2026-09-05-adcs-issuing-ca-build/evidence/`.
+As of 2026-09-09T14:41:18Z: VM 100 (DC01) and VM 107 (CA01) running, started this session. Pool
+Data% 83.97, metadata 4.20 — under the 85% gate, margin narrower than the prior 83.69% reading.
+Container 106 and other guests not re-read. Not filed to a numbered evidence file; a routine
+pre-flight check, not a finding.
 
 ## Stop conditions
-Pool Data% at 85 or higher. Run pre-flight before the first state change.
+Pool Data% at 85 or higher. Run pre-flight before the next state change.
 
 ## Hard deadlines
 - `districtsafetyphoto.com` registration may lapse this month. Unverified. `whois` not run.
@@ -25,10 +26,9 @@ Pool Data% at 85 or higher. Run pre-flight before the first state change.
 - `district-root.crl` expires 2027-03-07. Nothing regenerates it.
 
 ## Pending decisions
-- Delete `tmp-cainstall`. Decided 2026-09-09: disable now, delete after a retention window.
-  Disabled in `evidence/53`. Its Full Control ACE on `district.localClientAuthentication` still
-  stands as an object, unusable while the account is disabled. Deletion is irreversible because AD
-  Recycle Bin is disabled. Default: leave it disabled. Enable AD Recycle Bin before any deletion.
+- When to delete `tmp-cainstall`. Decided 2026-09-09: disable now, delete after a retention
+  window — `evidence/53`. The window itself is not yet named. Default: leave it disabled. Enable
+  AD Recycle Bin before any deletion, since a delete is not otherwise reversible.
 - Credential scan passes 4 and 5 need Raymond: the Vaultwarden literal strings, and the current
   tenant Global Administrator's name. Default: passes stay owed, no commit until they run.
 
@@ -37,12 +37,6 @@ Entra CBA needs `crl.districtsafetyphoto.com` served over public HTTP. Owner: Ra
 domain and has not hosted it. The 2026-09-08 chain verify used LDAP, which Entra cannot use.
 
 ## Uncommitted and staged work
-Nothing is staged. Everything through `0990fe5` is committed and pushed. The tree holds the
-missing `What the box said` section, added to the 2026-08-31 member-server report, plus
-`validation.json` and this file. `validate.py` now reports 0 ERROR, the first clean run.
-
-Corrections, 2026-09-09. `validate.py` still writes `validation.json` on `--json`. Its ERROR
-count depends on what is tracked: 1 with the ADCS evidence untracked, 18 staged, 1 again after
-`ad1263e`. Quote no bare count without saying which. Work described as staged was never staged;
-the index was empty. The `Domain Users` Allow Enroll ACE removal, described as not started, is
-done in `evidence/52`.
+None. Working tree clean, `HEAD` at `20c3ac9`, matches `origin/main`. Everything through the ADCS
+exercise, the `validate.py` immutability fix, and the member-server report's missing section is
+committed and pushed.
