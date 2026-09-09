@@ -37,13 +37,12 @@ Entra CBA needs `crl.districtsafetyphoto.com` served over public HTTP. Owner: Ra
 domain and has not hosted it. The 2026-09-08 chain verify used LDAP, which Entra cannot use.
 
 ## Uncommitted and staged work
-Nothing is staged. The contract split is committed and pushed as `fdf8dcc`. The ADCS exercise is
-the only body of work left in the tree: evidence 40 through 52, its evidence log and report,
-`EXPOSURES.md`, `references/gotchas.md`, `validate.py`, `verified-claims.md`. This file is
-modified again since `fdf8dcc` and carries the line you are reading.
+Nothing is staged. `fdf8dcc`, the contract split, is committed and pushed. `ad1263e`, the ADCS
+exercise, is committed and not pushed. The tree holds only this file and `validation.json`, both
+refreshed after `ad1263e`.
 
-Corrections, 2026-09-09. Three prior carryover claims were wrong:
-`validate.py` reports 1 ERROR, not 16, and still writes `validation.json` on `--json`.
-Work described as staged was never staged; the index was empty.
-The `Domain Users` Allow Enroll ACE removal was described as not started. It is done, in
-`evidence/52`.
+Corrections, 2026-09-09. `validate.py` still writes `validation.json` on `--json`. Its ERROR
+count depends on what is tracked: 1 with the ADCS evidence untracked, 18 staged, 1 again after
+`ad1263e`. Quote no bare count without saying which. Work described as staged was never staged;
+the index was empty. The `Domain Users` Allow Enroll ACE removal, described as not started, is
+done in `evidence/52`.
