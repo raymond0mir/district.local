@@ -47,5 +47,7 @@ Entra CBA needs `crl.districtsafetyphoto.com` over public HTTP. Owner: Raymond.
 `Connect-MgGraph` times out on both auth flows. Graph Explorer works; see `gotchas.md`.
 
 ## Uncommitted and staged work
-`HEAD` is `19b908d`, matching `origin/main`. Uncommitted: this file and the `EXPOSURES.md` entry
-queueing the access-path audit. Raymond has not asked for a commit.
+None. `HEAD` is `413d396`, matching `origin/main`, working tree clean.
+
+`validate.py` reports 0 ERROR, 35 WARN, 24 INFO. Three of those WARNs are the missing capture
+headers on `evidence/04`, `05` and `06` of the PIM exercise, listed under Pending decisions.
