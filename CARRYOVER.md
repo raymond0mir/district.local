@@ -48,5 +48,5 @@ certificate post-dating above. Owner: Raymond.
 `Connect-MgGraph` times out on both auth flows. Graph Explorer works; see `gotchas.md`.
 
 ## Uncommitted and staged work
-Tree clean, nothing staged, three commits ahead of `origin/main`. Not pushed. Raymond has not
-asked.
+Tree clean, nothing staged, matching `origin/main`. Pushed 2026-09-10. The credential scan's
+passes 4 and 5 were skipped on every commit in that push, because no patterns file exists.
