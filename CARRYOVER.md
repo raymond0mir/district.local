@@ -7,8 +7,7 @@ Pool reading 2026-09-10T18:10:11Z.
 
 ## Next safe action
 Audit the repository for claims dated from a guest clock instead of `date -u`. DC01 and CA01 are
-five and seven hours ahead of real time. Search evidence files for guest-rendered timestamps used
-as fact. It needs no lab access and changes no state.
+five and seven hours ahead of real time. It needs no lab access and changes no state.
 
 ## Lab state
 VM 100 (DC01) and VM 107 (CA01) running, both booted 2026-09-09T14:19:31Z. VM 101, 102, 104
@@ -16,12 +15,11 @@ stopped. CT 103 running, CT 106 stopped. Pool Data% 80.11, Meta% 3.84. VM 100 ho
 only; VM 107 holds `pre-adcs-config` only. Tenant unchanged: `PIM-UserAdmin-Pilot` holds `User
 Administrator` standing. `adm-jsmith` is eligible to 2026-12-08.
 **Clocks are wrong.** DC01 is +5h 06m 12s from real UTC and drifting. CA01 is +7h 00m 00s and
-holding. See `EXPOSURES.md` and `exercises/2026-09-10-domain-time-skew/report.md`.
+holding. See `exercises/2026-09-10-domain-time-skew/report.md`.
 
 ## Stop conditions
 Pool Data% at 85 or higher. Headroom 4.89 points. Run pre-flight before the next state change.
-Do not issue a certificate from CA01 until the clock is fixed. It stamps `NotBefore` seven hours
-ahead of real time.
+Issue no certificate from CA01 until the clock is fixed. It stamps `NotBefore` seven hours ahead.
 
 ## Hard deadlines
 - P2 trial ends 2026-10-04T00:00:00Z. Verified.
@@ -35,12 +33,13 @@ ahead of real time.
   changing the domain controller. `report.md` names them.
 - `101 win11-ootb` snapshot, 18.31 GiB. Default: keep.
 - Non-root Proxmox user to test `PVEVMUser` against `qm guest exec`. Default: do not create one.
-- Two `AllPrincipals` consent grants. Default: leave, remove before teardown.
+- Two `AllPrincipals` consent grants. Default: remove before teardown.
 - Stripping IP addresses from captures. Default: redact case by case.
 - Capture headers for the PIM exercise `evidence/04` to `06`. Default: leave the WARNs.
 - `tmp-cainstall` deletion. Default: leave disabled.
-- Credential-scan patterns file absent. Default: leave absent.
-- B4's direct eligibility on `adm-jsmith`. Default: leave, remove before teardown.
+- **Credential scan: the patterns file, and the passes 4 and 5 history gap. Asked 2026-09-10.
+  Default: leave the hook alone, sweep by hand.** See `CONSIDERATIONS.md`.
+- B4's direct eligibility on `adm-jsmith`. Default: remove before teardown.
 
 ## Blockers
 Entra CBA needs `crl.districtsafetyphoto.com` over public HTTP, and is now also blocked by the
@@ -48,5 +47,6 @@ certificate post-dating above. Owner: Raymond.
 `Connect-MgGraph` times out on both auth flows. Graph Explorer works; see `gotchas.md`.
 
 ## Uncommitted and staged work
-Tree clean, nothing staged, matching `origin/main`. Pushed 2026-09-10. The credential scan's
-passes 4 and 5 were skipped on every commit in that push, because no patterns file exists.
+Tree clean, nothing staged, one commit ahead of `origin/main`. Passes 4 and 5 have never run: no
+patterns file exists. `~/.config/district-local/add-scan-pattern.sh` adds a value without echoing
+it. Raymond holds the strings.

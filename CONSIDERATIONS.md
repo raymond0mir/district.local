@@ -208,3 +208,53 @@ in carryover was a second, staler copy of something the session had already read
 `validate.py` is unchanged. `check_carryover` enforces the word cap only and has never checked block
 contents, so the template change needs no validator change. The template lives only in `CLAUDE.md`;
 `SKILL.md` refers to it rather than restating it, so the two-copy rule does not apply here.
+
+## Passes 4 and 5 scan the working tree, not the history they were written for, 2026-09-10
+
+`references/credential-scan.md` says of passes 4 and 5: "It searches the whole tracked tree, not the
+staged diff, because a string may already sit in an earlier commit."
+
+The implementation does not do that. `.githooks/pre-commit` runs:
+
+```
+git -C "$REPO" grep -InFf "$PATTERNS" -- .
+```
+
+`git grep` with no revision argument reads the working tree. A string that sat in an earlier commit
+and was later removed is exactly what it cannot see. The stated reason for the pass is the case it
+misses.
+
+Demonstrated with a non-secret string on 2026-09-10. The line "Reclaim thin-pool headroom. Nothing
+that touches a VM can proceed past the 85 gate" was removed from `CARRYOVER.md` this session. It
+returns nothing from the hook's command and returns three commits from
+`git grep -lF <string> $(git rev-list --all)`.
+
+This matters more than it would in a private repository. The four commits pushed on 2026-09-10 are
+public. Rotating a leaked lab credential is cheap; unpublishing it is not, and
+`credential-scan.md` already says so. Passes 4 and 5 have never run in this repository, because the
+patterns file has never existed, so nothing has ever been checked against either the tree or the
+history.
+
+**The history-wide form, which prints commit, file and line and never the matched text:**
+
+```
+git grep -InFf "$PATTERNS" $(git rev-list --all) | cut -d: -f1,2,3 | sort -u
+```
+
+**Not decided.** Making that the hook's default would put a full-history walk in front of every
+commit, and the tree grows. The candidates are: run it in `--all` only, run it on a `--history`
+flag, or leave the hook alone and add the command to `credential-scan.md` as a periodic sweep.
+Raymond has not been asked. Default until he is: leave the hook unchanged and treat the command
+above as a manual sweep.
+
+Two things were tested rather than assumed. With a patterns file holding a string that is in the
+tree, the hook blocked and withheld the matched text, printing 62 file-and-line locations, so the
+wiring works. Blank lines in the patterns file are harmless: `git grep -F` ignores an empty pattern
+rather than matching every line, tested with an empty line between two patterns.
+
+**The patterns file is still absent, on purpose.** A file holding placeholder values would turn the
+honest `SKIPPED, no patterns file` into a `clean` that means nothing. The directory
+`~/.config/district-local` exists at mode 700, with `add-scan-pattern.sh` beside it: it reads one
+value with echo off, refuses anything under six characters, and never prints, echoes or
+argument-passes the value, so no secret reaches shell history or terminal scrollback. Raymond adds
+the real strings.
