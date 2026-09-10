@@ -47,7 +47,7 @@ Entra CBA needs `crl.districtsafetyphoto.com` over public HTTP. Owner: Raymond.
 `Connect-MgGraph` times out on both auth flows. Graph Explorer works; see `gotchas.md`.
 
 ## Uncommitted and staged work
-None. `HEAD` is `413d396`, matching `origin/main`, working tree clean.
+None. Working tree clean, matching `origin/main`.
 
 `validate.py` reports 0 ERROR, 35 WARN, 24 INFO. Three of those WARNs are the missing capture
 headers on `evidence/04`, `05` and `06` of the PIM exercise, listed under Pending decisions.

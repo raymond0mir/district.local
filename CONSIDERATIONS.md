@@ -183,3 +183,28 @@ instead.
 **The sequencing that avoids this entirely:** commit a repair to published evidence on its own,
 before the report that closes the exercise. Raymond has not been asked to adopt that as a rule; it
 is recorded here as the option that exists.
+
+## The carryover's last block no longer carries a commit hash, 2026-09-10
+
+`CLAUDE.md`'s carryover template asked block 8 for "what is in the index, and why it is not
+committed." In practice that produced a commit hash, and a hash written into `CARRYOVER.md` is false
+the moment the commit carrying that file lands. A commit cannot record its own hash.
+
+This bit twice in one day. The session opened on a carryover naming `7aaad13` with the PIM exercise
+uncommitted, when the tree was clean at `fd60ab7` — the previous session had committed after writing
+the file. That one mattered, because it asserted uncommitted work that did not exist. Later the same
+day, `413d396` committed a carryover naming `19b908d` with two files uncommitted, and landing the
+commit falsified both claims. The correction in `dfb3de3` then named `413d396` while `HEAD` moved to
+`dfb3de3`. Each correction invalidates the hash it writes.
+
+**Raymond's decision, 2026-09-10: drop the hash.** Block 8 now asks whether the tree is clean and
+whether it matches `origin/main`. Both statements survive the commit that carries them, because
+neither names a moving value.
+
+Nothing is lost. Session start already reads `git status` and `git log --oneline -15` as its first
+step, before it reads carryover, so the exact pointer is in hand before the file is opened. The hash
+in carryover was a second, staler copy of something the session had already read correctly.
+
+`validate.py` is unchanged. `check_carryover` enforces the word cap only and has never checked block
+contents, so the template change needs no validator change. The template lives only in `CLAUDE.md`;
+`SKILL.md` refers to it rather than restating it, so the two-copy rule does not apply here.

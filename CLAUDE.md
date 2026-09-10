@@ -162,7 +162,10 @@ Overwrite `CARRYOVER.md` with these blocks, in this order. Keep the file under 4
 5. **Hard deadlines** — each with a date, and whether it is verified or unverified.
 6. **Pending decisions** — each with the question, the date it was asked, and the default action.
 7. **Blockers** — each with the owner.
-8. **Uncommitted and staged work** — what is in the index, and why it is not committed.
+8. **Uncommitted and staged work** — what is uncommitted, and why. State whether the tree is
+   clean, and whether it matches `origin/main`. **Write no commit hash.** The commit that
+   carries this file invalidates any hash written into it, and Session start reads
+   `git log` anyway.
 
 Resolved detail belongs in the exercise record. Do not restate this contract in carryover.
 
