@@ -6,47 +6,47 @@
 Pool reading 2026-09-10T18:10:11Z.
 
 ## Next safe action
-Audit the repository for claims dated from a guest clock instead of `date -u`. DC01 and CA01 are
-five and seven hours ahead of real time. It needs no lab access and changes no state.
+Continue the repository timestamp audit into the GPO, licence-status, and B1/B4/PIM exercises.
+`2026-09-05-adcs-issuing-ca-build` is done; see `2026-09-10-domain-time-skew/evidence-log.md`. No
+lab access needed, no state change.
 
 ## Lab state
-VM 100 (DC01) and VM 107 (CA01) running, both booted 2026-09-09T14:19:31Z. VM 101, 102, 104
-stopped. CT 103 running, CT 106 stopped. Pool Data% 80.11, Meta% 3.84. VM 100 holds `clean-install`
-only; VM 107 holds `pre-adcs-config` only. Tenant unchanged: `PIM-UserAdmin-Pilot` holds `User
-Administrator` standing. `adm-jsmith` is eligible to 2026-12-08.
-**Clocks are wrong.** DC01 is +5h 06m 12s from real UTC and drifting. CA01 is +7h 00m 00s and
-holding. See `exercises/2026-09-10-domain-time-skew/report.md`.
+Unchanged since last session. VM 100 (DC01) and VM 107 (CA01) running, both booted
+2026-09-09T14:19:31Z. VM 101, 102, 104 stopped. CT 103 running, CT 106 stopped. Pool Data% 80.11,
+Meta% 3.84. Tenant unchanged: `PIM-UserAdmin-Pilot` holds `User Administrator` standing.
+**Clocks are wrong.** DC01 is +5h 06m ahead and drifting; CA01 is +7h ahead and holding. See
+`exercises/2026-09-10-domain-time-skew/report.md`.
 
 ## Stop conditions
-Pool Data% at 85 or higher. Headroom 4.89 points. Run pre-flight before the next state change.
-Issue no certificate from CA01 until the clock is fixed. It stamps `NotBefore` seven hours ahead.
+Pool Data% at 85 or higher. Issue no certificate from CA01 until the clock is fixed.
 
 ## Hard deadlines
 - P2 trial ends 2026-10-04T00:00:00Z. Verified.
 - `svc-entraconnect` password expires about 2026-10-13. Unverified.
 - `adm-jsmith` eligible membership expires 2026-12-08. Verified.
 - `district-root.crl` expires 2027-03-07. Nothing regenerates it.
-- `districtsafetyphoto.com` may lapse this month. Unverified.
 
 ## Pending decisions
-- **Which time fix to apply. Asked 2026-09-10. Default: none, ask first.** Three candidates, all
-  changing the domain controller. `report.md` names them.
-- `101 win11-ootb` snapshot, 18.31 GiB. Default: keep.
-- Non-root Proxmox user to test `PVEVMUser` against `qm guest exec`. Default: do not create one.
+- **Who is the second PIM approver for Exchange Administrator and Teams Administrator. Asked
+  2026-09-10, paused for next session at Raymond's request. Default: none, ask first.** Both roles'
+  baselines are Captured and clean; only Exchange Administrator's default requires MFA to
+  self-activate. See `exercises/2026-09-10-pim-policy-authoring/evidence-log.md`.
+- Which time fix to apply to DC01. Three candidates in `2026-09-10-domain-time-skew/report.md`.
+  Default: none, ask first.
 - Two `AllPrincipals` consent grants. Default: remove before teardown.
-- Stripping IP addresses from captures. Default: redact case by case.
-- Capture headers for the PIM exercise `evidence/04` to `06`. Default: leave the WARNs.
 - `tmp-cainstall` deletion. Default: leave disabled.
-- **Credential scan: the patterns file, and the passes 4 and 5 history gap. Asked 2026-09-10.
-  Default: leave the hook alone, sweep by hand.** See `CONSIDERATIONS.md`.
-- B4's direct eligibility on `adm-jsmith`. Default: remove before teardown.
+- Credential scan patterns file and passes 4-5. Default: leave the hook alone, sweep by hand.
+- `adm-jsmith`'s direct eligibility (B4). Default: remove before teardown.
+- What role `88d8e3e3-8f55-4a1e-953a-9b9898b8876b` is, surfaced by accident this session. Not
+  investigated. Default: leave for now.
 
 ## Blockers
-Entra CBA needs `crl.districtsafetyphoto.com` over public HTTP, and is now also blocked by the
-certificate post-dating above. Owner: Raymond.
-`Connect-MgGraph` times out on both auth flows. Graph Explorer works; see `gotchas.md`.
+Entra CBA needs public hosting for `crl.districtsafetyphoto.com`, and CA01's clock. Owner: Raymond.
+`Connect-MgGraph` still times out, including the device-code pre-auth workaround, tried and failed
+2026-09-10. Use Graph Explorer; see `gotchas.md`.
 
 ## Uncommitted and staged work
-Tree clean, nothing staged. The credential scan's passes 4 and 5 have never run, because no
-patterns file exists. `~/.config/district-local/add-scan-pattern.sh` adds a value without echoing
-it. Raymond holds the strings.
+Not clean. New: `exercises/2026-09-10-pim-policy-authoring/` (evidence-log.md, two evidence files).
+Modified: `exercises/2026-09-10-domain-time-skew/evidence-log.md` (repository timestamp audit
+findings), `.claude/skills/tech-compass/references/gotchas.md` and its plugin copy (Connect-MgGraph
+and Graph Explorer stale-response updates). Nothing staged. Not committed; Raymond has not asked.

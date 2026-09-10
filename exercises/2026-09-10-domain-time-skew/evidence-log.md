@@ -240,6 +240,33 @@ share the wrong clock. No test has been run; the exposure is stated, not measure
 policy module computes a validity window before the denial. This is why finding 27 could use a
 denied request as a timeline anchor.
 
+**38. DC01's clock was accurate 69 seconds before an independent host anchor, closing part of the
+"what corrected DC01 on 9/5" gap.** `CA01 joined the domain` on 9/5 wrote `Created`
+`/Date(1788645440000)/` onto the new `CN=CA01,CN=Computers,DC=district,DC=local` object, an AD
+FILETIME-backed attribute that DC01 itself timestamps, not a `certutil` local-time display. Decoded
+as an epoch, that value is 2026-09-05T21:57:20Z. The same capture's host `date -u` line reads
+2026-09-05T21:58:29Z, 69 seconds later. This is DC01's directory clock, not a guest console
+display, and it agrees with the host to the minute, consistent with finding 30's correction of
+DC01 twelve minutes earlier the same evening (2026-09-05T21:45:00.969Z). It narrows, without
+closing, finding 30's open question: DC01 was correct by 21:57Z on 9/5, not only immediately after
+the step. `exercises/2026-09-05-adcs-issuing-ca-build/evidence/10-ca01-joined-and-adcs-role-installed.txt`.
+
+**39. Request 5's own disposition record shows CA01 already displaying the +7h signature on 9/8, a
+full calendar day before finding 28's dated onset.** The same capture block that resolved request 5
+carries both a host `date -u` line, `2026-09-08T14:34:27Z`, and CA01's own
+`certutil -view` output, `Request Resolution Date: 9/8/2026 2:34 PM`. `2:34 PM` is `14:34`, the same
+hour and minute as the real UTC anchor taken in the same command batch — the identical
+local-digits-equal-real-UTC pattern findings 33 and 34 established for requests 8 and 9. Applying
+that pattern here means CA01's local clock was already missing its `-07:00` offset on 9/8, not only
+from the 2026-09-09T14:35:10Z step event finding 28 dates. `exercises/2026-09-05-adcs-issuing-ca-build/evidence/47-console-installcert-succeeds-and-request-5-issues.txt`.
+
+**40. This exercise's own durable artifacts already carry the corrected, full scope.**
+`report.md` ("Requests 5, 7 and 8 fall inside the same windows"), the ledger row dated 2026-09-10
+("Rows 5, 7, 8 and 9 all fall inside windows where CA01 was at +7h"), and `EXPOSURES.md`'s
+domain-time-skew paragraph ("requests 5, 7 and 8 fall inside the same windows") all match finding 35.
+Direct read of all three, 2026-09-10. No correction is owed to any of them. The stale framing is
+confined to finding 27 below, inside this file.
+
 ## Not captured, and why
 
 - **DC01's monotonic clock rate.** `[Environment]::TickCount64` returned no output and no
@@ -300,6 +327,18 @@ denied request as a timeline anchor.
   correctly, retracted wrongly, reinstated on evidence. All three steps are on the record here
   because the middle one reached the ledger and `EXPOSURES.md` before it was caught.
 
+- **Finding 27's "CA01's clock was correct on 9/8" and "correct as late as 20:08Z on 9/9" are
+  superseded, and its "no certificate is shown to be post-dated" is wrong.** Finding 27 read the
+  local-digits-equal-real-UTC pattern in rows 5 and 8 as proof of an accurate clock. Findings 33 and
+  34, reading the same pattern in row 8, reach the opposite conclusion: the match is the signature of
+  the +7h error, not evidence against it. Finding 35 already corrects the scope to "rows 5, 7, 8 and
+  9 all fall inside windows where CA01 was at +7h," and finding 39 above independently confirms the
+  error was present as early as request 5's resolution. Finding 27 was never marked superseded at
+  the point finding 35 passed it, and the Corrections-section entry above ("Eight of nine rows are
+  anchored to a correct clock") restates finding 27's framing without flagging it. `report.md`,
+  `EXPOSURES.md` and `verified-claims.md` were checked 2026-09-10 and already carry finding 35's
+  scope; this correction is confined to finding 27 and the Corrections entry in this file.
+
 - **`references/gotchas.md` states that `certutil -view` prints dates in UTC. Finding 33 disproves
   it.** That line also describes a seven-to-eight-hour discrepancy between `certutil` and
   `Get-ChildItem` in one evidence file on 2026-09-05. That discrepancy is the size of this lab's
@@ -310,7 +349,12 @@ denied request as a timeline anchor.
 
 - Does Entra CBA reject a certificate whose `NotBefore` is seven hours in the future? That is the
   lab's stated goal for this CA and the first consumer that does not share the wrong clock.
-- Which repository claims carry a guest-derived timestamp, and are any of them wrong?
+- **Partially answered, 2026-09-10.** `2026-09-05-adcs-issuing-ca-build` is audited: its report,
+  ledger rows and `EXPOSURES.md` entry already carry the corrected scope (findings 38-40); only this
+  file's own finding 27 was stale, corrected above. Not yet audited: the GPO, licence-status and
+  PIM/B1/B4 exercises that read DC01 event logs, `Created`/`whenChanged` attributes, or local-time
+  displays. Their exposure is smaller — most cite `date -u`-anchored capture headers rather than a
+  guest-printed date — but none has been checked line by line the way the CA build was.
 - Does DC01's monotonic clock run at about half of real time, and does `ostype: l26` cause it?
 - What corrected DC01 by exactly −7h on 2026-09-05, and why has nothing done so since?
 - What is the correct time design for a virtualised forest root with no internet route, and what
@@ -324,7 +368,8 @@ denied request as a timeline anchor.
 ## Not started
 
 - The `TickCount64` test on DC01.
-- The repository timestamp audit.
+- The repository timestamp audit for exercises other than `2026-09-05-adcs-issuing-ca-build` (see
+  Open questions).
 - Any remediation. Every candidate fix is a state change on the domain controller and waits for
   Raymond.
 - The alternatives half of the exercise: the correct time design and its cost.

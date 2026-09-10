@@ -1,11 +1,17 @@
 {
-  "commit": "8c060077e4c3d5563912dfe8bbc06a2d95c92f98",
+  "commit": "24053b34c0e8433c7904551f781cfc1bff56d2d9",
   "counts": {
     "ERROR": 0,
     "INFO": 24,
-    "WARN": 36
+    "WARN": 37
   },
   "findings": [
+    {
+      "check": "no-report",
+      "message": "exercise has no report.md",
+      "path": "exercises/2026-09-10-pim-policy-authoring",
+      "severity": "WARN"
+    },
     {
       "check": "no-report",
       "message": "exercise has no report.md",
