@@ -44,10 +44,11 @@ Entra CBA needs `crl.districtsafetyphoto.com` over public HTTP. Owner: Raymond.
 `Connect-MgGraph` still times out on both auth flows. Graph Explorer works; see `gotchas.md`.
 
 ## Uncommitted and staged work
-`HEAD` is `fd60ab7`, matching `origin/main`. Nothing committed this session; Raymond has not asked.
-Working tree: `exercises/2026-09-09-pim-for-groups/` gains `report.md` and `evidence/07` through
-`13`, edits to `evidence/02`, `03`, `08`, `09` and `evidence-log.md`; plus `EXPOSURES.md`,
-`verified-claims.md`, `CONSIDERATIONS.md`, `gotchas.md` and its plugin copy, and this file.
+`HEAD` is `4585f69`, one commit ahead of `origin/main` at `fd60ab7`. **Not pushed; Raymond has not
+asked.** The commit closes `exercises/2026-09-09-pim-for-groups` with `report.md` and `evidence/07`
+through `13`, and carries the `EXPOSURES.md`, `verified-claims.md`, `CONSIDERATIONS.md` and
+`gotchas.md` updates.
 
-`validate.py` reports 2 ERROR, both `evidence-modified` on `evidence/02` and `03`. They are declared
-in the evidence log's Corrections and in `CONSIDERATIONS.md`, and both clear on commit.
+`validate.py` reports 0 ERROR, 35 WARN, 24 INFO. The two `evidence-modified` ERRORs cleared on
+commit, as `CONSIDERATIONS.md` predicted. `validation.json` was refreshed after the commit and not
+before, following the precedent in that file.

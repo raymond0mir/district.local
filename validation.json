@@ -1,17 +1,11 @@
 {
-  "commit": "7aaad13f0f7b95564e4e2f316205666a2b0cd8e4",
+  "commit": "4585f69366fcb55034e95553beb168f9de5274b0",
   "counts": {
     "ERROR": 0,
     "INFO": 24,
-    "WARN": 36
+    "WARN": 35
   },
   "findings": [
-    {
-      "check": "no-report",
-      "message": "exercise has no report.md",
-      "path": "exercises/2026-09-09-pim-for-groups",
-      "severity": "WARN"
-    },
     {
       "check": "evidence-log-grandfathered",
       "message": "predates the six-section schema, kept as a historical record",
