@@ -1,11 +1,17 @@
 {
-  "commit": "0f0a9319c680c17a5af4fd8b16f47fda1e7cafa9",
+  "commit": "7aaad13f0f7b95564e4e2f316205666a2b0cd8e4",
   "counts": {
     "ERROR": 0,
     "INFO": 24,
-    "WARN": 29
+    "WARN": 36
   },
   "findings": [
+    {
+      "check": "no-report",
+      "message": "exercise has no report.md",
+      "path": "exercises/2026-09-09-pim-for-groups",
+      "severity": "WARN"
+    },
     {
       "check": "evidence-log-grandfathered",
       "message": "predates the six-section schema, kept as a historical record",
@@ -286,6 +292,42 @@
       "check": "evidence-header",
       "message": "capture header has no UTC timestamp",
       "path": "exercises/2026-09-07-plaintext-credential-remediation/evidence/03-audit-proves-no-use-and-names-the-actor.md",
+      "severity": "WARN"
+    },
+    {
+      "check": "evidence-header",
+      "message": "capture header has no UTC timestamp",
+      "path": "exercises/2026-09-09-pim-for-groups/evidence/01-role-assignable-group-created.md",
+      "severity": "WARN"
+    },
+    {
+      "check": "evidence-header",
+      "message": "capture header has no UTC timestamp",
+      "path": "exercises/2026-09-09-pim-for-groups/evidence/02-user-administrator-assigned-to-group.md",
+      "severity": "WARN"
+    },
+    {
+      "check": "evidence-header",
+      "message": "capture header has no UTC timestamp",
+      "path": "exercises/2026-09-09-pim-for-groups/evidence/03-adm-jsmith-eligible-member-granted.md",
+      "severity": "WARN"
+    },
+    {
+      "check": "evidence-header",
+      "message": "capture header has no host, UTC timestamp",
+      "path": "exercises/2026-09-09-pim-for-groups/evidence/04-default-member-activation-policy.md",
+      "severity": "WARN"
+    },
+    {
+      "check": "evidence-header",
+      "message": "capture header has no host",
+      "path": "exercises/2026-09-09-pim-for-groups/evidence/05-member-policy-hardened.md",
+      "severity": "WARN"
+    },
+    {
+      "check": "evidence-header",
+      "message": "capture header has no host",
+      "path": "exercises/2026-09-09-pim-for-groups/evidence/06-activation-transaction-partial.md",
       "severity": "WARN"
     },
     {

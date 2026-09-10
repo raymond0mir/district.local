@@ -70,6 +70,29 @@ control. This was corrected for User Administrator on 2026-09-06. Every other En
 tenant still carries the default. *Evidence:*
 `exercises/2026-09-06-b4-pim-eligible-role/evidence/10-activation-policy-defaults.md`,
 `exercises/2026-09-06-b4-pim-eligible-role/evidence/11-approval-required-and-window-tightened.md`.
+**PIM for Groups is worse, and differently shaped, 2026-09-09.** A newly created group's member
+activation policy defaults to `On activation, require: None` — no MFA at all — alongside the same
+no-approval default. The Entra role default at least requires MFA. The two surfaces also disagree
+in the other direction: PIM for Groups refuses a permanent eligible assignment that the role-level
+policy accepts. Neither default is simply weaker, and an administrator reasoning from one surface
+to the other will be wrong in both directions. Corrected on `PIM-UserAdmin-Pilot` the same day;
+every future group in this tenant starts from the same defaults. Note also that "require MFA" is a
+claim check, not a step-up prompt — a session that satisfied MFA at sign-in activates silently.
+*Evidence:* `exercises/2026-09-09-pim-for-groups/evidence/04-default-member-activation-policy.md`,
+`exercises/2026-09-09-pim-for-groups/evidence/05-member-policy-hardened.md`,
+`exercises/2026-09-09-pim-for-groups/evidence/06-activation-transaction-partial.md`. All Recalled,
+from portal screenshots; the Graph reads that would make them Captured are still owed.
+
+**`adm-jsmith` holds two live paths to `User Administrator`, deliberately.** B4's direct eligible
+role assignment stands, and `PIM-UserAdmin-Pilot` now holds the same role standing with
+`adm-jsmith` eligible for membership. Raymond decided 2026-09-09 to leave both in place "for the
+sake of the lab," with removal owed before the lab is torn down. Both routes are gated — each
+requires approval, and each fired correctly when tested on 2026-09-09 — so this is redundancy
+rather than an unguarded back door. It is still the permission-sprawl pattern appearing in the
+tenant's own governance layer: two grants where one would do, and the older one is the one nobody
+would think to check. *Evidence:*
+`exercises/2026-09-09-pim-for-groups/evidence/02-user-administrator-assigned-to-group.md`,
+`exercises/2026-09-06-b4-pim-eligible-role/evidence/08-eligibility-granted.md`.
 
 **`Key Admins` and `Enterprise Key Admins` hold domain-wide write rights over
 `msDS-KeyCredentialLink`** — the shadow-credentials attribute. Any current or future member of
