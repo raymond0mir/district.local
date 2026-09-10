@@ -47,6 +47,6 @@ certificate post-dating above. Owner: Raymond.
 `Connect-MgGraph` times out on both auth flows. Graph Explorer works; see `gotchas.md`.
 
 ## Uncommitted and staged work
-Tree clean, nothing staged, one commit ahead of `origin/main`. Passes 4 and 5 have never run: no
+Tree clean, nothing staged, matching `origin/main`. Passes 4 and 5 have never run: no
 patterns file exists. `~/.config/district-local/add-scan-pattern.sh` adds a value without echoing
 it. Raymond holds the strings.
