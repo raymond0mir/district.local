@@ -201,6 +201,9 @@ commit falsified both claims. The correction in `dfb3de3` then named `413d396` w
 whether it matches `origin/main`. Both statements survive the commit that carries them, because
 neither names a moving value.
 
+**Half of that last sentence is wrong, and is corrected in the entry below, same date.** The
+`origin/main` clause does name a moving value. It survives a commit and does not survive a push.
+
 Nothing is lost. Session start already reads `git status` and `git log --oneline -15` as its first
 step, before it reads carryover, so the exact pointer is in hand before the file is opened. The hash
 in carryover was a second, staler copy of something the session had already read correctly.
@@ -258,3 +261,28 @@ honest `SKIPPED, no patterns file` into a `clean` that means nothing. The direct
 value with echo off, refuses anything under six characters, and never prints, echoes or
 argument-passes the value, so no secret reaches shell history or terminal scrollback. Raymond adds
 the real strings.
+
+
+## Block 8 loses the `origin/main` clause too, 2026-09-10
+
+The entry above dropped the commit hash from carryover's last block on the ground that the two
+remaining statements "survive the commit that carries them, because neither names a moving value".
+That holds for "the tree is clean". It does not hold for "matches `origin/main`", and the reason is
+one step further along than the hash problem.
+
+A commit invalidates a hash. A push invalidates the `origin/main` clause. Writing a true line
+therefore means predicting the push, committing that prediction, and pushing it — which puts the
+tree one commit ahead again, so the line is only true for the state the push produces. Both pushes
+on 2026-09-10 cost an extra commit for nothing else: `d7491d5` and `8c06007` exist to make block 8
+true. The treadmill is structural, not an oversight in how the file was written.
+
+**Raymond's decision, 2026-09-10: cut the clause.** Block 8 now states what is uncommitted and why,
+and whether the tree is clean. Neither statement changes when the file is committed or pushed.
+
+Nothing is lost, for the same reason the hash was not missed. Session start reads `git status` and
+`git log --oneline -15` before it opens carryover, and `git status` states the branch's position
+against its upstream in that first read. Carryover was carrying a staler second copy of it.
+
+`validate.py` is unchanged. `check_carryover` enforces the word cap and has never read block
+contents. The template lives only in `CLAUDE.md`; `SKILL.md` refers to it rather than restating it,
+so the two-copy rule does not apply.
