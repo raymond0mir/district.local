@@ -411,6 +411,31 @@ policy change and every Graph read in the same session, so the habit has not mov
 go-forward account has now done real work under PIM governance for the first time.
 `exercises/2026-09-09-pim-for-groups/evidence/12-attribution-and-the-silent-refusal.md`.
 
+**Hardening DC01 moved its administrative path to an identity the directory cannot see. Queued as
+an exercise, 2026-09-10.** Two facts are Confirmed. `SeDenyInteractiveLogonRight` denies the entire
+Domain Admins group console logon on DC01, `Administrator` is disabled, and `qm guest exec` "remains
+the only working administrative path"
+(`exercises/2026-09-04-b1-conditional-access-report-only/evidence/dc01-sysadmin-deny-interactive-logon-secedit.txt`).
+That path runs as SYSTEM inside the guest, which is why CA01 authenticates to DC01 as `CA01$` in the
+entry above.
+
+**The consequence has never been examined.** The hardening did not remove a standing administrative
+path to DC01. It relocated that path to the Proxmox host shell, where it carries no domain account,
+no Entra account, no per-VM credential and no time limit. Every property a privileged-access broker
+exists to impose — brokered, time-boxed, session-recorded, credential-less at the operator's end —
+is absent, and the operator reaches every VM in the lab rather than one.
+
+**What is not Captured, and is the exercise.** That the host-side caller runs as `root` on the
+Proxmox host has only been seen in session prompts, never written to an evidence file. Whether any
+log records a `qm guest exec` invocation, against which identity, and whether the guest records
+anything at all, is entirely unknown. Proxmox's task log, `pveproxy` access log and the guest's own
+event log have never been read for this. No claim is made about any of them.
+
+**Why it earns priority.** Raymond has operated professionally under a broker for VM access, so the
+comparison is grounded in something the lab cannot manufacture. The audit half changes no state and
+consumes no pool, which matters while thin-pool headroom is 0.88 points. It is queued here rather
+than inserted into `CURRICULUM.md`'s run order, which has not been reordered.
+
 ## Infrastructure
 
 **The lab has no power protection and no restart policy, and a power loss stops a domain
