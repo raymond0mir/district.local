@@ -7,7 +7,7 @@ only the third call changed to work around them.
 
 Command: `POST https://graph.microsoft.com/v1.0/identityGovernance/privilegedAccess/group/eligibilityScheduleRequests`
 Body: `accessId: member`, `principalId: 03ee6546-f113-4ec5-ba9d-e57381b0c928` (`adm-jsmith`, reused
-from `exercises/2026-09-06-b4-pim-eligible-role/evidence/05`), `groupId:
+from `exercises/2026-09-06-b4-pim-eligible-role/evidence/05-adm-jsmith-created.md`), `groupId:
 3265375f-23f9-4d3f-81d3-15370199bc8a`, `action: adminAssign`, `scheduleInfo.expiration.type:
 noExpiration`.
 Host: Graph Explorer, tenant, signed in as the native Global Administrator (break-glass).

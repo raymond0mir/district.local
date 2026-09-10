@@ -32,6 +32,6 @@ Timestamp: not independently captured; same session as `evidence/01`.
   the role standing; PIM governs just-in-time *membership* in the group, not the group's own role.
 - `roleDefinitionId` reused from B4's `evidence/09`, not re-derived from memory.
 - This is now the second live path to `User Administrator` in this tenant, alongside B4's direct
-  eligible assignment on `adm-jsmith` (`exercises/2026-09-06-b4-pim-eligible-role/evidence/08`).
+  eligible assignment on `adm-jsmith` (`exercises/2026-09-06-b4-pim-eligible-role/evidence/08-eligibility-granted.md`).
   Left in place deliberately — Raymond's decision, `evidence-log.md`'s consultation section —
   tracked in `CARRYOVER.md` as a pre-teardown cleanup item, not fixed here.

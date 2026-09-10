@@ -137,3 +137,58 @@ Write the condition that makes each line true. A behavior that depends on a lice
 - **`Install-PSResource` prints nothing on success and can silently install only some of a multi-name list.** Verify with `Get-Module -ListAvailable` rather than trusting a silent return. On 2026-09-09 a three-module install returned clean after ten minutes with one module present. Source: `exercises/2026-09-09-pim-for-groups`.
 - **`Connect-MgGraph` times out after 120 seconds of inactivity, on both the browser and `-UseDeviceAuthentication` flows.** Account-picking and admin consent do not fit in that window from a cold browser. Sign the intended account into `https://microsoft.com/devicelogin` first, then run the command and paste the code. Source: `exercises/2026-09-09-pim-for-groups`, unresolved — no successful connection was made.
 - **`Microsoft.Graph.Authentication` alone is enough to call any Graph endpoint.** `Invoke-MgGraphRequest -Method GET -Uri '<uri>' -OutputType Json` replaces Graph Explorer without the large command modules, and keeps evidence files consistent with the raw URIs they already record. Single-quote the URI so PowerShell leaves `$filter` and `$expand` alone. Source: `exercises/2026-09-09-pim-for-groups`.
+
+## Graph Explorer, sign-in and consent
+
+Graph Explorer holds its own sign-in. It is independent of the Entra admin center session and
+unaffected by which browser window is open. Signing into the portal as one account does not change
+who Graph Explorer is. Read the account chip at the top right before recording a signing identity in
+a capture header. Confirmed 2026-09-10 when four reads recorded as break-glass had run as
+`adm-jsmith`.
+
+The `Modify permissions` tab lists only the permissions relevant to the query currently in the URL
+bar. Paste the query first, then open the tab, then consent. Consenting against a stale `/me` query
+offers `/me` permissions and does nothing for the query you intend to run.
+
+Entra's default user permissions let any member account read other users' basic properties. A
+`GET /users` call succeeding proves nothing about the caller's privilege.
+
+A scope error and a role error look different and mean different things. `PermissionScopeNotGranted`
+means the token lacks the scope; consent it. `Authentication_RequestFromUnsupportedUserRole` means
+the signed-in account is not in a role the API admits; change accounts.
+
+`auditLogs/directoryAudits` admits Global Administrator, Global Reader, Security Administrator,
+Security Reader, Reports Reader and Compliance Administrator. `User Administrator` is not among them.
+
+## PIM
+
+PIM for Groups splits its Graph scopes three ways. Writing group eligibility needs
+`PrivilegedEligibilitySchedule.ReadWrite.AzureADGroup`. Reading an active group assignment needs
+`PrivilegedAssignmentSchedule.Read.AzureADGroup`. Neither is the role-level
+`RoleManagement.ReadWrite.Directory`. All require admin consent.
+
+`identityGovernance/privilegedAccess/group/assignmentScheduleInstances` returns live instances only.
+Read it before the activation expires. Afterwards the window has to be recovered from
+`assignmentScheduleRequests` or the audit log.
+
+The activation clock starts at approval, not at request. The approver's panel shows a window
+computed at request time and the platform does not honour it once approval is delayed. The panel's
+error equals the length of the pending period. Read
+`assignmentScheduleInstances.startDateTime` for the value that governs.
+
+PIM refuses to deactivate an activation that has not been active long enough, with
+`result: failure` and `resultReason: ActiveDurationTooShort`. Observed at 3 minutes 43 seconds,
+2026-09-10. The threshold is not established.
+
+A group holding a directory role as a standing assignment is the documented PIM for Groups pattern,
+and PIM's own alert engine reports it as `RoleElevatedOutsidePimAlert`, "Add member to role outside
+of PIM (permanent)", on a roughly two-hourly scan, indefinitely. These are alerts, not assignments;
+no `Core Directory` assignment event accompanies them.
+
+A group cannot be explicitly onboarded to PIM for Groups. The first call that creates an assignment
+or eligibility, or updates a policy, onboards it automatically. There is no "Discover groups" step
+and onboarding cannot be undone.
+
+An activation request and its approval each demand free text and neither validates it. With
+`Require ticket information on activation` set to `No`, the `Ticket number` and `Ticket system`
+fields on the approval record stay empty.

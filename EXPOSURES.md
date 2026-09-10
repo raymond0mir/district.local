@@ -347,6 +347,70 @@ explained. Nothing observable is broken. *Evidence:*
 `exercises/2026-09-05-adcs-issuing-ca-build/evidence/47-console-installcert-succeeds-and-request-5-issues.txt`,
 `exercises/2026-09-05-adcs-issuing-ca-build/evidence/48-crl-published-and-enterprise-admins-grant-removed.txt`.
 
+**Two applications now hold tenant-wide delegated consent for all principals, both granted during
+lab work, 2026-09-10.** Graph Explorer (`14f143fa`) was consented at 14:40:16.62Z to a scope set
+including `Directory.ReadWrite.All`, `RoleManagement.ReadWrite.Directory`, `User.ReadWrite.All`,
+`User.EnableDisableAccount.All`, `PrivilegedAccess.ReadWrite.AzureAD`,
+`Policy.ReadWrite.ConditionalAccess` and `RoleManagementPolicy.ReadWrite.Directory`. Microsoft Graph
+Command Line Tools (`8036494e`) was consented at 02:00:33.65Z to `Group.ReadWrite.All`,
+`RoleManagement.ReadWrite.Directory`, `PrivilegedEligibilitySchedule.ReadWrite.AzureADGroup` and
+`RoleManagementPolicy.ReadWrite.AzureADGroup`, during `Connect-MgGraph` attempts that never
+succeeded. Both carry `ConsentType: AllPrincipals`, so the consent covers every account in the
+tenant rather than the administrator who granted it. What a given account can then do is still
+bounded by its directory roles, so this is not privilege escalation on its own. It is a permanent
+widening of the surface through which privilege can be exercised, granted to unblock single queries,
+with no expiry and no scheduled review. **This is the repository's own thesis, produced by its own
+hands:** a real requirement appeared, the remedy was a standing grant, it took one click, and nothing
+asked when it should end. Removal is under Enterprise applications and has not been done.
+`exercises/2026-09-09-pim-for-groups/evidence/13-unfiltered-audit-window.md`.
+
+**A privileged action refused at the authorization gate leaves no record in `directoryAudits`.**
+`adm-jsmith`, holding eligibility only, was refused a `dumbuser2` password reset at 2026-09-10T02:30Z.
+An unfiltered read of every directory audit event in the tenant from 02:00Z returns nothing for it.
+The nearest records are two `Validate user authentication` events at 02:30:25 and 02:31:48. The
+platform logged that the token was valid and did not log that the account was stopped. The likely
+mechanism is that the portal evaluates authorization before issuing any directory write, so nothing
+reached `Core Directory` to be logged. **An account can therefore map the boundaries of its own
+privilege through the portal, one blade at a time, and generate no entry in this log.** Only what
+succeeds is recorded. This matters most for an account that has accumulated standing grants nobody
+reviews: it can be tested for reach, silently, before anything is used. The claim is scoped to
+`directoryAudits`; sign-in logs record the session, and no other telemetry has been checked.
+`exercises/2026-09-09-pim-for-groups/evidence/13-unfiltered-audit-window.md`.
+
+**PIM raises a recurring false alert against the architecture Microsoft documents for PIM for
+Groups.** Five `RoleElevatedOutsidePimAlert` events fired on 2026-09-10 at 03:17:42, 05:24:00,
+07:42:14, 09:40:42 and 12:06:34, roughly two-hourly, each naming `User Administrator` and
+`PIM-UserAdmin-Pilot`. They are alerts and not assignments: each carries a distinct request id, no
+`Core Directory` assignment event accompanies any of them, and the underlying assignment was made
+once on 2026-09-09. The condition being flagged is the documented pattern itself, in which the
+role-assignable group holds the directory role as a permanent standing assignment and PIM governs
+membership of the group. **The control reports its own recommended design as a violation,
+indefinitely.** The rational operator response is suppression, after which a genuine out-of-PIM role
+assignment produces the same signal and lands in the same ignored bucket. Whether the alert can be
+suppressed narrowly enough to keep the genuine case is unresolved.
+`exercises/2026-09-09-pim-for-groups/evidence/13-unfiltered-audit-window.md`.
+
+**`User Administrator` can act on a user and cannot read the record of that action.** The reporting
+API admits Global Administrator, Global Reader, Security Administrator, Security Reader, Reports
+Reader and Compliance Administrator. `adm-jsmith`, holding activated `User Administrator`, was
+refused `auditLogs/directoryAudits` with `Authentication_RequestFromUnsupportedUserRole`, while the
+identical query returned `200` under the break-glass account. The refusal is correct behavior, not a
+defect. The exposure is what it pressures an operator to do: an administrator who must confirm their
+own action has a legitimate need and one obvious remedy, which is to attach a reporting role to the
+account permanently. The governed answer is to make the reporting role PIM-eligible so the read right
+is time-boxed like the write right. Not done.
+`exercises/2026-09-09-pim-for-groups/evidence/09-graph-capture-pass.md`.
+
+**First positive data point on the `adm-jsmith` habit check, 2026-09-10.** The exposure at the top of
+this section says the break-glass problem closes only when routine work actually moves to
+`adm-jsmith`, and recorded a failed check on 2026-09-07. This session records a pass:
+`directoryAudits` attributes the `revokeSignInSessions` on `dumbuser2` at 14:32:27.46Z to
+`initiatedBy.user.id 03ee6546`, `adm-jsmith`, acting through activated group membership. One
+privileged action, correctly attributed. The break-glass account still performed the approval, the
+policy change and every Graph read in the same session, so the habit has not moved; but the
+go-forward account has now done real work under PIM governance for the first time.
+`exercises/2026-09-09-pim-for-groups/evidence/12-attribution-and-the-silent-refusal.md`.
+
 ## Infrastructure
 
 **The lab has no power protection and no restart policy, and a power loss stops a domain

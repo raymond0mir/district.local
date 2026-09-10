@@ -39,6 +39,56 @@
   demand free text and neither validates it. **The after-state test was never run**, so effective
   access is unproven. Recalled, not Captured. `evidence/06`.
 
+- **Pre-flight, session two, 2026-09-10T14:13:49Z.** VM 100 and VM 107 running. Thin pool Data%
+  84.12, Meta% 4.21, under the 85 gate with 0.88 points of headroom. Data% rose 0.15 points in 23.5
+  hours with no VM created, no snapshot taken and no disk extended. Running guests write, thin
+  volumes grow, nothing returns the blocks. The stop condition can be crossed by doing nothing.
+  Two readings, not a trend. `evidence/07`.
+- **The authorization gate stopped firing after activation.** Same account, same target, same
+  portal route. The refusal moved from "incorrect level of administrative privilege" to "password
+  writeback is not enabled in your tenant". Authorization is evaluated before tenant capability, so
+  reaching the second message proves the first gate passed. `Edit properties` and `Delete` were
+  greyed out before and enabled after. Recalled from screenshots. `evidence/08`.
+- **`dumbuser2` is mastered on-premises.** `onPremisesSyncEnabled: true`,
+  `CN=dumb user2,OU=Site 1,OU=Test Users,DC=district,DC=local`, last synced 2026-09-01T23:57:46Z.
+  The writeback refusal was a real capability gate, not a disguised authorization failure. Captured.
+  `evidence/09`.
+- **Twelve of sixteen tenant users are synced.** Four are cloud-only: `adm-jsmith`, `labadmin`, the
+  rotated-out `breakglass@`, and the current Global Administrator at `6ca413e3`. That object id
+  matches the `initiatedBy` principal already recorded in `EXPOSURES.md`, which confirms the
+  break-glass account and the account doing routine tenant work are one object. Captured.
+  `evidence/09`.
+- **A completed privileged action through the group path.** `revokeSignInSessions` on `dumbuser2`
+  stamped `signInSessionsValidFromDateTime: 2026-09-10T14:32:27Z`. Captured. `evidence/10`.
+- **The activation window as the platform stores it.** `startDateTime 2026-09-10T14:20:40.623Z`,
+  `endDateTime 2026-09-10T16:20:40.03Z`, `principalId 03ee6546`, `assignmentType activated`,
+  `memberType direct`. Start is approval time, not request time. Captured. `evidence/11`.
+- **Attribution of the completed action.** `directoryAudits` returns `Update user` and
+  `Update StsRefreshTokenValidFrom Timestamp` at 14:32:27.46Z, `result: success`,
+  `initiatedBy.user.id 03ee6546`. One portal click produced two rows sharing one `correlationId`.
+  Captured. `evidence/12`.
+- **The 02:30Z refusal produced no audit event, at tenant scope.** With the target filter removed,
+  the nearest records are two `Validate user authentication` events at 02:30:25 and 02:31:48. The
+  platform logged that the token was valid and did not log that the account was stopped. Captured.
+  `evidence/13`.
+- **PIM alerts on its own recommended architecture, roughly every two hours.** Five
+  `RoleElevatedOutsidePimAlert` events at 03:17:42, 05:24:00, 07:42:14, 09:40:42 and 12:06:34, each
+  naming `User Administrator` and `PIM-UserAdmin-Pilot`, each with a distinct request id and no
+  accompanying `Core Directory` assignment. The standing role assignment on the group is the
+  documented pattern. Captured. `evidence/13`.
+- **Early deactivation is refused.** `Process role removal request`, 02:54:42.811766Z,
+  `result: failure`, `resultReason: ActiveDurationTooShort`, 3m43s after activation. Captured.
+  `evidence/13`.
+- **Neither activation was deactivated; both expired.** The stray direct activation ended
+  04:42:10.95Z and the group activation ended 04:51:00.99Z, both by `Azure AD PIM` with
+  `ActionType: Revoke`. Captured. `evidence/13`.
+- **`evidence/05` is upgraded from Recalled to Captured.** `Update role setting in PIM` at
+  02:23:09.790418Z enumerates the hardening: two-hour maximum, MFA on activation, approval required
+  with one approver, MFA on active assignment. `evidence/13`.
+- **`evidence/06`'s MFA explanation is upgraded from documentation to evidence.**
+  `IsAuthenticatedWithMfa: True` on both activation requests. The Authenticator satisfied the claim
+  at sign-in 1m50s earlier, not at elevation. `evidence/13`.
+
 ## Not captured, and why
 
 - **The default member and owner activation policies were read in the portal, not over Graph.**
@@ -61,6 +111,13 @@
   Screenshot, Recalled, not separated into the two causes. This is the same shape as the lived
   precedent Raymond gave for decision 2 above: only the sysadmin, not the routine account, could
   touch the governing group.
+
+- **The `Expired assignments` tab was never opened.** Asked for during session two and not
+  reported. `evidence/13` answers the underlying question from the audit log instead, so the tab is
+  no longer needed.
+- **The Owner activation policy detail values.** Still never opened, in either session.
+- **PIM's minimum active duration before deactivation is permitted.** `ActiveDurationTooShort` fired
+  at 3m43s. The threshold itself is not established and no figure is claimed.
 
 ## Where Raymond was consulted
 - **Group name.** I proposed `PIM-UserAdmin-Pilot`, matching the `PKI-CBA-Pilot` convention
@@ -104,6 +161,30 @@
   ([Govern membership and ownership of groups by using PIM for Groups](https://learn.microsoft.com/graph/api/resources/privilegedidentitymanagement-for-groups-api-overview?view=graph-rest-1.0#onboarding-groups-to-pim-for-groups))
   Consistent with the one-way-door warning already given before the group was created: once
   onboarded, a group can't be offboarded.
+
+- **Claude recorded a signing identity it had not confirmed.** `evidence/09`'s capture header
+  originally read "signed in as the tenant break-glass account". That was written from the
+  instruction Claude had given, not from evidence. Two later calls proved Graph Explorer had been
+  signed in as `adm-jsmith`, which holds its own sign-in independent of the portal session and
+  unaffected by which browser window is used. The response bodies are unaffected, because directory
+  object values do not depend on who reads them. The header was corrected on the record, first to
+  state the explanation as unestablished and then to state it as established once the break-glass
+  re-run returned `200`. Caught by the evidence, not by Raymond.
+- **Claude told Raymond the outstanding Graph reads had no deadline. That was wrong for one of
+  them.** `assignmentScheduleInstances` returns only live instances, so the stored activation window
+  would have become unreadable at 16:20:40Z. Corrected in session, before the deadline passed.
+- **Claude's claim that the activation clock runs from request time is now disproven, not merely
+  withdrawn.** `evidence/06` withdrew it pending evidence. `evidence/11` contradicts it with machine
+  output. The full two hours ran from approval.
+- **Two evidence files were edited after they were committed.** `evidence/02` and `evidence/03`
+  cited two B4 evidence files by bare number, without the filename, so the cited paths resolved to
+  nothing and `validate.py` reported two `reference-missing` ERRORs at session start. The intended
+  targets were `exercises/2026-09-06-b4-pim-eligible-role/evidence/08-eligibility-granted.md` and
+  `exercises/2026-09-06-b4-pim-eligible-role/evidence/05-adm-jsmith-created.md`. Claude completed both
+  citations to the full filenames while the exercise was still open. Writing `report.md` closed the
+  exercise, and `check_evidence_immutability` then reported both as `evidence-modified`. The edits
+  are declared here rather than left to look like tampering. They change citations only, not
+  claims. See `CONSIDERATIONS.md` for the tooling behavior.
 
 ## Open questions
 

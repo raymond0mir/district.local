@@ -153,3 +153,33 @@ and no bare number should be quoted without saying which.
 ERRORs, a state that is false one second after the commit. The file was left at its committed
 value for the ADCS commit and refreshed afterward, which is what commits 97a1a7c and b1b4b9c
 already do.
+
+## `evidence-modified` punishes legitimate repair at the moment a report lands, 2026-09-10
+
+`validate.py` reported two `reference-missing` ERRORs at session start. `evidence/02` and
+`evidence/03` of `2026-09-09-pim-for-groups` cited two B4 evidence files by bare number rather than
+by filename, so the cited paths did not exist. Completing the citations cleared both errors. The
+exercise was open at the time, with no `report.md`.
+
+Writing `report.md` at the end of the same session closed the exercise. `check_evidence_immutability`
+then reported the same two files as `evidence-modified`, "published evidence of a closed exercise is
+altered".
+
+**Both readings are correct, and they disagree because the check has no notion of when the edit
+happened.** It compares the working tree against `HEAD` and asks only whether a file differs. An
+edit made while an exercise was open is indistinguishable from an edit made after it closed, once
+the report exists.
+
+Both ERRORs clear when the work is committed, because `HEAD` then contains the edits and the diff is
+empty. That is the same transience already recorded for the addition case in the entry above, and it
+carries the same weakness: the check cannot see an alteration that has already been committed. It
+detects uncommitted divergence from the last commit, which is a narrower thing than immutability.
+
+**No change was made to `validate.py`.** Editing the check to clear an error it raised correctly
+would be the wrong move, and the alternative — reverting the citations — would restore two genuine
+`reference-missing` ERRORs. The edits are declared in the exercise's evidence log under Corrections
+instead.
+
+**The sequencing that avoids this entirely:** commit a repair to published evidence on its own,
+before the report that closes the exercise. Raymond has not been asked to adopt that as a rule; it
+is recorded here as the option that exists.
