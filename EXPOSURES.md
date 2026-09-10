@@ -425,16 +425,46 @@ no Entra account, no per-VM credential and no time limit. Every property a privi
 exists to impose — brokered, time-boxed, session-recorded, credential-less at the operator's end —
 is absent, and the operator reaches every VM in the lab rather than one.
 
-**What is not Captured, and is the exercise.** That the host-side caller runs as `root` on the
-Proxmox host has only been seen in session prompts, never written to an evidence file. Whether any
-log records a `qm guest exec` invocation, against which identity, and whether the guest records
-anything at all, is entirely unknown. Proxmox's task log, `pveproxy` access log and the guest's own
-event log have never been read for this. No claim is made about any of them.
+**Audited 2026-09-10. The audit half is done and the finding is an asymmetry, not an absence.**
+The host-side caller is `root`, now Captured rather than seen only in session prompts, and the
+guest-side identity is `nt authority\system`. A controlled invocation with a fixed T0 produced
+**zero** host-side records: no Proxmox task, no `pvedaemon` journal line, no `pveproxy` entry, and no
+`auditd` at all. **DC01 records the same invocation three ways** — the `qemu-ga` Application log
+carries the complete command line, event 4688 carries the process and its parent, event 4104 carries
+the script block — and attributes every one of them to `S-1-5-18`.
 
-**Why it earns priority.** Raymond has operated professionally under a broker for VM access, so the
-comparison is grounded in something the lab cannot manufacture. The audit half changes no state and
-consumes no pool, which matters while thin-pool headroom is 0.88 points. It is queued here rather
-than inserted into `CURRICULUM.md`'s run order, which has not been reordered.
+**The side that authorises the action records nothing. The side that executes it records everything
+except who asked.** No correlation key links them, and the two clocks do not agree. That gap is
+precisely what a privileged-access broker exists to close: one record binding identity, session,
+commands and target, on a synchronised clock. *Evidence:*
+`exercises/2026-09-10-privileged-access-path-audit/evidence/01-host-side-identity-and-authorization-model.md`,
+`.../02-marked-invocation-leaves-no-host-record.md`, `.../03-dc01-records-the-command-text.md`,
+`.../04-what-the-guest-records-in-full.md`. Report: `exercises/2026-09-10-privileged-access-path-audit/report.md`.
+
+**What remains open.** The alternatives half — what a broker imposes and what it costs — is not
+started. Raymond has operated professionally under a broker for VM access, so that comparison is
+grounded in something the lab cannot manufacture. The cheapest available control is also untested:
+`VM.GuestAgent.Unrestricted` is a distinct built-in privilege and `PVEVMUser` does not hold it, so
+assigning that role to a non-root user may refuse `qm guest exec` outright. Testing it creates a
+Proxmox user, which is a state change touching standing privilege.
+
+**Proxmox itself has no authorization model, and one password guards the whole lab.** `pveum user
+list` returns `root@pam` alone. No groups, no ACL entries, no API tokens exist. `/etc/pve/priv/tfa.cfg`
+does not exist, so the single identity that can reach every VM as SYSTEM has no second factor, and it
+authenticates against the host root password through Linux PAM. Nothing here is fixed. *Evidence:*
+`exercises/2026-09-10-privileged-access-path-audit/evidence/01-host-side-identity-and-authorization-model.md`.
+
+**DC01's clock does not agree with the host's, and nothing in this repository explains why.** Three
+invocations at host UTC 18:18:48Z, 18:22:13Z and 18:25:15Z on 2026-09-10 render in DC01's event logs
+at 3:54:31 PM, 3:57:57 PM and 4:00:58 PM local. The intervals match to within one second, so the
+offset is constant, and it is not a whole number of hours. The host's clock is separately Confirmed
+as `America/Los_Angeles` with NTP active and synchronized. DC01 is the domain's authoritative time
+source and CA01 was within 1.69 s of it on 2026-09-06, so the domain probably moves together. **This
+is not only a log-correlation problem.** Kerberos tolerates five minutes, certificates carry validity
+windows written from this clock, and Entra Connect synchronises against Microsoft. DC01's timezone
+and time source have not been read, so no direction or size is claimed. Next action: read
+`Get-Date -Format o`, `[TimeZoneInfo]::Local.Id` and `w32tm /query /source` on DC01 and CA01.
+*Evidence:* `exercises/2026-09-10-privileged-access-path-audit/evidence/04-what-the-guest-records-in-full.md`.
 
 ## Infrastructure
 
@@ -578,6 +608,41 @@ local time. Both snapshots named `pre-staging-promotion-20260902` were created *
 `2026-09-02-entra-connect-upn-signin-test` carries the same one-day offset. Anyone correlating
 this repo against host-side logs will land a day off. *Evidence:*
 `exercises/2026-09-02-thin-pool-headroom-reclaim/evidence/vm102-shutdown-and-snapshot-names-20260902T1533Z.txt`.
+
+**The domain's time authority answers to nothing, and the domain no longer agrees on the time.**
+DC01 holds the PDC emulator role, announces itself as a reliable time source (`AnnounceFlags: 5`),
+and takes its time from `Local CMOS Clock` while configured to poll `time.windows.com`. It runs
+with `ostype: l26` — the host is told a Windows Server 2022 domain controller is Linux — and with
+`localtime: 0`, which puts its emulated real time clock in UTC for a guest that reads a real time
+clock as local. Measured against the NTP-synchronised host on 2026-09-10, DC01 is 5h 06m 11s ahead
+and CA01 is 7h 00m 00.5s ahead, leaving CA01 6829 s away from the domain controller it
+authenticates against. CA01 sees the difference, logs `Id 50` twice, and stops applying the
+correction as an implausible spike; its phase-correction limits are unlimited, so nothing is
+capping it. DC01's rate is unstable: it gained 1827.7 s against the host across one three-hour
+window and tracked the host to 0.3 s across the next six minutes. DC01 booted exactly one timezone offset
+ahead on 2026-09-09T14:19:31Z, because `localtime: 0` puts its emulated real time clock in UTC and
+Windows reads a real time clock as local, and it has lost 1h 53m 49s since. **Kerberos is not the
+casualty.** CA01 obtains tickets normally at 6829 s of skew, because the five-minute tolerance is
+checked against the KDC's own clock; the tickets carry DC01's time, so every ticket lifetime in the
+domain is expressed in a clock that is five hours wrong. The exposure is everything that compares
+this domain's timestamps against an outside clock: certificates validated by an external relying
+party, Entra CBA, Entra Connect watermarks, and any correlation of guest logs with host logs or
+with this repository. **The issuing CA has been stamping certificates seven hours into the
+future.** Request 9 resolved at real 2026-09-09T22:20Z with a `NotBefore` of 2026-09-10T05:10Z, and
+requests 5, 7 and 8 fall inside the same windows. Nothing in the domain noticed, because every
+validator shares the wrong clock. Entra CBA, the stated goal for this CA, does not.
+Nothing in the lab acted on the `Id 50` warnings on CA01 or the `Id 134` warnings on DC01, and
+those two are the whole detection surface. *Evidence:*
+`exercises/2026-09-10-domain-time-skew/evidence/01-three-clocks-disagree-and-dc01-answers-to-nothing.md`,
+`exercises/2026-09-10-domain-time-skew/evidence/02-the-configuration-and-the-refusal-mechanism.md`.
+
+**Repository dates derived from a guest clock may be wrong, and the size of the error is now
+known to be hours.** An existing entry in this section records a one-day offset in snapshot and
+exercise names derived from a session date rather than the host clock. The clock readings above
+add a second source of the same class of error: any timestamp taken from DC01 or CA01 rather than
+from `date -u` is off by five to seven hours. No audit of which repository claims carry a
+guest-derived timestamp has been run. *Evidence:*
+`exercises/2026-09-10-domain-time-skew/evidence/01-three-clocks-disagree-and-dc01-answers-to-nothing.md`.
 
 ## Time-sensitive
 

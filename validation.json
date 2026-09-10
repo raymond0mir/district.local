@@ -1,11 +1,17 @@
 {
-  "commit": "413d39624a77600bfab337c10ff149da53581dab",
+  "commit": "759db036998706578b1b89eea84f1b1b45aa5dfd",
   "counts": {
     "ERROR": 0,
     "INFO": 24,
-    "WARN": 35
+    "WARN": 36
   },
   "findings": [
+    {
+      "check": "no-report",
+      "message": "exercise has no report.md",
+      "path": "exercises/2026-09-10-thin-pool-headroom-reclaim",
+      "severity": "WARN"
+    },
     {
       "check": "evidence-log-grandfathered",
       "message": "predates the six-section schema, kept as a historical record",

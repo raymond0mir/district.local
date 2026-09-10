@@ -186,6 +186,11 @@
   are declared here rather than left to look like tampering. They change citations only, not
   claims. See `CONSIDERATIONS.md` for the tooling behavior.
 
+- **This log's Not started section claimed `report.md` had not been written, and it had.** Commit
+  `4585f69` added `exercises/2026-09-09-pim-for-groups/report.md` in the same commit that wrote that
+  line. Found 2026-09-10 during session start, and corrected on the record rather than by silent
+  edit.
+
 ## Open questions
 
 - Whether the group's own PIM activation policy (member and owner, which are configured
@@ -210,4 +215,5 @@
 - Confirming deactivation or expiry actually revokes effective access.
 - Removing B4's direct role-eligibility on `adm-jsmith`, per the pending decision in
   `CARRYOVER.md` — deferred to before the lab is torn down, not this session.
-- `report.md` for this exercise.
+- ~~`report.md` for this exercise.~~ **Stale line, corrected 2026-09-10.** `report.md` was added in
+  commit `4585f69`, the same commit that wrote this line. See Corrections.

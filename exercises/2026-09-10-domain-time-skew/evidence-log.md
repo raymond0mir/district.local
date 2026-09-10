@@ -179,8 +179,9 @@ Not investigated.
 cannot be placed.** Row 5's `NotBefore` of 9/8 2:24 PM matches the independently Confirmed issuance
 of request 5 at 2026-09-08T14:34Z, less the ten-minute backdating a Windows CA applies, which
 establishes that `certutil -view` prints UTC here and that CA01's clock was correct on 9/8. Row 8's
-`NotAfter` of 9/9 8:08 PM matches `exercises/2026-09-05-adcs-issuing-ca-build/evidence/54`'s host
-`date -u` reading of 2026-09-09T20:08:49Z for the request that produced it, which puts CA01's clock
+`NotAfter` of 9/9 8:08 PM matches the host `date -u` reading of 2026-09-09T20:08:49Z in
+`exercises/2026-09-05-adcs-issuing-ca-build/evidence/54-pki-cba-pilot-gates-enrollment-non-member-denied.txt`
+for the request that produced it, which puts CA01's clock
 correct as late as 20:08Z on 9/9. Row 9, stamped 9/9 10:10 PM, is the only row that could fall
 after the move. **No certificate is shown to be post-dated, and none is shown not to be.**
 
