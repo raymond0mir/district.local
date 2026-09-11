@@ -565,6 +565,56 @@ needs.
 
 ---
 
+#### Exercise C3 — Workload identity scope isolation: device code flow, audited at the token
+
+**Added 2026-09-11.** Proposed by Raymond from an external PoC outline. Not yet run. No license
+gate — needs no P2 and no on-prem step, so it does not have to wait for anything else in Phase C.
+
+**Hypothesis:** an app registration restricted to one delegated scope produces an access token
+that Microsoft Graph enforces regardless of the signed-in user's own administrative rights. The
+token, not the human, is the boundary.
+
+**Why this belongs in the curriculum, not just a demo:** every exercise so far governs a human or
+a synced on-premises identity. This is the first exercise aimed at a non-human, non-interactive
+client — the shape an AI agent or a CLI tool actually takes when it authenticates. The
+permission-sprawl thesis has not been tested at this layer: an app registration's own API
+permissions list, and what a device-code client can be scoped to hold.
+
+**Consultation point to expect:** which tenant runs this. The district.local tenant already
+carries live PIM, CA policies, and Entra Connect state; a new app registration there is a small,
+easily-cleaned addition to a tenant already under governance. A separate throwaway tenant isolates
+the PoC completely but adds setup cost and produces no contrast with the rest of the lab. Raymond's
+call.
+
+**What you do, corrected against a first draft that had three defects:**
+
+1. Register `Lab-AI-Agent-CLI`. Single-tenant. No redirect URI. Enable "Allow public client
+   flows."
+2. Remove every API permission except `User.Read`. Confirm no admin-consent scope remains.
+3. Check the tenant's user-consent policy before the first run. A tenant with user consent
+   restricted refuses the flow at sign-in with `AADSTS65001`, independent of the app's own scope.
+4. Request a device code. Poll the token endpoint on the returned `interval`, not once. A single
+   immediate poll returns `authorization_pending`, not a token.
+5. Decode the JWT. Replace `-` and `_` with `+` and `/` before base64 decoding — JWTs use
+   base64url, and a raw `[Convert]::FromBase64String` throws on a payload holding either
+   character.
+6. Read `scp` and `appid`. Read `aud` knowing its form depends on the app manifest's
+   `accessTokenAcceptedVersion` — a v1-formatted token carries Graph's GUID, not the URL, even
+   when requested from the v2.0 endpoint.
+7. Call `GET /v1.0/me` first, as a positive control. It must return 200 before the negative test
+   means anything.
+8. Call `GET /v1.0/directoryRoles`, or `GET /v1.0/users`, as the negative test. Expect 403,
+   `Authorization_RequestDenied`. `/v1.0/users` draws the narrower line: it fails on
+   `User.Read.All`, not an admin-role scope, closer to how an agent's own accumulated grants would
+   actually be bounded.
+
+**Closes:** nothing yet. New candidate.
+
+**SC-300 coverage:** Implement access management for apps — delegated vs. application
+permissions, admin and user consent, app registration scope restriction.
+
+---
+
 ## Calendar
 
 Deliberately not a week-by-week grid. The original's grid assumed each exercise takes its

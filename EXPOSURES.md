@@ -3,7 +3,7 @@
 A standing list of what's actually still wrong or open in `district.local`, built only from
 captured facts in `verified-claims.md` and the exercises' own evidence files — nothing here is
 inferred or remembered without a citation. Doubles as the queue for what the next exercise
-should be. Updated as of 2026-09-08; check `verified-claims.md` for anything more recent before
+should be. Updated as of 2026-09-11; check `verified-claims.md` for anything more recent before
 trusting a line here.
 
 ## Identity and access
@@ -454,17 +454,12 @@ does not exist, so the single identity that can reach every VM as SYSTEM has no 
 authenticates against the host root password through Linux PAM. Nothing here is fixed. *Evidence:*
 `exercises/2026-09-10-privileged-access-path-audit/evidence/01-host-side-identity-and-authorization-model.md`.
 
-**DC01's clock does not agree with the host's, and nothing in this repository explains why.** Three
-invocations at host UTC 18:18:48Z, 18:22:13Z and 18:25:15Z on 2026-09-10 render in DC01's event logs
-at 3:54:31 PM, 3:57:57 PM and 4:00:58 PM local. The intervals match to within one second, so the
-offset is constant, and it is not a whole number of hours. The host's clock is separately Confirmed
-as `America/Los_Angeles` with NTP active and synchronized. DC01 is the domain's authoritative time
-source and CA01 was within 1.69 s of it on 2026-09-06, so the domain probably moves together. **This
-is not only a log-correlation problem.** Kerberos tolerates five minutes, certificates carry validity
-windows written from this clock, and Entra Connect synchronises against Microsoft. DC01's timezone
-and time source have not been read, so no direction or size is claimed. Next action: read
-`Get-Date -Format o`, `[TimeZoneInfo]::Local.Id` and `w32tm /query /source` on DC01 and CA01.
-*Evidence:* `exercises/2026-09-10-privileged-access-path-audit/evidence/04-what-the-guest-records-in-full.md`.
+**~~DC01's clock does not agree with the host's, and nothing in this repository explains why.~~
+Superseded 2026-09-10 by the domain-time-skew exercise, below.** The measurement stands — three
+invocations at host UTC 18:18:48Z, 18:22:13Z and 18:25:15Z on 2026-09-10 render in DC01's event
+logs at 3:54:31 PM, 3:57:57 PM and 4:00:58 PM local — but the "next action" it names is done and
+the mechanism it asks about is answered. *Evidence:*
+`exercises/2026-09-10-privileged-access-path-audit/evidence/04-what-the-guest-records-in-full.md`.
 
 ## Infrastructure
 
@@ -638,6 +633,17 @@ Nothing in the lab acted on the `Id 50` warnings on CA01 or the `Id 134` warning
 those two are the whole detection surface. *Evidence:*
 `exercises/2026-09-10-domain-time-skew/evidence/01-three-clocks-disagree-and-dc01-answers-to-nothing.md`,
 `exercises/2026-09-10-domain-time-skew/evidence/02-the-configuration-and-the-refusal-mechanism.md`.
+
+**The tick loss is concentrated at or near boot, not an ongoing rate, tested 2026-09-11.** Four
+induced-load tests, the last holding about 80% sustained host CPU contention for 900 seconds — far
+past anything a one-time VM boot would produce — found DC01 ticking within 0.6 percentage points of
+real time throughout. Every after-boot reading this lab has taken is parity within its own
+measurement noise. The cumulative deficit above (DC01 running at 0.517-0.5696 of real time since
+boot) is real and confirmed by two independent methods, but nothing since boot reproduces it as an
+ongoing rate. The practical consequence: this defect will not visibly worsen while DC01 stays up,
+but a fresh boot under the same `ostype: l26` misconfiguration would plausibly reproduce the same
+one-time miscalibration, not tested directly. *Evidence:*
+`exercises/2026-09-10-domain-time-skew/evidence-log.md`, findings 48-53.
 
 **Repository dates derived from a guest clock may be wrong, and the size of the error is now
 known to be hours.** An existing entry in this section records a one-day offset in snapshot and

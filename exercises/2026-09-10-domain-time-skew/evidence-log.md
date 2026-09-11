@@ -317,11 +317,6 @@ every PIM `startDateTime`/`endDateTime` in this exercise is a Graph timestamp.
 `2026-09-10-pim-policy-authoring` makes no DC01 or CA01 read at all. **No correction is owed to any
 of these seven exercises.** The GPO and licence-status exercises are covered by finding 41.
 
-## Not captured, and why
-
-- **Whether DC01 could resolve `time.windows.com` before 2026-09-05, and what changed.** See
-  finding 43. Answering it needs the lab network's own history, not a repository read.
-
 **45. `[Environment]::TickCount64` produces zero output on DC01 with exit code 0, isolated and
 error-handled, and the cause is not identified.** Command: `date -u; qm status 100 --verbose |
 grep uptime; qm guest exec 100 --timeout 30 -- powershell.exe -NonInteractive -Command 'try {
@@ -468,6 +463,145 @@ integer-rounding noise at this segment length.** The induced pressure itself was
 workers on eight cores produced measurable but not severe contention (`some` avg10 peaking at 0.40%,
 `pressurecpusome` at 0.7), not the sustained starvation a worker count exceeding the core count would
 produce.
+
+**51. A harder, longer induced load reached full starvation on DC01's own vCPUs for the first time,
+but a bracket design flaw leaves the tick-rate ratio unresolved.** Raymond ran the requested
+follow-up: 16 workers (2x `nproc`) against 8 host cores, `timeout 290 yes > /dev/null` each, against
+finding 50's 8-on-8. Command: pre-flight (`date -u`, `nproc`, `qm status`, `lvs`, `free -h`,
+`/proc/loadavg`, `/proc/pressure/cpu`, `/proc/pressure/memory`), `TickCount` at T0, the load launch,
+a T+30s manipulation check, a T+280s end-of-load reading, and a T+340s cooldown reading. Host:
+proxmox.
+
+Pre-load (UTC 2026-09-11T14:07:26-28Z): `pressurecpusome` (VM100) 0, `pressurecpufull` 0, `uptime`
+172075. Host `/proc/pressure/cpu` `some total=120329397` (120.33 s), `full total=0`. `TickCount` =
+117220312 ms = 117220.312 s, read between 14:07:27Z and 14:07:28Z, exit code 0.
+
+T+30s (UTC 14:07:58Z): **`pressurecpusome` (VM100) reads 0.88, and host-wide `some avg10` reads
+80.15%** — against finding 50's 0.7 and 0.40% for the same check at half the worker count. The
+manipulation check passes far more decisively than finding 50's.
+
+T+280s (UTC 14:12:11-17Z): **`pressurecpufull` (VM100) reads 0.14, the first nonzero full-stall
+reading this exercise has produced for VM100.** DC01's vCPUs were completely starved for part of
+this window, not only contended. `pressurecpusome` reads 2.11. `uptime` 172362. `TickCount` =
+117509250 ms = 117509.250 s, exit code 0. Host `/proc/pressure/cpu some total=351570445` — a rise
+of 231,241,048 microsec (231.24 s) since pre-load, over roughly 285-291 s of wall time: **79-81% of
+the load window carried measurable host CPU contention**, against finding 50's 1.6%.
+
+Cooldown (UTC 14:13:17Z, all 16 workers confirmed self-terminated at exit code 124): `some
+total=352446069`, a rise of only 875,624 microsec across about 60-66 s — contention ended with the
+workers. Memory pressure totals are unchanged from findings 48-49 (`147633`/`147198`) throughout:
+`yes` costs no memory, confirmed again at this scale.
+
+**The tick-rate bracket itself is flawed, and the flaw is mine.** T0's `TickCount` call sat alone
+between two `date -u` calls, a 1 s window, the method findings 48-50 used. T+280's did not: the
+command placed `qm status`, the `TickCount` call, and two more `cat` reads between its opening and
+closing `date -u`, so the 6 s span between 14:12:11Z and 14:12:17Z brackets three operations, not
+one, and nothing isolates when inside that span the guest-exec call landed.
+
+`TickCount` elapsed exactly 288.938 s. Real elapsed, from the `date -u` brackets alone, ranges from
+283 s (latest possible T0, earliest possible T+280) to 290 s (earliest T0, latest T+280). **Ratio
+range: 0.996 to 1.021 — straddling parity in both directions.** This is a wider span than finding
+50's already-inconclusive 1.2%-2.4% rounding bound, despite 3.5 times the duration and roughly 50
+times the measured host contention (`some avg10` 80% against 0.40%). A load this hard should have
+produced a clear reading either way. The non-resolution is a measurement failure, not a null result.
+
+**52. The corrected bracket narrowed the ratio range but did not resolve it, because the
+measurement tool's own latency grows under the load it is measuring.** Raymond re-ran the same
+16-worker, 290 s load with `TickCount` isolated alone between its own `date -u` calls at both ends,
+every other read moved outside both brackets. Host: proxmox.
+
+Pre-load (UTC 2026-09-11T14:28:55-58Z, idle): `pressurecpusome`/`pressurecpufull` (VM100) both 0,
+`uptime` 173366. Host `/proc/pressure/cpu some total=353028462`. `TickCount` = 118509875 ms =
+118509.875 s, exit code 0. **The bracket around this call — nothing else inside it, same as
+findings 48-50 — still spanned 2 s** (14:28:56Z to 14:28:58Z), under zero measured host pressure.
+
+T+30s (UTC 14:29:28Z, exactly 30 s after load start): `pressurecpusome` 1.02, `pressurecpufull` 0,
+`uptime` 173399. Host `some avg10=76.38`, `total=379335306` — a rise of 26,306,844 microsec
+(26.31 s) in 30 s, about 88% of wall time under contention, a faster ramp than finding 51's.
+
+End-of-load (UTC 14:33:40-44Z, isolated bracket): `TickCount` = 118796250 ms = 118796.250 s, exit
+code 0, the only command between the two `date -u` calls. **The bracket still spanned 4 s** — half
+of finding 51's 6 s, but not the 1-2 s findings 48-50 and this same test's own idle T0 bracket
+achieved. The context reads taken immediately after, outside the bracket: `pressurecpufull` 0,
+`pressurecpusome` 1.88, `uptime` 173655, host `some avg10=78.92`, `total=584492871` — a rise of
+205,157,565 microsec (205.16 s) since T+30, sustaining roughly 80% contention through the window.
+All 16 workers self-terminated at exit code 124 about 4 s after this reading, confirming the read
+landed inside the load period, not after it.
+
+Cooldown (UTC 14:34:47Z): `some total=585474172`, a rise of only 981,301 microsec across about
+63 s — contention ended with the load. Whole-window accounting, preflight to end-of-load context
+read: 231,467,560 microsec of `some` stall across 289 s of wall time, 80.1%, matching finding 51's
+81% and confirming the load was reproduced at the same intensity.
+
+**The comparison that matters: the identical single-call bracket took 2 s under 0% host pressure
+and 4 s under 78-79% host pressure.** `qm guest exec`'s own round trip slows under the load its
+result is meant to characterize. This is a confound in the instrument, not in the command
+sequence — finding 51's fix (isolate the call) was necessary and reduced the bracket from 6 s to
+4 s, but it could not reach the 1-2 s the same tool achieves at idle, because part of that latency
+is the tool contending for the same CPU as the workers.
+
+`TickCount` elapsed exactly 286.375 s. Real elapsed ranges from 282 s (latest T0, earliest T+280)
+to 288 s (earliest T0, latest T+280). **Ratio range: 0.994 to 1.016** — narrower than finding 51's
+0.996-1.021 by about 0.4 percentage points, still straddling parity, still inconclusive.
+
+**Finding 51 predicted that an isolated bracket would let this resolve. It has not, twice now,
+with two different bracket designs.** The remaining lever is proportion, not bracket precision: a
+bracket of a given size matters less the longer the segment it brackets. A 900 s (15-minute)
+segment at this load's intensity would put even a generous 10 s combined bracket uncertainty at
+about 1.1%, likely enough to separate a real tick-loss effect from noise if one exists at this
+severity. Worker count and load intensity are not the lever left to pull; duration is.
+
+**53. Stretching the segment to 900 s resolved the question, and the answer disfavours the
+host-pressure hypothesis.** Same 16-worker load, same isolated bracket. Host: proxmox.
+
+Pre-load (UTC 2026-09-11T14:42:49-51Z, idle): `pressurecpusome`/`pressurecpufull` (VM100) both 0,
+`uptime` 174200. `TickCount` = 119343484 ms = 119343.484 s, bracketed by `date -u` at 14:42:50Z
+and 14:42:51Z — **1 s window**, the tightest this exercise has produced, idle.
+
+T+30s (UTC 14:43:22Z, exactly 30 s after load start): `pressurecpusome` 2.17, `uptime` 174232.
+Host `some avg10=79.48`, a rise of 26,521,185 microsec (26.52 s) in 30 s — about 88% of wall time
+under contention, matching findings 51-52's ramp.
+
+End-of-load (UTC 14:57:04-08Z, isolated bracket, 850 s after load start, workers still 44-48 s
+from their 900 s cutoff): `TickCount` = 120200515 ms = 120200.515 s, the only command between the
+two `date -u` calls. **The bracket spanned 4 s**, the same width finding 52's identical call held
+under the same load — confirms the 4 s figure is a property of the load level, not a one-off.
+Context reads immediately after: `pressurecpufull` 0.01, `pressurecpusome` 1.99, `uptime` 175060,
+host `some avg10=78.39 avg60=79.00 avg300=76.05`, `total=1274642409` (1274.642 s) — a rise of
+662,344,195 microsec (662.34 s) since T+30 across about 826 s, roughly 80.2% of wall time under
+contention, sustained at the same intensity as findings 51-52 for three times as long. All 16
+workers self-terminated at exit code 124 shortly after, confirmed at the cooldown read.
+
+Cooldown (UTC 14:58:41Z): `some total=1307422356`, `avg10` already down to 0.67 — contention ended
+with the load, `avg60`/`avg300` still elevated as expected from their own trailing windows.
+Memory pressure totals unchanged throughout (`147633`/`147198`).
+
+**The computation.** `TickCount` elapsed exactly 857.031 s. Real elapsed, from the `date -u`
+brackets alone, ranges from 853 s (latest T0, earliest T+850) to 858 s (earliest T0, latest
+T+850). **Ratio range: 0.9989 to 1.0047 — a 0.6-percentage-point span, against finding 52's 2.2
+points and finding 51's 2.5, for the same absolute bracket slack spread over three times the
+duration, exactly as predicted.** The range brackets parity tightly and does not reach finding
+50's original 0.987 reading by a wide margin.
+
+**Sustained, heavy host CPU contention — about 80% for 900 s, far past anything a one-time VM
+boot would produce — does not reproduce a detectable tick-rate loss on DC01.** Every marginal-rate
+reading taken after boot in this exercise — findings 15, 48, 49, and now 51-53 — is
+indistinguishable from parity once its own bracket noise is accounted for. Finding 50's 83 s
+sub-parity reading, the only one that ever pointed the other way, sat entirely inside a rounding
+bound wide enough to produce it by chance. **The cumulative deficit (findings 20, 47: DC01 has run
+at 0.517-0.5696 of real time since boot) is real, confirmed by two independent methods, and this
+exercise has never been able to reproduce any of it as an ongoing rate, under conditions ranging
+from idle to heavier contention than boot itself would plausibly generate.** The loss is
+concentrated at or near boot, not continuous — consistent with findings 41-43's separate
+conclusion that DC01's clock was accurate for months before the skew began, and with a one-time
+clocksource miscalibration under `ostype: l26` during DC01's and CA01's simultaneous bring-up,
+rather than an ongoing hypervisor-scheduling effect.
+
+## Not captured, and why
+
+- **Whether DC01 could resolve `time.windows.com` before 2026-09-05, and what changed.** See
+  finding 43. Answering it needs the lab network's own history, not a repository read.
+
 - **Why `[Environment]::TickCount64` returns null instead of a value or an exception on DC01.**
   Findings 45-46. Not pursued: `TickCount` is a working substitute and answers the rate question
   (finding 47). The rate itself, and whether `ostype: l26` or host scheduling pressure causes it,
@@ -495,6 +629,14 @@ produce.
   a stronger follow-up test (more workers than cores, minutes rather than under 90 s) was proposed,
   he said "lets stop wait till next session." Default for the next session: run the stronger test
   named above, using the same paired-reading method as findings 48-50.
+- 2026-09-11, next session. He ran the stronger induced-load sequence named above and pasted the
+  full output back. No decision was handed to him in this thread; finding 51 is the result.
+- 2026-09-11, same session. He ran the corrected, isolated-bracket sequence immediately after
+  finding 51, with no separate ask. No decision was handed to him in this thread; finding 52 is
+  the result.
+- 2026-09-11, same session. After finding 52, offered a choice: run the 900 s version now, or
+  stop for the session. He said "run it now and lets wrap this task." Finding 53 is the result,
+  and closes this exercise's tick-rate sub-question.
 
 ## Corrections
 
@@ -561,6 +703,26 @@ produce.
   then (finding 42); the error was not. `report.md` is corrected below to state the narrower,
   supported claim.
 
+- **Findings 45-50 sat under "Not captured, and why" instead of "Captured", every command and
+  reading in them notwithstanding.** Moved into "Captured" this session, in place, no content
+  changed. The section that held them kept only its two genuinely uncaptured items throughout.
+
+- **Claude's own bracket design in finding 51 is a defect, stated here as well as in the finding
+  itself.** The T+280 `TickCount` read sat behind two extra `cat` reads before its closing `date
+  -u`, widening that endpoint's real-elapsed uncertainty from `date -u`'s usual 1 s to 6 s and
+  producing a ratio range, 0.996-1.021, that resolves nothing despite the hardest load and longest
+  duration this exercise has run. Findings 48-50 bracketed the guest-exec call alone; finding 51
+  did not. Stated before being asked. The fix: bracket `TickCount` alone at both ends of a segment,
+  and move every other read outside the bracket.
+
+- **The fix named above was necessary and insufficient, and the claim that it would resolve the
+  ratio is corrected by finding 52.** Isolating the T+280 `TickCount` call cut its bracket from 6 s
+  to 4 s, not to the 1-2 s findings 48-50 and finding 52's own idle T0 bracket achieved. Finding 52
+  shows why: the same single-call bracket took 2 s under 0% host pressure and 4 s under 78-79%
+  pressure. Part of `qm guest exec`'s round-trip latency is itself load-dependent, so no bracket
+  design removes all of the slack from a reading taken during the load it measures. Duration, not
+  bracket precision, is the remaining lever.
+
 ## Open questions
 
 - Does Entra CBA reject a certificate whose `NotBefore` is seven hours in the future? That is the
@@ -593,6 +755,34 @@ produce.
   integer-second rounding noise, because the load segment (83 s) is short enough that the rounding
   bound (1.2%-2.4%) covers the observed deviation (1.28%). Neither hypothesis is confirmed or
   disproven.
+- **Retested with a harder load, 2026-09-11 (finding 51), still not confirmed or disproven, for a
+  different reason.** 16 workers against 8 cores drove host `some` CPU pressure to 79-81% of the
+  289 s load window and produced the first nonzero `pressurecpufull` reading this exercise has
+  seen for VM100 — real starvation, not only contention, far past finding 50's 1.6%. The tick-rate
+  bracket itself was flawed: an extra pair of reads between the `TickCount` call and its closing
+  `date -u` widened that endpoint's timing uncertainty to 6 s, and the resulting ratio range,
+  0.996-1.021, straddles parity. A load this hard should have produced a clear reading. The next
+  attempt needs a tight bracket, `date -u` immediately before and after `TickCount` alone at both
+  segment ends, nothing else between them.
+- **Retested with the tight bracket, same session (finding 52), still not confirmed or disproven,
+  for a third reason.** Isolating `TickCount` between its own `date -u` calls, with the same
+  16-worker load, cut the end-of-load bracket from 6 s to 4 s — but not to the 1-2 s the identical
+  call took under zero pressure in this same test's T0 read. `qm guest exec`'s own round trip is
+  slower under the load it is measuring, which is a confound in the tool, not the command sequence.
+  Ratio range: 0.994-1.016, narrower than finding 51's but still straddling parity. Bracket design
+  is now exhausted as a lever; segment duration is not. A 900 s (15-minute) segment at the same
+  load intensity would cut a 10 s combined bracket uncertainty to about 1.1% of the window, against
+  this attempt's roughly 2.2%.
+- **Answered, 2026-09-11 (finding 53), against the host-pressure hypothesis.** The 900 s version
+  of the same test narrowed the ratio range to 0.9989-1.0047, a 0.6-percentage-point span, cleanly
+  bracketing parity and nowhere near finding 50's original 0.987. About 80% sustained host CPU
+  contention for 900 s — far past anything a one-time VM boot would produce — did not reproduce a
+  detectable tick loss. Every after-boot reading in this exercise (findings 15, 48, 49, 51-53) is
+  parity within its own noise; finding 50's sub-parity reading was inside its own rounding bound
+  and did not replicate. The cumulative deficit (findings 20, 47) is real but concentrated at or
+  near boot, not an ongoing rate — consistent with `ostype: l26` causing a one-time clocksource
+  miscalibration during bring-up rather than a continuous hypervisor-scheduling effect. Not tested:
+  whether the boot-time event itself is reproducible; that needs a fresh VM boot, a state change.
 - What corrected DC01 by exactly −7h on 2026-09-05, and why has nothing done so since? Finding 43
   narrows this to a DNS or routing change; the change itself is not identified.
 - What is the correct time design for a virtualised forest root with no internet route, and what
@@ -607,15 +797,10 @@ produce.
 
 ## Not started
 
-- **Started 2026-09-11, not concluded.** Testing host CPU or memory pressure against `ostype: l26`
-  as the cause of DC01's slow monotonic clock (findings 20, 47). Findings 48-50 pair three tick
-  readings with host pressure telemetry, including one deliberately induced eight-core load (finding
-  50) confirmed to reach DC01's own vCPUs. The resulting sub-parity tick rate cannot yet be told
-  apart from integer-second rounding noise at an 83 s segment length. A longer and more intense
-  induced load (more workers than cores, a multi-minute duration) would shrink the rounding-noise
-  bound relative to any real effect and is the next test, not yet run.
 - Finding when DC01 lost its DNS route to `time.windows.com` (finding 43). Needs lab network
   history, not a repository read.
+- Whether DC01's boot-time clocksource event (findings 41-43, 53) is reproducible. Needs a fresh
+  VM boot, a state change, to test directly rather than infer from steady-state behavior.
 - Any remediation. Every candidate fix is a state change on the domain controller and waits for
   Raymond.
 - The alternatives half of the exercise: the correct time design and its cost.

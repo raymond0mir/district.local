@@ -158,14 +158,34 @@ a correct prediction about the certificates. That middle error reached the ledge
   and agree DC01 loses ticks, not only sync. `TickCount64` itself returns null without error on
   this PowerShell build; `TickCount` is the working substitute. Still open: whether `ostype: l26`
   or host scheduling pressure causes the loss. See `evidence-log.md`, findings 45-47.
-- **Tested against induced load, 2026-09-11, inconclusive.** Three paired readings of host pressure
-  and DC01's `TickCount`: two idle segments at parity, one segment mostly under a deliberately
-  induced eight-core CPU load, sub-parity for the first time (ratio 0.98721). The load is confirmed
-  to reach DC01's own vCPUs (`pressurecpusome` 0→0.7), but the load segment is short enough (83 s)
-  that integer-second rounding on `uptime` bounds the noise at 1.2%-2.4%, as large as the observed
-  1.28% deviation. Neither hypothesis is confirmed or disproven. A longer, more intense induced load
-  (more workers than cores, minutes rather than under 90 s) is the next test, not yet run. See
-  `evidence-log.md`, findings 48-50.
+- **Tested against induced load three times, 2026-09-11, inconclusive every time, for three
+  different reasons.** The first test paired host pressure with DC01's `TickCount` across three
+  readings: two idle segments at parity, one segment mostly under an eight-core CPU load,
+  sub-parity for the first time (ratio 0.98721). That load reached DC01's own vCPUs
+  (`pressurecpusome` 0→0.7), but its 83 s segment was short enough that integer-second rounding on
+  `uptime` bounds the noise at 1.2%-2.4%, as large as the observed deviation. See `evidence-log.md`,
+  findings 48-50. The second test doubled the workers past the core count and stretched the load to
+  289 s, driving host `some` CPU pressure to 79-81% of the window and producing the first nonzero
+  `pressurecpufull` reading this exercise has seen for VM100 — real starvation, not only contention.
+  It still resolved nothing: a flaw in the read sequence left two extra commands between the
+  end-of-load `TickCount` call and its closing `date -u`, widening that endpoint's timing
+  uncertainty from 1 s to 6 s and producing a ratio range, 0.996-1.021, that straddles parity. See
+  `evidence-log.md`, finding 51. The third test isolated `TickCount` alone between its own `date -u`
+  calls, the same load repeated. The bracket narrowed to 4 s, not the 1-2 s the same call took idle
+  in this same test's own T0 read: `qm guest exec`'s round trip is itself slower under the load it
+  is measuring, a confound in the tool rather than the read sequence. Ratio range: 0.994-1.016,
+  narrower but still straddling parity. See `evidence-log.md`, finding 52. **A fourth test, the
+  same load held for 900 s instead of 290 s, resolved it, 2026-09-11.** The ratio range narrowed to
+  0.9989-1.0047 — 0.6 percentage points, against the third test's 2.2 — cleanly bracketing parity
+  and nowhere near the first test's 0.987. About 80% sustained host CPU contention for 900 s, far
+  past anything a one-time VM boot would produce, did not reproduce a detectable tick loss. Every
+  after-boot reading in this exercise is parity within its own noise except the first, which sat
+  inside its own rounding bound and did not replicate. **The cumulative deficit is real and
+  confirmed by two independent methods, but this exercise could not reproduce any of it as an
+  ongoing rate under conditions from idle to heavier-than-boot contention. The loss is concentrated
+  at or near boot, consistent with a one-time clocksource miscalibration under `ostype: l26` during
+  DC01's and CA01's simultaneous bring-up, not a continuous hypervisor-scheduling effect.** See
+  `evidence-log.md`, finding 53.
 - What corrected DC01 by exactly −7h on 2026-09-05, and why has nothing done so since?
 - What is the correct time design here? The candidates are fixing `ostype` and `localtime` on
   VM 100, pointing the PDC emulator at the Proxmox host as an NTP source, or giving the lab network
