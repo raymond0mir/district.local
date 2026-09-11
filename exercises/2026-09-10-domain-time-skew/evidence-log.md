@@ -368,6 +368,106 @@ booted — and disagree on the exact number, which rules out a single constant r
 is the guest's own sense of elapsed time, not an artefact of wall-clock corrections.** `TickCount`
 is a hardware-timer-backed counter that `w32tm` never touches. A domain controller can lose ticks,
 not only lose sync.
+
+**48. A first paired reading of host scheduling pressure and DC01's tick rate shows a near-real-time
+marginal rate during a near-zero-pressure interval.** Command: `date -u; cat /proc/loadavg; free -h;
+qm status 100 --verbose | grep -E 'uptime|cpu'; qm guest exec 100 --timeout 30 -- powershell.exe
+-NonInteractive -Command "[Environment]::TickCount"; date -u`. Host: proxmox. UTC:
+2026-09-11T01:43:37Z to 01:43:39Z. `loadavg`: `0.21 0.14 0.10`. `free -h`: 2.1Gi free, 3.2Gi
+available of 15Gi, swap unused. `qm status 100 --verbose`: `pressurecpufull: 0`, `pressurecpusome:
+0`, `uptime: 127446`. Guest exec exit code 0: `TickCount` = 72591078 ms = 72591.078 s.
+
+Cumulative ratio since boot: 72591.078 / 127446 = 0.5696, in line with findings 20 and 47 (0.517,
+0.5675). **The marginal rate against finding 47's reading is the new result.** Finding 47 read
+71981.5 s of `TickCount` at a real elapsed time of 126837 s. Between that reading and this one, real
+elapsed time advanced 609 s and `TickCount` advanced 609.578 s — a marginal ratio of 1.00095,
+indistinguishable from parity given integer-second precision on `uptime`. **DC01 ticked at
+essentially the real-time rate over this specific ten-minute interval, and the interval's host
+pressure readings are at or near zero** (`loadavg` 0.21, `pressurecpufull` and `pressurecpusome`
+both 0). This is one data point, not a correlation: it is consistent with the host-scheduling-
+pressure hypothesis (no pressure, no loss) and does not rule out an unidentified intermittent cause
+unrelated to pressure. It does not by itself distinguish the two, because no reading yet pairs a
+tick measurement with a period of measured host pressure above zero.
+
+**The semantics of `pressurecpufull` and `pressurecpusome` are not confirmed.** Whether they are an
+instantaneous PSI reading, a short-window average, or something else is not established from this
+capture alone. Reading `/proc/pressure/cpu` and `/proc/pressure/memory` directly on the host would
+give `avg10`/`avg60`/`avg300` and a cumulative `total=` stall figure, which bounds pressure over a
+longer window than a single instant and does not require waiting for a future high-load period to
+be informative.
+
+**49. A second paired reading, three minutes later, confirms near-parity marginal tick rate and
+gives the host's own PSI totals for the first time.** Command as finding 48, with `cat
+/proc/pressure/cpu` and `cat /proc/pressure/memory` added before `free -h`. Host: proxmox. UTC:
+2026-09-11T01:46:51Z to 01:46:53Z. `loadavg`: `0.16 0.13 0.09`. `/proc/pressure/cpu`: `some avg10=0.00
+avg60=0.00 avg300=0.00 total=89661560`; `full avg10=0.00 avg60=0.00 avg300=0.00 total=0`.
+`/proc/pressure/memory`: `some ... total=147630`; `full ... total=147195`. `qm status 100 --verbose`:
+`uptime: 127639`. Guest exec exit code 0: `TickCount` = 72784781 ms = 72784.781 s.
+
+Marginal rate against finding 48: real elapsed 193 s (127639 − 127446), `TickCount` elapsed 193.703 s
+— ratio 1.00364, again indistinguishable from parity at this precision. **Two consecutive marginal
+readings, three minutes apart, both near 1.0, both during measured `avg10`/`avg60`/`avg300` CPU and
+memory pressure of exactly zero.** The host's cumulative CPU `full` stall total is 0 microseconds
+since the host's own boot — every non-idle task has never simultaneously stalled on this host, at
+any point this counter has been running. The cumulative `some` CPU stall total is 89,661,560
+microseconds, about 89.7 s; small on its face, but with no host-boot-time anchor captured, its
+proportion of host lifetime is not established here.
+
+**Where this leaves the two hypotheses.** Every reading so far — this one, finding 48, and finding
+15's six-minute wall-clock window in the earlier part of this exercise — shows DC01 tracking real
+time closely whenever host pressure reads at or near zero. No reading has yet caught DC01 mid-loss
+next to a nonzero pressure reading. The cumulative deficit (findings 20, 47: ratios of 0.517 and
+0.5675 since boot) is real and unexplained by anything captured in this window; it must have
+accumulated in a period this test has not sampled, most plausibly close to boot, when host activity
+from bringing up DC01 and CA01 together would have been highest. That period cannot be re-sampled
+after the fact. Confirming or disproving the pressure hypothesis now needs either a reading during a
+naturally occurring high-pressure window, which this idle host is not producing, or a deliberately
+induced one — a state change, and Raymond's decision.
+
+**50. A deliberately induced host CPU load reached DC01's own vCPUs, and the resulting tick-rate
+change is suggestive but not distinguishable from measurement noise at this duration.** Raymond chose
+to induce load rather than wait or stop. Command: pre-flight (`date -u`, `nproc`, `qm status`, `lvs`,
+`free -h`, `/proc/loadavg`, `/proc/pressure/cpu`, `/proc/pressure/memory`), then `for i in $(seq 1
+$(nproc)); do timeout 90 yes > /dev/null & done`, then reads at T+20s and T+100s. Host: proxmox.
+`nproc` = 8; eight workers, one per core, self-terminated at 90s (all exited `124`, the `timeout`
+exit code for a reached limit).
+
+Pre-load (UTC 2026-09-11T01:49:15Z): `loadavg` 0.23/0.17/0.11. `pressurecpusome` (VM100, from `qm
+status`) 0. Host `/proc/pressure/cpu` `some` `total=89741692` (89.74 s), `full` `total=0`.
+
+T+20s (UTC 01:49:35-39Z): `loadavg` 2.44/0.68/0.28. **`pressurecpusome` (VM100) reads 0.7, the first
+nonzero reading this test has produced for a VM100-specific pressure metric.** Host `/proc/pressure/
+cpu` `some avg10=0.40`, `total=90007236` (a rise of 265,544 µs, 0.266 s, in about 20-24 s). This is
+the manipulation check, and it passes: the induced load reached DC01's own vCPUs, not only the host
+in general.
+
+T+100s (UTC 01:50:59-01:51:01Z, about 10 s after the workers exited): `loadavg` 5.09/2.18/0.85, still
+rising, an expected lag in the load-average's own trailing window. `pressurecpusome` (VM100) 0.21,
+decaying. Host `/proc/pressure/cpu` `total=91448019`, a further rise of 1,440,783 µs (1.44 s) across
+the 84 s since the T+20s reading. Total cpu-`some` stall across the whole ~105 s window (pre-load to
+T+100s): 1,706,327 µs, about 1.7 s, roughly 1.6% of wall time. `full` stayed at `total=0` throughout:
+no moment of complete starvation was produced. Memory pressure totals did not move at all across the
+test (`147630`/`147195` unchanged) — `yes` costs no memory, and none was expected.
+
+**The tick-rate segments.** `TickCount` was read at the T+20s and T+100s points only; the nearest
+prior reading is finding 49 (UTC 01:46:53Z, `TickCount` 72784.781 s, `uptime` 127639 s). Finding
+49-to-T+20s spans 166 s of real elapsed time, of which about 144 s were idle (before this test's
+pre-load reading) and about 22 s were under load: ratio 166.281/166 = 1.00169, parity, as expected
+for an idle-dominated segment. **T+20s-to-T+100s spans 83 s, of which roughly 70 s were under load
+and 13 s were post-load cooldown: ratio 81.938/83 = 0.98721, the first sub-parity marginal reading
+this test has produced.**
+
+**This is suggestive, not confirmed.** `uptime` is reported in whole seconds; two readings bracketing
+an 83 s segment carry a combined rounding uncertainty of roughly ±1-2 s, which is 1.2%-2.4% of the
+segment — as large as or larger than the observed 1.28% deviation. The two earlier, longer segments
+(finding 48's 609 s and finding 49's 193 s) carry proportionally much smaller rounding uncertainty
+(0.16% and 0.5%), which is why their near-parity readings are reliable in a way this one is not. **A
+sub-parity reading appearing for the first time in the one segment that was mostly under induced
+load is consistent with the host-scheduling-pressure hypothesis. It cannot yet be told apart from
+integer-rounding noise at this segment length.** The induced pressure itself was also modest — eight
+workers on eight cores produced measurable but not severe contention (`some` avg10 peaking at 0.40%,
+`pressurecpusome` at 0.7), not the sustained starvation a worker count exceeding the core count would
+produce.
 - **Why `[Environment]::TickCount64` returns null instead of a value or an exception on DC01.**
   Findings 45-46. Not pursued: `TickCount` is a working substitute and answers the rate question
   (finding 47). The rate itself, and whether `ostype: l26` or host scheduling pressure causes it,
@@ -387,6 +487,14 @@ not only lose sync.
 
 - 2026-09-10. He ran the clock and time-source sequence named as the session's next safe action and
   pasted all four outputs back. No decision was handed to him in this thread.
+- 2026-09-11. Asked how to test the host-scheduling-pressure hypothesis once two idle readings
+  (findings 48-49) produced no contrast case: take a third idle reading, induce synthetic load, or
+  stop and write up as inconclusive. He chose to induce load. Reason not stated beyond the choice
+  itself.
+- 2026-09-11. After finding 50's induced-load test came back noise-bound rather than conclusive, and
+  a stronger follow-up test (more workers than cores, minutes rather than under 90 s) was proposed,
+  he said "lets stop wait till next session." Default for the next session: run the stronger test
+  named above, using the same paired-reading method as findings 48-50.
 
 ## Corrections
 
@@ -477,8 +585,14 @@ not only lose sync.
   guest may not receive the paravirtualized clocksource a Windows guest expects), but it is not
   tested against the alternative that host CPU or memory pressure is stealing ticks — finding 15
   already showed DC01 tracking the host almost exactly over a six-minute window, which a constant
-  hypervisor-clocksource defect would not produce. Testing the host-pressure alternative needs
-  concurrent host-side scheduling data next to a guest tick reading, not yet captured.
+  hypervisor-clocksource defect would not produce. **Three paired readings exist, 2026-09-11
+  (findings 48-50): two idle-dominated segments at parity (1.00095, 1.00169), and one segment mostly
+  under a deliberately induced eight-core CPU load, sub-parity for the first time (0.98721).** The
+  induced load is confirmed to reach DC01's own vCPUs (`pressurecpusome` 0→0.7). The sub-parity
+  reading is consistent with the host-pressure hypothesis and cannot yet be told apart from
+  integer-second rounding noise, because the load segment (83 s) is short enough that the rounding
+  bound (1.2%-2.4%) covers the observed deviation (1.28%). Neither hypothesis is confirmed or
+  disproven.
 - What corrected DC01 by exactly −7h on 2026-09-05, and why has nothing done so since? Finding 43
   narrows this to a DNS or routing change; the change itself is not identified.
 - What is the correct time design for a virtualised forest root with no internet route, and what
@@ -493,8 +607,13 @@ not only lose sync.
 
 ## Not started
 
-- Testing host CPU or memory pressure against `ostype: l26` as the cause of DC01's slow monotonic
-  clock (findings 20, 47). Needs concurrent host-side scheduling data next to a guest tick reading.
+- **Started 2026-09-11, not concluded.** Testing host CPU or memory pressure against `ostype: l26`
+  as the cause of DC01's slow monotonic clock (findings 20, 47). Findings 48-50 pair three tick
+  readings with host pressure telemetry, including one deliberately induced eight-core load (finding
+  50) confirmed to reach DC01's own vCPUs. The resulting sub-parity tick rate cannot yet be told
+  apart from integer-second rounding noise at an 83 s segment length. A longer and more intense
+  induced load (more workers than cores, a multi-minute duration) would shrink the rounding-noise
+  bound relative to any real effect and is the next test, not yet run.
 - Finding when DC01 lost its DNS route to `time.windows.com` (finding 43). Needs lab network
   history, not a repository read.
 - Any remediation. Every candidate fix is a state change on the domain controller and waits for

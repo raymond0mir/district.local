@@ -1,21 +1,22 @@
 # Carryover
 
 ## Last verified
-2026-09-11T01:33:28Z, guest-agent read on DC01,
-`exercises/2026-09-10-domain-time-skew/evidence-log.md`, finding 47. Pool reading unchanged since
-2026-09-10T18:10:11Z.
+2026-09-11T01:51:01Z, host and guest reads during the induced-load test,
+`exercises/2026-09-10-domain-time-skew/evidence-log.md`, finding 50.
 
 ## Next safe action
-No lab command queued. `TickCount` confirms DC01 loses ticks (findings 45-47); testing `ostype: l26`
-against host scheduling pressure as the cause needs a test not yet designed. Otherwise: find when
-DC01 lost its DNS route to `time.windows.com` (finding 43) — lab network history, not a command.
+Run a longer, harder induced CPU load on the host (more workers than the 8 cores, minutes not
+seconds), paired with `TickCount` and `/proc/pressure/cpu` reads, using finding 50's method. The
+83 s load segment was too short: `uptime`'s integer-second rounding bounds noise at
+1.2%-2.4%, as large as the 1.28% deviation seen. Confirming or disproving host-scheduling-pressure
+against `ostype: l26` needs a bigger, longer load.
 
 ## Lab state
-Unchanged since last session. VM 100 (DC01) and VM 107 (CA01) running, both booted
-2026-09-09T14:19:31Z. VM 101, 102, 104 stopped. CT 103 running, CT 106 stopped. Pool Data% 80.11,
-Meta% 3.84. Tenant unchanged: `PIM-UserAdmin-Pilot` holds `User Administrator` standing.
-**Clocks are wrong.** DC01 is +5h 06m ahead and drifting; CA01 is +7h ahead and holding. See
-`exercises/2026-09-10-domain-time-skew/report.md`.
+Unchanged since last session. VM 100 (DC01) and VM 107 (CA01) running, booted 2026-09-09T14:19:31Z.
+VM 101, 102, 104 stopped. CT 103 running, CT 106 stopped. Pool Data% 80.12, Meta% 3.84. **Clocks
+are wrong.** DC01 is +5h 06m ahead and drifting; CA01 is +7h ahead and holding. DC01's hardware
+timer runs at roughly half real elapsed time (ratio 0.517-0.5696); cause not
+identified. See `exercises/2026-09-10-domain-time-skew/report.md`.
 
 ## Stop conditions
 Pool Data% at 85 or higher. Issue no certificate from CA01 until the clock is fixed.
@@ -46,10 +47,8 @@ Entra CBA needs public hosting for `crl.districtsafetyphoto.com`, and CA01's clo
 2026-09-10. Use Graph Explorer; see `gotchas.md`.
 
 ## Uncommitted and staged work
-Not clean. Modified: `EXPOSURES.md`, `verified-claims.md`,
-`exercises/2026-09-10-domain-time-skew/evidence-log.md` and `report.md`. This session finished the
-repository timestamp audit for the named exercises (none exposed), corrected a wrong claim about
-when DC01's error started (a lost DNS route between 9/2 and 9/5 is the leading candidate, not the
-`ostype`/`localtime` config alone, dormant since 8/31), and confirmed by a second method that
-DC01's own hardware timer loses ticks against real time, not only its wall clock. Nothing staged.
-Not committed; Raymond has not asked.
+Not clean. Modified: `exercises/2026-09-10-domain-time-skew/evidence-log.md` and `report.md`. This
+session paired DC01's tick rate with host-pressure telemetry three times (findings 48-50), including
+one induced eight-core CPU load confirmed to reach DC01's own vCPUs. The sub-parity tick reading
+cannot yet be told apart from rounding noise at this load duration. Nothing staged. Not committed;
+Raymond has not asked.

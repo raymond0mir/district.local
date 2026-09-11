@@ -158,6 +158,14 @@ a correct prediction about the certificates. That middle error reached the ledge
   and agree DC01 loses ticks, not only sync. `TickCount64` itself returns null without error on
   this PowerShell build; `TickCount` is the working substitute. Still open: whether `ostype: l26`
   or host scheduling pressure causes the loss. See `evidence-log.md`, findings 45-47.
+- **Tested against induced load, 2026-09-11, inconclusive.** Three paired readings of host pressure
+  and DC01's `TickCount`: two idle segments at parity, one segment mostly under a deliberately
+  induced eight-core CPU load, sub-parity for the first time (ratio 0.98721). The load is confirmed
+  to reach DC01's own vCPUs (`pressurecpusome` 0→0.7), but the load segment is short enough (83 s)
+  that integer-second rounding on `uptime` bounds the noise at 1.2%-2.4%, as large as the observed
+  1.28% deviation. Neither hypothesis is confirmed or disproven. A longer, more intense induced load
+  (more workers than cores, minutes rather than under 90 s) is the next test, not yet run. See
+  `evidence-log.md`, findings 48-50.
 - What corrected DC01 by exactly −7h on 2026-09-05, and why has nothing done so since?
 - What is the correct time design here? The candidates are fixing `ostype` and `localtime` on
   VM 100, pointing the PDC emulator at the Proxmox host as an NTP source, or giving the lab network
