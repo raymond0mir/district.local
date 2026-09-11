@@ -1,14 +1,14 @@
 # Carryover
 
 ## Last verified
-2026-09-10T22:02:35Z, guest-agent reads on DC01 and CA01,
-`exercises/2026-09-10-domain-time-skew/evidence/04-event-4616-dates-every-step-and-certutil-prints-local.md`.
-Pool reading 2026-09-10T18:10:11Z.
+2026-09-11T01:33:28Z, guest-agent read on DC01,
+`exercises/2026-09-10-domain-time-skew/evidence-log.md`, finding 47. Pool reading unchanged since
+2026-09-10T18:10:11Z.
 
 ## Next safe action
-Continue the repository timestamp audit into the GPO, licence-status, and B1/B4/PIM exercises.
-`2026-09-05-adcs-issuing-ca-build` is done; see `2026-09-10-domain-time-skew/evidence-log.md`. No
-lab access needed, no state change.
+No lab command queued. `TickCount` confirms DC01 loses ticks (findings 45-47); testing `ostype: l26`
+against host scheduling pressure as the cause needs a test not yet designed. Otherwise: find when
+DC01 lost its DNS route to `time.windows.com` (finding 43) — lab network history, not a command.
 
 ## Lab state
 Unchanged since last session. VM 100 (DC01) and VM 107 (CA01) running, both booted
@@ -27,18 +27,18 @@ Pool Data% at 85 or higher. Issue no certificate from CA01 until the clock is fi
 - `district-root.crl` expires 2027-03-07. Nothing regenerates it.
 
 ## Pending decisions
-- **Who is the second PIM approver for Exchange Administrator and Teams Administrator. Asked
-  2026-09-10, paused for next session at Raymond's request. Default: none, ask first.** Both roles'
-  baselines are Captured and clean; only Exchange Administrator's default requires MFA to
-  self-activate. See `exercises/2026-09-10-pim-policy-authoring/evidence-log.md`.
+- **Second PIM approver for Exchange and Teams Administrator. Asked 2026-09-10, paused at
+  Raymond's request. Default: none, ask first.** Both baselines are Captured and clean; only
+  Exchange Administrator's default requires MFA to self-activate. See
+  `exercises/2026-09-10-pim-policy-authoring/evidence-log.md`.
 - Which time fix to apply to DC01. Three candidates in `2026-09-10-domain-time-skew/report.md`.
   Default: none, ask first.
 - Two `AllPrincipals` consent grants. Default: remove before teardown.
 - `tmp-cainstall` deletion. Default: leave disabled.
 - Credential scan patterns file and passes 4-5. Default: leave the hook alone, sweep by hand.
 - `adm-jsmith`'s direct eligibility (B4). Default: remove before teardown.
-- What role `88d8e3e3-8f55-4a1e-953a-9b9898b8876b` is, surfaced by accident this session. Not
-  investigated. Default: leave for now.
+- What role `88d8e3e3-8f55-4a1e-953a-9b9898b8876b` is, surfaced by accident. Not investigated.
+  Default: leave for now.
 
 ## Blockers
 Entra CBA needs public hosting for `crl.districtsafetyphoto.com`, and CA01's clock. Owner: Raymond.
@@ -46,7 +46,10 @@ Entra CBA needs public hosting for `crl.districtsafetyphoto.com`, and CA01's clo
 2026-09-10. Use Graph Explorer; see `gotchas.md`.
 
 ## Uncommitted and staged work
-Not clean. New: `exercises/2026-09-10-pim-policy-authoring/` (evidence-log.md, two evidence files).
-Modified: `exercises/2026-09-10-domain-time-skew/evidence-log.md` (repository timestamp audit
-findings), `.claude/skills/tech-compass/references/gotchas.md` and its plugin copy (Connect-MgGraph
-and Graph Explorer stale-response updates). Nothing staged. Not committed; Raymond has not asked.
+Not clean. Modified: `EXPOSURES.md`, `verified-claims.md`,
+`exercises/2026-09-10-domain-time-skew/evidence-log.md` and `report.md`. This session finished the
+repository timestamp audit for the named exercises (none exposed), corrected a wrong claim about
+when DC01's error started (a lost DNS route between 9/2 and 9/5 is the leading candidate, not the
+`ostype`/`localtime` config alone, dormant since 8/31), and confirmed by a second method that
+DC01's own hardware timer loses ticks against real time, not only its wall clock. Nothing staged.
+Not committed; Raymond has not asked.

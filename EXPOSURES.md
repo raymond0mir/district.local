@@ -619,7 +619,10 @@ and CA01 is 7h 00m 00.5s ahead, leaving CA01 6829 s away from the domain control
 authenticates against. CA01 sees the difference, logs `Id 50` twice, and stops applying the
 correction as an implausible spike; its phase-correction limits are unlimited, so nothing is
 capping it. DC01's rate is unstable: it gained 1827.7 s against the host across one three-hour
-window and tracked the host to 0.3 s across the next six minutes. DC01 booted exactly one timezone offset
+window and tracked the host to 0.3 s across the next six minutes. Its own hardware timer confirms
+this independently of wall-clock corrections: `[Environment]::TickCount` reads 0.5675 of real
+elapsed time since boot, against 0.517 measured by a different method on the same boot — DC01 is
+losing ticks, not only losing sync. DC01 booted exactly one timezone offset
 ahead on 2026-09-09T14:19:31Z, because `localtime: 0` puts its emulated real time clock in UTC and
 Windows reads a real time clock as local, and it has lost 1h 53m 49s since. **Kerberos is not the
 casualty.** CA01 obtains tickets normally at 6829 s of skew, because the five-minute tolerance is
@@ -640,9 +643,14 @@ those two are the whole detection surface. *Evidence:*
 known to be hours.** An existing entry in this section records a one-day offset in snapshot and
 exercise names derived from a session date rather than the host clock. The clock readings above
 add a second source of the same class of error: any timestamp taken from DC01 or CA01 rather than
-from `date -u` is off by five to seven hours. No audit of which repository claims carry a
-guest-derived timestamp has been run. *Evidence:*
-`exercises/2026-09-10-domain-time-skew/evidence/01-three-clocks-disagree-and-dc01-answers-to-nothing.md`.
+from `date -u` is off by five to seven hours, from sometime between 2026-09-02 and 2026-09-05
+onward. The repository timestamp audit is now complete for `2026-09-05-adcs-issuing-ca-build` (four
+certificates post-dated, see the ADCS entry above) and for every GPO, licence-status, and B1/B4/PIM
+exercise named in carryover: none of the latter group carries an exposed claim, because DC01's
+clock was independently confirmed accurate through at least 2026-09-02, across nine reboots.
+*Evidence:*
+`exercises/2026-09-10-domain-time-skew/evidence/01-three-clocks-disagree-and-dc01-answers-to-nothing.md`,
+`exercises/2026-09-10-domain-time-skew/evidence-log.md`, findings 41-44.
 
 ## Time-sensitive
 

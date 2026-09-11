@@ -267,10 +267,111 @@ domain-time-skew paragraph ("requests 5, 7 and 8 fall inside the same windows") 
 Direct read of all three, 2026-09-10. No correction is owed to any of them. The stale framing is
 confined to finding 27 below, inside this file.
 
+**41. The GPO exercise's guest timestamps predate the skew, and new evidence proves it rather than
+assumes it.** The same-day `2026-09-02-dc01-eval-license-status` exercise recorded nine
+`wlms.exe`-driven reboots of DC01 between 8/31 4:52 PM and 9/2 9:27 AM, all full power-offs. DC01's
+local clock advances smoothly across every one, with no seven-hour jump anywhere in the sequence.
+Its 8/31 4:52:35 PM event sits seven seconds from an independent host-side reading of the same
+crash, 16:52:42, in
+`exercises/2026-08-31-dc01-unexpected-shutdown/evidence/second-occurrence-crash-signature.txt`. Its
+`gpresult /r` read on 9/2, "Last time Group Policy was applied: 9/2/2026 at 9:58:07 AM," is
+consistent with the same session's host capture at 17:00:27Z. **DC01's clock was accurate through
+at least 2026-09-02, across repeated reboots.**
+`exercises/2026-09-02-a2-gpo-surface-and-domain-root-link/evidence/gpo-origin-timestamps-and-full-reports-20260902T1656Z.txt`,
+`exercises/2026-09-02-a2-gpo-surface-and-domain-root-link/evidence/gpresult-and-secedit-verified-20260902T1700Z.txt`,
+`exercises/2026-09-02-dc01-eval-license-status/evidence/system-eventlog-1074-6006-6008-41-1076-20260902T1644Z.txt`.
+
+**42. `report.md`'s claim that VM 100 "has carried the wrong value since it was created" is wrong,
+and VM 100's own config narrows the real question instead of closing it.**
+`exercises/2026-08-31-member-server-build/evidence/dc01-hardware-config-baseline.txt` shows
+`ostype: l26` and `localtime: 0` already present on 8/31, with Proxmox's own
+`meta: ctime=1759192209` dating VM 100's creation to 2025-09-30T00:30:09Z, a host-written value.
+The misconfiguration was present for at least the eleven months before this reading. Finding 41
+shows DC01's clock was accurate through 2026-09-02 despite it. **The configuration causes the
+error. The configuration's presence does not explain when the error started.**
+
+**43. The likely trigger is a lost DNS route to `time.windows.com`, not the boot-time defect alone,
+and this is a candidate, not a capture.** DC01 polls `time.windows.com` and cannot resolve it
+(findings 9, 21). A working resolution would let `w32tm` correct the `localtime: 0` boot error
+within moments of every boot, which fits finding 41's smooth, reboot-heavy record showing no defect
+through 9/2. The −7h correction at 2026-09-05T21:45:00.969Z (finding 30) is the last recorded
+correction anywhere in DC01's `4616` history. The `Id 134` DNS-failure entries captured in this
+exercise (`evidence/02`) come from a `-MaxEvents 10` query and reach back only to
+2026-09-08T22:53Z. **They do not establish when DC01 lost the route, only that it was already lost
+by then.** Whether DC01 could resolve `time.windows.com` before 2026-09-05, and what changed, is
+not captured.
+
+**44. The GPO, licence-status, and B1/B4/PIM exercises named in carryover as owed carry no claim
+this skew touches.** Each is checked against the same test: does a claim depend on a DC01- or
+CA01-printed timestamp read at a moment this exercise has not shown the guest clock to be accurate.
+`2026-09-04-b1-conditional-access-report-only`'s one DC01 read returns a null
+`AccountExpirationDate`; its device-registration dates are Microsoft Graph timestamps, stamped by
+Entra, not by either guest. `2026-09-04-b1-security-defaults-and-ca-report-only` and
+`2026-09-05-b1-security-defaults-transition` make no DC01 or CA01 read.
+`2026-09-05-b1-breakglass-exclusion-verification` reads DC01 three times for state, not for a date;
+its two date fields, `onPremisesLastSyncDateTime` and `lastPasswordChangeDateTime`, are Graph
+timestamps. `2026-09-06-b4-pim-eligible-role`'s one guest-timestamp value, `sysadmin`'s
+`whenChanged`, decodes to 2026-09-01T00:27:04Z, inside the accurate window finding 41 establishes;
+every PIM `startDateTime`/`endDateTime` in this exercise is a Graph timestamp.
+`2026-09-09-pim-for-groups` touches DC01 only for `qm status`, not a guest clock read.
+`2026-09-10-pim-policy-authoring` makes no DC01 or CA01 read at all. **No correction is owed to any
+of these seven exercises.** The GPO and licence-status exercises are covered by finding 41.
+
 ## Not captured, and why
 
-- **DC01's monotonic clock rate.** `[Environment]::TickCount64` returned no output and no
-  `err-data`. The 0.517 ratio in finding 20 is unexplained and untested.
+- **Whether DC01 could resolve `time.windows.com` before 2026-09-05, and what changed.** See
+  finding 43. Answering it needs the lab network's own history, not a repository read.
+
+**45. `[Environment]::TickCount64` produces zero output on DC01 with exit code 0, isolated and
+error-handled, and the cause is not identified.** Command: `date -u; qm status 100 --verbose |
+grep uptime; qm guest exec 100 --timeout 30 -- powershell.exe -NonInteractive -Command 'try {
+Write-Output ([Environment]::TickCount64) } catch { Write-Output ("ERROR: " +
+$_.Exception.Message) }'; date -u`. Host: proxmox. UTC: 2026-09-11T01:28:57Z, returned
+2026-09-11T01:28:59Z. Host uptime for VM 100: 126566 s. The guest agent call returned
+`{"exitcode": 0, "exited": 1}` with no `out-data` key and no `err-data` key at all — not an empty
+string, an absent field. Exit 0 rules out a PowerShell parse or runtime error reaching the process
+exit code; the `try`/`catch` printing nothing rules out a caught .NET exception with a message.
+**The command produced no output on either stream while still exiting cleanly, and this is now
+reproduced once bundled (finding from evidence/04) and once isolated.** Not identified: whether
+`qm guest exec`'s own capture drops a bare numeric pipeline result, whether the PowerShell version
+on DC01 lacks `TickCount64` in a way that fails before entering the `try` block, or some other
+mechanism.
+
+**Isolated further, same session.** Command: `qm guest exec 100 --timeout 30 -- powershell.exe
+-NonInteractive -Command 'Write-Output "hello"; $PSVersionTable.PSVersion.ToString();
+[Environment]::TickCount64'`. UTC 2026-09-11T01:30:48Z. `out-data`: `"hello\r\n5.1.20348.4163\r\n"`.
+`Write-Output "hello"` and the bare expression `$PSVersionTable.PSVersion.ToString()` both printed.
+`[Environment]::TickCount64`, third and last, printed nothing, and the exec still exited 0. DC01
+runs Windows PowerShell 5.1.20348.4163. **The exec path and bare-expression output both work. The
+failure is specific to `[Environment]::TickCount64` itself, not to how it is called or where it
+sits in the script.**
+
+**46. `[Environment]::TickCount64` returns null without throwing on DC01, and `TickCount` is the
+working substitute.** Command: `qm guest exec 100 --timeout 30 -- powershell.exe -NonInteractive
+-Command 'try { $a = [Environment]::TickCount; $b = [Environment]::TickCount64; "TickCount=" + $a
++ " TickCount64=" + $b } catch { "CAUGHT: " + $_.Exception.GetType().FullName + " -- " +
+$_.Exception.Message }'`. UTC 2026-09-11T01:33:28Z. `out-data`:
+`"TickCount=71981500 TickCount64=\r\n"`. The assignment to `$b` did not throw — no `CAUGHT:` prefix
+appears — and `$b` stringifies to nothing, which in PowerShell string concatenation means `$b` is
+`$null`. `TickCount`, the older Int32 member, returned a real value. **`TickCount64` is present and
+does not error; it returns nothing usable, on Windows PowerShell 5.1.20348.4163.** The cause is not
+identified and is not pursued further. `TickCount` wraps at 24.9 days; DC01's uptime is far short
+of that, so the substitute is safe here.
+
+**47. DC01's own hardware timer is running slow, not only its wall clock, and this confirms finding
+20 by an independent method.** `TickCount` reads 71981500 ms (71981.5 s) at 2026-09-11T01:33:28Z.
+The host's own uptime reading for VM 100, 126566 s at 2026-09-11T01:28:57Z (finding 45), carries
+forward to 126837 s at this reading, 4m31s later, with no reboot in between. The ratio is 0.5675.
+Finding 20's `LastBootUpTime`-derived ratio, from the same boot, was 0.5171. **The two independent
+measurements agree on the shape — DC01 believes roughly half the real time has passed since it
+booted — and disagree on the exact number, which rules out a single constant rate and confirms this
+is the guest's own sense of elapsed time, not an artefact of wall-clock corrections.** `TickCount`
+is a hardware-timer-backed counter that `w32tm` never touches. A domain controller can lose ticks,
+not only lose sync.
+- **Why `[Environment]::TickCount64` returns null instead of a value or an exception on DC01.**
+  Findings 45-46. Not pursued: `TickCount` is a working substitute and answers the rate question
+  (finding 47). The rate itself, and whether `ostype: l26` or host scheduling pressure causes it,
+  is tracked in Open questions, not here.
 - **What corrected DC01 by −7h 00m 00s on 2026-09-05.** The `4616` record states the step and not
   the source.
 - **Why CA01 stepped forward by 2h 24m on 9/10 to a value seven hours ahead of real time, rather
@@ -345,31 +446,57 @@ confined to finding 27 below, inside this file.
   clock skew, which was not known when the line was written. The line is corrected in
   `references/gotchas.md` with the retraction stated there, not by silent edit.
 
+- **`report.md`'s "What I'd do differently" said VM 100 "has carried the wrong value since it was
+  created in October 2025." Finding 41 disproves it.** DC01's clock matched an independent host
+  reading to seven seconds on 8/31 and behaved consistently through 9/2, across nine reboots that
+  each should have shown the boot-time defect if it were live. The configuration was present by
+  then (finding 42); the error was not. `report.md` is corrected below to state the narrower,
+  supported claim.
+
 ## Open questions
 
 - Does Entra CBA reject a certificate whose `NotBefore` is seven hours in the future? That is the
   lab's stated goal for this CA and the first consumer that does not share the wrong clock.
-- **Partially answered, 2026-09-10.** `2026-09-05-adcs-issuing-ca-build` is audited: its report,
-  ledger rows and `EXPOSURES.md` entry already carry the corrected scope (findings 38-40); only this
-  file's own finding 27 was stale, corrected above. Not yet audited: the GPO, licence-status and
-  PIM/B1/B4 exercises that read DC01 event logs, `Created`/`whenChanged` attributes, or local-time
-  displays. Their exposure is smaller — most cite `date -u`-anchored capture headers rather than a
-  guest-printed date — but none has been checked line by line the way the CA build was.
-- Does DC01's monotonic clock run at about half of real time, and does `ostype: l26` cause it?
-- What corrected DC01 by exactly −7h on 2026-09-05, and why has nothing done so since?
+- **Answered, 2026-09-10.** The repository timestamp audit is complete for every exercise named in
+  carryover. `2026-09-05-adcs-issuing-ca-build` was audited first: its report, ledger rows and
+  `EXPOSURES.md` entry already carried the corrected scope (findings 38-40); only this file's own
+  finding 27 was stale, corrected above. `2026-09-02-a2-gpo-surface-and-domain-root-link` and
+  `2026-09-02-dc01-eval-license-status` are audited and clean, on new evidence rather than
+  inference (finding 41). `2026-09-04-b1-conditional-access-report-only`,
+  `2026-09-04-b1-security-defaults-and-ca-report-only`, `2026-09-05-b1-security-defaults-transition`,
+  `2026-09-05-b1-breakglass-exclusion-verification`, `2026-09-06-b4-pim-eligible-role`,
+  `2026-09-09-pim-for-groups` and `2026-09-10-pim-policy-authoring` are audited and clean (finding
+  44). No exercise outside `2026-09-05-adcs-issuing-ca-build` needs a correction.
+- What changed DC01's route to `time.windows.com` between 2026-09-02 and 2026-09-05, and does
+  restoring DNS resolution make `w32tm` self-correct the boot error on every future boot? Findings
+  41-43 make this the live mechanism question, ahead of the drift-rate and PDC-emulator-source
+  questions below.
+- **Answered in part, 2026-09-11.** DC01's monotonic clock does run at about half of real time —
+  findings 20 and 47 measure 0.517 and 0.5675 independently, by different methods, on the same
+  boot. Whether `ostype: l26` causes it is still open: it is a plausible mechanism (a Linux-typed
+  guest may not receive the paravirtualized clocksource a Windows guest expects), but it is not
+  tested against the alternative that host CPU or memory pressure is stealing ticks — finding 15
+  already showed DC01 tracking the host almost exactly over a six-minute window, which a constant
+  hypervisor-clocksource defect would not produce. Testing the host-pressure alternative needs
+  concurrent host-side scheduling data next to a guest tick reading, not yet captured.
+- What corrected DC01 by exactly −7h on 2026-09-05, and why has nothing done so since? Finding 43
+  narrows this to a DNS or routing change; the change itself is not identified.
 - What is the correct time design for a virtualised forest root with no internet route, and what
   does each alternative cost? The candidates are: fix `ostype` and `localtime` on VM 100, point the
   PDC emulator at the Proxmox host as an NTP server, or give the lab network a route to an external
-  source. Each has a different failure mode and a different blast radius.
+  source. Each has a different failure mode and a different blast radius. Finding 43 favours the
+  external-route or host-as-NTP candidates over an `ostype`/`localtime` fix alone, since the
+  defect stayed dormant for months while the config was already wrong.
 - How would a defender recognise this before a consumer rejects a certificate? CA01 logged `Id 50`
   three times on 9/10 and DC01 logged `Id 134` six times, and nothing acted on either.
 - Does the domain's Kerberos remaining healthy make this harder to detect, not easier?
 
 ## Not started
 
-- The `TickCount64` test on DC01.
-- The repository timestamp audit for exercises other than `2026-09-05-adcs-issuing-ca-build` (see
-  Open questions).
+- Testing host CPU or memory pressure against `ostype: l26` as the cause of DC01's slow monotonic
+  clock (findings 20, 47). Needs concurrent host-side scheduling data next to a guest tick reading.
+- Finding when DC01 lost its DNS route to `time.windows.com` (finding 43). Needs lab network
+  history, not a repository read.
 - Any remediation. Every candidate fix is a state change on the domain controller and waits for
   Raymond.
 - The alternatives half of the exercise: the correct time design and its cost.

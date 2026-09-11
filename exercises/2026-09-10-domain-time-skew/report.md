@@ -129,7 +129,12 @@ Anchor a claim to `date -u` before writing a rule that explains a discrepancy aw
 anchor that disproved it five days later was already sitting in that exercise's own evidence file.
 
 Read `qm config` when building a Windows guest. `ostype` is not cosmetic. It decides what clock the
-hypervisor offers, and VM 100 has carried the wrong value since it was created in October 2025.
+hypervisor offers. **Corrected, 2026-09-10: VM 100 has carried the wrong `ostype` and `localtime`
+value since at least 2026-08-31, but not the wrong clock.** DC01's own event log, read for a
+different exercise, shows its clock accurate across nine reboots between 8/31 and 9/2. The
+misconfiguration was dormant for months and started producing a real error only between 9/2 and
+9/5, most likely when DC01 lost DNS resolution to `time.windows.com` and could no longer correct
+the boot-time defect on its own. See `evidence-log.md`, findings 41-43.
 
 State a prediction before running the test, and keep it when it is wrong. Three predictions failed
 here — Kerberos breaking, the LDAP read failing, and, in the middle of the exercise, a retraction of
@@ -140,14 +145,23 @@ a correct prediction about the certificates. That middle error reached the ledge
 
 - Does Entra CBA reject a certificate whose `NotBefore` is seven hours in the future? That is the
   first consumer that does not share this domain's clock.
-- Which claims in this repository carry a guest-derived timestamp, and are any of them wrong? The
-  audit is owed and has not started.
-- Does DC01's monotonic clock run at about half of real time? Its `LastBootUpTime` implies an
-  uptime of 58,767 s where the host reports 113,621 s. `[Environment]::TickCount64` returned no
-  output, so the test is not done.
+- **Answered, 2026-09-10.** The repository timestamp audit is complete for the GPO, licence-status,
+  and B1/B4/PIM exercises named in carryover, plus the ADCS build audited earlier. None carries a
+  claim this skew touches. See `evidence-log.md`, findings 41, 44.
+- What changed DC01's route to `time.windows.com` between 2026-09-02 and 2026-09-05? DC01's clock
+  was accurate through 9/2 despite already carrying the `ostype`/`localtime` misconfiguration; a
+  lost DNS route, not the misconfiguration alone, is the leading candidate for why the error started
+  when it did. See `evidence-log.md`, findings 41-43.
+- **Answered in part, 2026-09-11.** Yes: `[Environment]::TickCount`, a hardware-timer counter
+  `w32tm` never touches, reads 0.5675 of real elapsed time since boot, against 0.517 from
+  `LastBootUpTime` on the same boot. The two disagree with each other, ruling out a constant rate,
+  and agree DC01 loses ticks, not only sync. `TickCount64` itself returns null without error on
+  this PowerShell build; `TickCount` is the working substitute. Still open: whether `ostype: l26`
+  or host scheduling pressure causes the loss. See `evidence-log.md`, findings 45-47.
 - What corrected DC01 by exactly −7h on 2026-09-05, and why has nothing done so since?
 - What is the correct time design here? The candidates are fixing `ostype` and `localtime` on
   VM 100, pointing the PDC emulator at the Proxmox host as an NTP source, or giving the lab network
   a route to an external source. Each has a different blast radius, and all three are state changes
-  on the domain controller.
+  on the domain controller. The dormant-for-months pattern favours the network-route or
+  host-as-NTP candidates over the `ostype`/`localtime` fix alone.
 - Does a domain whose Kerberos stays healthy make this class of fault harder to detect, not easier?
