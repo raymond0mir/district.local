@@ -461,6 +461,32 @@ logs at 3:54:31 PM, 3:57:57 PM and 4:00:58 PM local — but the "next action" it
 the mechanism it asks about is answered. *Evidence:*
 `exercises/2026-09-10-privileged-access-path-audit/evidence/04-what-the-guest-records-in-full.md`.
 
+**Any member account in this tenant can register an application, create a security group, and
+create a tenant.** `defaultUserRolePermissions` reads `allowedToCreateApps: true`,
+`allowedToCreateSecurityGroups: true` and `allowedToCreateTenants: true`, captured 2026-09-12.
+A workload identity here needs no administrator to exist. That is the permission-sprawl pattern at
+the workload layer: the objects an attacker or a careless user creates are indistinguishable from
+the ones an administrator creates, and nothing in the tenant gates their creation.
+`allowedToReadOtherUsers: true` is the Entra default and is listed here because it changes how a
+directory read refusal must be interpreted, not because it is itself unusual. *Evidence:*
+`exercises/2026-09-12-workload-identity-scope-isolation/evidence/01-tenant-authorization-policy-and-application-baseline.md`.
+
+**One application registration in the tenant has no provenance in this repository.** `P2P Server`,
+appId `004ad450-5909-445f-969a-d3798ab41880`, created 2026-09-04T00:35:35Z. No exercise records
+creating it, and a first-party explanation for it is Recalled, not established. One
+`auditLogs/directoryAudits` read filtered on the object names the actor and settles it. That
+endpoint needs the P2 trial, which ends about 2026-10-04. *Evidence:*
+`exercises/2026-09-12-workload-identity-scope-isolation/evidence/01-tenant-authorization-policy-and-application-baseline.md`.
+
+**A Global Administrator cannot read the tenant's own consent policy with the scopes its token
+carries.** Three reads refused at 403 on 2026-09-12, while the token held `Policy.Read.All` and
+`Directory.Read.All`. Microsoft Learn lists `Directory.Read.All` as sufficient for the `/includes`
+path. Graph Explorer's permissions panel would not load, so `Policy.Read.PermissionGrant` could not
+be consented and the positive control is missing. The consequence for the lab is narrow and real:
+the tenant's user-consent posture is not established, so what a non-administrator can consent to is
+unknown. *Evidence:*
+`exercises/2026-09-12-workload-identity-scope-isolation/evidence/04-global-administrator-refused-on-permission-grant-policies.md`.
+
 ## Infrastructure
 
 **The lab has no power protection and no restart policy, and a power loss stops a domain

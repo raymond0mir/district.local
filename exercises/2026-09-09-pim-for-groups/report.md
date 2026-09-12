@@ -240,8 +240,12 @@ was missing is the half an interviewer would ask about.
 - Should the reporting role be made PIM-eligible, so an administrator can review their own actions
   without a standing grant? This is the governed answer to the gap in `evidence/09` section D and is
   the strongest candidate for the next exercise.
-- What is `wids` value `b79fbf4d-3ef9-4689-8143-76b194e85509`? It appears on both `adm-jsmith` and
-  the break-glass account.
+- ~~What is `wids` value `b79fbf4d-3ef9-4689-8143-76b194e85509`? It appears on both `adm-jsmith` and
+  the break-glass account.~~ **Answered 2026-09-12. It is not a role.** Entra sends the value in
+  `wids` for every non-guest account of a tenant, which is why two accounts of very different
+  privilege both carry it. `roleDefinitions` returns `Request_ResourceNotFound` for it under a
+  Global Administrator's token. *Evidence:*
+  `exercises/2026-09-12-workload-identity-scope-isolation/evidence/05-wids-b79fbf4d-is-not-a-role.md`.
 - Why does the Access Reviews service write a parallel record of every PIM approval?
 - Why did `dumbuser2` carry `StsRefreshTokensValidFrom` of `2025-10-01T00:34:24Z` when its cloud
   object was created 2026-09-01? The October 2025 build is the reason this repository's evidence

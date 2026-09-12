@@ -633,8 +633,8 @@ What's fixed, and what floats:
 | B4 before the trial ends, about 2026-10-04 | Expiry deletes eligible assignments and PIM configuration. That evidence cannot be recaptured |
 | B2 inside the trial, after B4 | Setup needs no licence (A3, Captured). A provisioning run is untested and may need P1 or P2 |
 | `svc-entraconnect` rotated before ~2026-10-13 | Live sync; opaque failure mode |
-| DC01 rearmed about every 10 days: ~09-12, ~09-22, ~10-02 | An expired grace period shuts DC01 down mid-session. It has already done so twice |
-| DC01 relicensed or replaced before ~2026-11-01 | 5 rearms left, 10 days each. That date ends the lab, not the trial |
+| ~~DC01 rearmed about every 10 days: ~09-12, ~09-22, ~10-02~~ **Retracted 2026-09-12** | The 10-day figure was a transient `GracePeriodRemaining` read about one minute after the 2026-09-02 restart. `slmgr /rearm` reset the full evaluation period. No rearm is due in September. *Evidence:* `exercises/2026-09-05-adcs-issuing-ca-build/evidence/31-dc01-rearm-reset-the-full-evaluation-period.txt` |
+| ~~DC01 relicensed or replaced before ~2026-11-01~~ **Retracted 2026-09-12. DC01 runs to about 2027-03-02** | Same wrong premise as the row above. `RemainingWindowsReArmCount` reads 5, and 5 rearms remain after the current period. CA01 has never been rearmed and runs to about 2027-03-04. *Evidence:* the file above, and `exercises/2026-09-05-adcs-issuing-ca-build/evidence/35-ca01-evaluation-period-is-full-not-ten-days.txt` |
 | C1 and C2 after the trial | Neither needs it |
 
 Everything else floats. Sequence is load-bearing; dates are not.

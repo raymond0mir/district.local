@@ -151,6 +151,40 @@ Write the condition that makes each line true. A behavior that depends on a lice
 
 ## Graph Explorer, sign-in and consent
 
+**The address bar keeps its previous contents, and a paste that lands beside them produces a
+`BadRequest` naming a segment you never typed.** On 2026-09-12 a paste produced
+`.../policies/permissionGrantPoliciess://graph.microsoft.com/` and the error read "Resource not
+found for the segment 'permissionGrantPoliciess:'". Press `cmd+a` then `delete` before every paste.
+A `400` here describes your typing, not the tenant. Source:
+`exercises/2026-09-12-workload-identity-scope-isolation`.
+
+**The permissions panel can fail to load, and then no scope can be consented in the tool.** It
+renders "Retry again" with an empty list, before and after a search term, and survives a page
+reload. The Modify Permissions tab then reports that permissions are missing for the query. A VPN or
+a content blocker is the first thing to rule out, because the panel fetches its list over the
+network. When it will not recover, build in the Entra admin center and validate with Graph reads;
+the portal action is Recalled and the read makes it Captured. Source:
+`exercises/2026-09-12-workload-identity-scope-isolation`, unresolved.
+
+**`Authorization_RequestDenied` does not distinguish a missing scope from a missing role.** The
+rule below, that `PermissionScopeNotGranted` and `Authentication_RequestFromUnsupportedUserRole`
+name their own causes, does not generalise. `policies/permissionGrantPolicies` returns
+`Authorization_RequestDenied` for both. Decode the token and read `scp` before assuming either.
+Source: `exercises/2026-09-12-workload-identity-scope-isolation`.
+
+**`Policy.Read.All` does not reach `policies/permissionGrantPolicies`.** That endpoint wants
+`Policy.Read.PermissionGrant`. Microsoft Learn lists `Directory.Read.All` as a higher-privileged
+alternative on the `/includes` path; a token holding `Directory.Read.All`, signed in as Global
+Administrator, was refused anyway on 2026-09-12. Source:
+`exercises/2026-09-12-workload-identity-scope-isolation`, unresolved.
+
+**Read `wids` as directly assigned directory roles plus one fixed member marker.**
+`b79fbf4d-3ef9-4689-8143-76b194e85509` is not a role, and Entra sends it for every non-guest
+account. Check an unfamiliar value against `roleManagement/directory/roleDefinitions` before naming
+it. Source: `exercises/2026-09-12-workload-identity-scope-isolation`.
+
+
+
 Graph Explorer holds its own sign-in. It is independent of the Entra admin center session and
 unaffected by which browser window is open. Signing into the portal as one account does not change
 who Graph Explorer is. Read the account chip at the top right before recording a signing identity in
