@@ -645,6 +645,21 @@ rather than an ongoing hypervisor-scheduling effect.
   three invocations inside a seven-minute window, where the two clocks did in fact keep pace. The
   inference did not hold over three hours. The audit's evidence log and report are corrected on the
   record rather than edited silently, per `CLAUDE.md`.
+  ~~The offset moves, so DC01 drifts against the host.~~ **Corrected 2026-09-12: this retraction was
+  itself superseded, and the chain is recorded here in full.** The original claim, exercise 26,
+  2026-09-10: the offset is constant. The first retraction, this exercise, the same day, on finding
+  6: the offset is not constant, because it gained 1827.7 s across 11668 s of host time between the
+  second and third readings. Finding 6 already refused to name a rate, but the retraction was
+  written on the first measurements that moved, and it left "drift" standing as the reading of why.
+  The superseding result, findings 48-53, 2026-09-11: four induced-load tests looked for an ongoing
+  rate. Three fell to measurement problems of their own — integer-second rounding over an 83 s
+  segment, a loose bracket widening one endpoint to 6 s, then `qm guest exec`'s own round trip
+  slowing under the load it was measuring. The fourth held about 80% sustained host CPU contention
+  for 900 s and narrowed the ratio range to 0.9989-1.0047, cleanly bracketing parity. The cumulative
+  deficit is real and confirmed by two independent methods. It is concentrated at or near boot,
+  consistent with a one-time clocksource miscalibration under `ostype: l26`, not a continuing rate.
+  "Constant" remains wrong, because the offset did move between readings. "Drifting" is wrong as a
+  description of why. The ledger row asserting the ongoing rate is retired; see `verified-claims.md`.
 
 - **Claude proposed in session that CA01's error was a base set from a UTC value and treated as
   local time, because that error equals CA01's timezone offset almost exactly. Finding 13 does not
