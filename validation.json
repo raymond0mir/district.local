@@ -1,9 +1,9 @@
 {
-  "commit": "420a201d29bd6a0fdbb329761389d61920c65534",
+  "commit": "baba3c98381e830c70cedd7634fcd07dc43ed831",
   "counts": {
     "ERROR": 0,
     "INFO": 24,
-    "WARN": 38
+    "WARN": 37
   },
   "findings": [
     {
@@ -16,12 +16,6 @@
       "check": "no-report",
       "message": "exercise has no report.md",
       "path": "exercises/2026-09-10-thin-pool-headroom-reclaim",
-      "severity": "WARN"
-    },
-    {
-      "check": "no-report",
-      "message": "exercise has no report.md",
-      "path": "exercises/2026-09-12-workload-identity-scope-isolation",
       "severity": "WARN"
     },
     {

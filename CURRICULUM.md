@@ -574,6 +574,16 @@ gate — needs no P2 and no on-prem step, so it does not have to wait for anythi
 that Microsoft Graph enforces regardless of the signed-in user's own administrative rights. The
 token, not the human, is the boundary.
 
+> **Run 2026-09-12 to 2026-09-13. Answered, and the premise is disproven.** The second clause holds:
+> the token is the boundary, shown by one client and one user where `GET /v1.0/users` returned `403`
+> with `scp` `User.Read` and `200` with `User.ReadBasic.All`. The first clause is wrong. **An app
+> registration is not restricted by its declared permission list.** That list drives the consent
+> prompt and the portal's admin-consent control. It is not a runtime ceiling: the client requested a
+> second scope at the token endpoint, an ordinary member consented, and the registration still
+> declares one permission. What bounds a delegated client is consent, and what the tenant permits a
+> user to consent to. *Evidence:*
+> `exercises/2026-09-12-workload-identity-scope-isolation/report.md`.
+
 **Why this belongs in the curriculum, not just a demo:** every exercise so far governs a human or
 a synced on-premises identity. This is the first exercise aimed at a non-human, non-interactive
 client — the shape an AI agent or a CLI tool actually takes when it authenticates. The
@@ -598,9 +608,13 @@ call.
 5. Decode the JWT. Replace `-` and `_` with `+` and `/` before base64 decoding — JWTs use
    base64url, and a raw `[Convert]::FromBase64String` throws on a payload holding either
    character.
-6. Read `scp` and `appid`. Read `aud` knowing its form depends on the app manifest's
+6. Read `scp` and `appid`. ~~Read `aud` knowing its form depends on the app manifest's
    `accessTokenAcceptedVersion` — a v1-formatted token carries Graph's GUID, not the URL, even
-   when requested from the v2.0 endpoint.
+   when requested from the v2.0 endpoint.~~ **Disproven 2026-09-13.** Two tokens in this tenant,
+   both `ver` `1.0`, carry different `aud` forms: Graph Explorer's carries the GUID and this
+   client's carries `https://graph.microsoft.com`. The token version does not determine the form.
+   What does is not established. *Evidence:*
+   `exercises/2026-09-12-workload-identity-scope-isolation/evidence/07-device-code-token-bounds-the-signed-in-user.md`.
 7. Call `GET /v1.0/me` first, as a positive control. It must return 200 before the negative test
    means anything.
 8. Call `GET /v1.0/directoryRoles`, or `GET /v1.0/users`, as the negative test. Expect 403,
@@ -608,7 +622,9 @@ call.
    `User.Read.All`, not an admin-role scope, closer to how an agent's own accumulated grants would
    actually be bounded.
 
-**Closes:** nothing yet. New candidate.
+**Closes:** run 2026-09-12 to 2026-09-13. Closed the `wids` question carried since 2026-09-09.
+Opened a detection thread (the sign-in log entry for a device code flow) and a consent-policy
+question that remains blocked.
 
 **SC-300 coverage:** Implement access management for apps — delegated vs. application
 permissions, admin and user consent, app registration scope restriction.

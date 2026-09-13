@@ -146,10 +146,35 @@ Write the condition that makes each line true. A behavior that depends on a lice
 - **`powershell@preview` installs `pwsh-preview`, not `pwsh`.** Nothing named `pwsh` lands on `PATH`. Symlink it once — `sudo ln -s "$(command -v pwsh-preview)" /usr/local/bin/pwsh` — or every instruction written against `pwsh` fails at the first command. Source: `exercises/2026-09-09-pim-for-groups`.
 - **`Install-PSResource` searches `MicrosoftArtifactRegistry` (priority 40) before `PSGallery` (priority 50), and a miss there returns "Response returned status code package: Not Found" rather than falling through.** Name the repository explicitly: `-Repository PSGallery`. Check with `Get-PSResourceRepository`. Source: `exercises/2026-09-09-pim-for-groups`.
 - **`Install-PSResource` prints nothing on success and can silently install only some of a multi-name list.** Verify with `Get-Module -ListAvailable` rather than trusting a silent return. On 2026-09-09 a three-module install returned clean after ten minutes with one module present. Source: `exercises/2026-09-09-pim-for-groups`.
+- **`urllib.request.urlopen` can block forever in `sock.connect` on this host, where `curl` reaches the same endpoint in under a second.** Observed 2026-09-13 against `login.microsoftonline.com`; the traceback named the blocking call and the interrupt was the only way out. The standard library sets no default connect timeout. Route HTTP through `curl` in lab scripts, or pass an explicit timeout. Passing secrets to `curl` with `-K -` on stdin keeps them out of the process list. Source: `exercises/2026-09-12-workload-identity-scope-isolation`.
 - **`Connect-MgGraph` times out after 120 seconds of inactivity, on both the browser and `-UseDeviceAuthentication` flows.** Account-picking and admin consent do not fit in that window from a cold browser. Sign the intended account into `https://microsoft.com/devicelogin` first, then run the command and paste the code. Source: `exercises/2026-09-09-pim-for-groups`, unresolved — no successful connection was made. **The pre-auth workaround was tried 2026-09-10 and also timed out.** Use Graph Explorer for this tenant until the cause is found. Source: `exercises/2026-09-10-pim-policy-authoring`.
 - **`Microsoft.Graph.Authentication` alone is enough to call any Graph endpoint.** `Invoke-MgGraphRequest -Method GET -Uri '<uri>' -OutputType Json` replaces Graph Explorer without the large command modules, and keeps evidence files consistent with the raw URIs they already record. Single-quote the URI so PowerShell leaves `$filter` and `$expand` alone. Source: `exercises/2026-09-09-pim-for-groups`.
 
 ## Graph Explorer, sign-in and consent
+
+**Pass 1 of the credential scan matches a line that reports the absence of a token.** A summary
+line naming a token key, followed by a colon and any non-space word, matches the pass 1 pattern even
+when the word is `absent`. A lab script that prints whether a refresh token was issued produces this.
+Read the hit, confirm the value is a word and not a secret, then commit with `--no-verify` as
+`references/credential-scan.md` allows. Do not edit captured output to quiet the scan; that
+falsifies evidence. A script written later should print the fact without the key-colon-value shape.
+Blocked one commit on 2026-09-13. Source: `exercises/2026-09-12-workload-identity-scope-isolation`.
+
+**Signing out of Graph Explorer does not switch accounts.** The sign-in that follows
+re-authenticates through the browser's existing session and returns the same account with no prompt.
+A control that depends on a different identity must be verified from the token's `oid`, not from the
+account chip. Cost one failed control on 2026-09-13. Use a private window, or accept that the
+identity did not change. Source: `exercises/2026-09-12-workload-identity-scope-isolation`.
+
+**An `oauth2PermissionGrant` is amended, not duplicated, when the same user consents again for the
+same client and resource.** The grant id stays byte-identical and the space-delimited `scope` string
+grows. There is no per-scope timestamp. Read the `scope` value; counting grants detects nothing.
+Source: `exercises/2026-09-12-workload-identity-scope-isolation`.
+
+**A public client can request a delegated scope the application does not declare.**
+`requiredResourceAccess` drives the consent prompt and the portal's admin-consent control. It is not
+a runtime ceiling. Judge what a client holds from its token's `scp` and its consent grant, never from
+the API permissions blade. Source: `exercises/2026-09-12-workload-identity-scope-isolation`.
 
 **The address bar keeps its previous contents, and a paste that lands beside them produces a
 `BadRequest` naming a segment you never typed.** On 2026-09-12 a paste produced

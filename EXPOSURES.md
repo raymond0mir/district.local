@@ -487,6 +487,28 @@ the tenant's user-consent posture is not established, so what a non-administrato
 unknown. *Evidence:*
 `exercises/2026-09-12-workload-identity-scope-isolation/evidence/04-global-administrator-refused-on-permission-grant-policies.md`.
 
+**A member account can widen a workload identity's access on its own, and nothing an administrator
+reviews changes when it does.** `adm-jsmith`, holding no directory role, consented twice in fifteen
+minutes to scopes for `Lab-AI-Agent-CLI` on 2026-09-13. The application's declared permission list
+still reads one permission, which is what the portal's API permissions blade renders. The consent
+grant behind it reads two. Entra amended the existing grant rather than adding a second, so a control
+that counts grants sees no change; the growth is inside a space-delimited `scope` string on an object
+with no per-scope timestamp. `defaultUserRolePermissions.allowedToCreateApps` is `true` here, so the
+same member could have created the application as well. **The lab created this instance
+deliberately**, and the pattern is not lab-specific: it is the permission-sprawl thesis at the
+workload layer, where the object an administrator inspects and the object the directory enforces are
+different objects. *Evidence:*
+`exercises/2026-09-12-workload-identity-scope-isolation/evidence/11-the-grant-grew-and-the-registration-did-not.md`,
+full account in that exercise's `report.md`.
+
+**`Lab-AI-Agent-CLI` is a live workload identity in the tenant, and it is not torn down.**
+Application object `e15012f9-b153-46df-afc9-ce63df4f29ee`, appId
+`388b9dd8-d98f-46f3-8eed-4418346e5673`, service principal `4c43a528-ba33-40b0-8821-c8643587f351`,
+public client with device code flow enabled, carrying a standing user consent for `User.Read` and
+`User.ReadBasic.All` granted by `adm-jsmith`. Deleting the application removes the grant with it.
+Raymond's decision at teardown; the recorded default is to remove it. *Evidence:*
+`exercises/2026-09-12-workload-identity-scope-isolation/evidence/06-lab-ai-agent-cli-registered-and-verified.md`.
+
 ## Infrastructure
 
 **The lab has no power protection and no restart policy, and a power loss stops a domain

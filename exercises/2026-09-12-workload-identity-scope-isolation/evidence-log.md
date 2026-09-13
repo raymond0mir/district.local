@@ -29,6 +29,26 @@ is the boundary, not the human.
   `Request_ResourceNotFound` for it under a Global Administrator's token. Entra sends it in `wids`
   for every non-guest account. Closes an open question carried since 2026-09-09.
   `evidence/05-wids-b79fbf4d-is-not-a-role.md`.
+- **`Lab-AI-Agent-CLI` exists as two objects, and Graph confirms every property the portal claimed.**
+  Application `e15012f9`, service principal `4c43a528`, client id `388b9dd8`. Single tenant, public
+  client, no redirect URI, one declared delegated scope.
+  `evidence/06-lab-ai-agent-cli-registered-and-verified.md`.
+- **The device code token refuses what its user is permitted to do.** `scp` `User.Read`, `GET /me`
+  returns 200, `GET /users` and `GET /directoryRoles` both return 403, all inside the same second.
+  `evidence/07-device-code-token-bounds-the-signed-in-user.md`.
+- **The consent is user consent.** `consentType: Principal`, granted by `adm-jsmith` for
+  `" User.Read"` alone, with no administrator involved.
+  `evidence/08-user-consent-recorded-as-principal.md`.
+- **The paired control failed: Graph Explorer's sign-out did not switch accounts.** The `/users` read
+  intended for `adm-jsmith` came from the Global Administrator, proven by a token decode.
+  `evidence/09-control-attempt-failed-session-never-switched.md`.
+- **Same client, same user, one scope different: 403 became 200.** Run 2 requested
+  `User.ReadBasic.All`, an ordinary member consented, and `GET /users` succeeded where it had been
+  refused fifteen minutes earlier. `directoryRoles` stayed refused.
+  `evidence/10-one-variable-changed-and-the-refusal-became-a-success.md`.
+- **The consent grant grew to two scopes while the registration still declares one**, and Entra
+  amended the existing grant rather than creating a second. The grant id is identical across captures
+  08 and 11. `evidence/11-the-grant-grew-and-the-registration-did-not.md`.
 
 ## Not captured, and why
 
@@ -39,6 +59,14 @@ is the boundary, not the human.
 - **The positive control on the 403.** Consenting `Policy.Read.PermissionGrant` and getting `200`
   on the same URL would close capture 04's remaining alternative explanation. The broken panel
   blocks it.
+- ~~The paired control for capture 07.~~ **Captured 2026-09-13 in capture 10**, by changing the scope
+  and holding the client and the user constant, after the client-swap version failed in capture 09.
+- **`directoryAudits` evidence that one amended grant produces two consent events.** Predicted in
+  capture 11, not read.
+- **The sign-in log entry for either device code run.** Not started. It is the detection half of the
+  loop, and `auditLogs/signIns` needs the P2 trial, which ends about 2026-10-04.
+- **The pre-consent baseline.** The `oauth2PermissionGrants` read ran after the sign-in, not before.
+  Capture 08 records the gap.
 - **Whether the access token was pasted into the jwt.ms tab open beside Graph Explorer.** Asked
   twice, unanswered at the time of writing. The record says not established.
 - **Whether this tenant issues Continuous Access Evaluation tokens.** The 24.08-hour lifetime in
@@ -90,9 +118,17 @@ capture; a live re-read is owed if a sign-in behaves differently.
 
 - Does the tenant's user-consent policy refuse the device code flow before the app's own scope
   matters? `AADSTS65001` at sign-in would answer yes. Sequence 1 reads the policy first.
-- Does `aud` carry Graph's GUID or its URL? The manifest's `accessTokenAcceptedVersion` decides
-  this, and the value is not yet read.
-- What does the tenant log for a device code sign-in, and does the log name the client app?
+- ~~Does `aud` carry Graph's GUID or its URL? The manifest's `accessTokenAcceptedVersion` decides
+  this.~~ **Answered and the premise was wrong, 2026-09-13.** Both forms appeared in this exercise on
+  `ver` `1.0` tokens. What determines the form is not established. This request named the resource by
+  URL in its scope string; a request naming it by GUID is the obvious next test.
+- What does the tenant log for a device code sign-in, and does the log name the client app? The P2
+  trial admits `auditLogs/signIns` until about 2026-10-04. This is the detection half of the loop and
+  it is not started.
+- Does requesting `offline_access` change what this client can do after the token expires, and what
+  does a refresh token look like in the tenant's own records?
+- Would a scope requiring admin consent be refused to `adm-jsmith` at sign-in? Capture 08 answers the
+  consent question for `User.Read` only.
 - **Who created `P2P Server`, appId `004ad450-5909-445f-969a-d3798ab41880`, on
   2026-09-04T00:35:35Z?** No exercise in `exercises/` records creating it. Its provenance is not
   captured, and a first-party explanation for it is Recalled, not established. One
