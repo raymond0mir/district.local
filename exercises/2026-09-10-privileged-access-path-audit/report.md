@@ -140,7 +140,12 @@ Timestamps from two hosts appeared side by side and I read them as agreeing.
 - Why is DC01's clock offset from the host's? **This report first called that offset constant. That
   wording is retracted.** The three timestamps behind it sit inside seven minutes. A read three
   hours later put DC01 at +5h 06m 10.7s from the host, against +4h 35m 43s here.
-  `exercises/2026-09-10-domain-time-skew` carries the measurement and the retraction. A Confirmed
+  `exercises/2026-09-10-domain-time-skew` carries the measurement and the retraction.
+  ~~The offset moves, so the clock drifts.~~ **Corrected 2026-09-12: that retraction was itself
+  superseded.** It was written the same day on the first readings that moved, and it left drift
+  standing as the explanation. Four induced-load tests on 2026-09-11 looked for an ongoing rate and
+  found none; the last held about 80% sustained host CPU contention for 900 s and bracketed parity
+  at 0.9989-1.0047. The deficit is real and concentrated at or near boot, not continuing. A Confirmed
   row from 2026-09-06 puts CA01 and DC01 within 1.69 seconds of each other; that no longer holds
   either, because CA01 now reads 1h 53m 51.8s ahead of DC01. Kerberos tolerates five minutes.
   Certificate validity windows and Entra Connect sync both depend on the answer.

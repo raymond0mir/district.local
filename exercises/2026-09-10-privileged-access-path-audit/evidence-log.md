@@ -154,6 +154,14 @@ direction are not stated, because DC01's timezone and time source were not read.
 seven-minute window and not beyond it. `exercises/2026-09-10-domain-time-skew` measures the offset
 at +4h 35m 43s here and +5h 06m 10.7s three hours later. Size and direction are now Captured there:
 DC01 is ahead of the host.
+~~The offset moves, so DC01 drifts against the host at some rate this exercise did not measure.~~
+**Corrected 2026-09-12: the retraction above was itself superseded.** It was written the same day,
+on the first two readings that moved. `exercises/2026-09-10-domain-time-skew` tested for an ongoing
+rate four times on 2026-09-11 and found none; the last test held about 80% sustained host CPU
+contention for 900 s and bracketed parity at 0.9989-1.0047. The cumulative deficit is real, and it
+is concentrated at or near boot rather than continuing. "Constant" is still wrong, because the
+offset did move. "Drifting" is wrong as the explanation of why. See that exercise's Corrections and
+the corrected Confirmed row in `verified-claims.md`.
 
 ## Not captured, and why
 
@@ -197,6 +205,11 @@ DC01 is ahead of the host.
   +4h 35m 43s. The three timestamps used here sit inside seven minutes, and constancy over that
   window does not extend to three hours. The finding is annotated in place rather than deleted, and
   the measurement now lives in `exercises/2026-09-10-domain-time-skew`.
+  **This retraction was itself superseded, 2026-09-12.** It read the moving offset as drift.
+  Four induced-load tests on 2026-09-11 found no ongoing rate, the last bracketing parity at
+  0.9989-1.0047 across 900 s of sustained host CPU contention. The loss is concentrated at or near
+  boot. Both this finding's original claim and this retraction of it are struck and re-dated in
+  place above.
 
 ## Open questions
 
