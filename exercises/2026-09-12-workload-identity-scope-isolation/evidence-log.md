@@ -89,6 +89,15 @@ is the boundary, not the human.
   MFA Conditional Access policy, so a sign-in by it would skip MFA and would not represent a normal
   administrator.
 
+- **Dropping the PIM activation from the first run. Changed by Claude, stated before the run.** The
+  entry above records User Administrator activated through PIM as the agreed design. That activation
+  did not happen in either run, and both tokens carry `wids` `b79fbf4d` alone, with no directory
+  role. Claude changed the design and said so before running, not after: `allowedToReadOtherUsers`
+  is `true`, so the refusal was already attributable to the token rather than to the human, and the
+  activation costs an approval round trip through a second browser session. **The activated pass is
+  still owed**, and it is the maximal version of the negative test.
+  `evidence/07-device-code-token-bounds-the-signed-in-user.md`.
+
 ## Corrections
 
 - **The signing identity of captures 01 and 02 was recorded as not captured, and it is now
@@ -138,14 +147,21 @@ capture; a live re-read is owed if a sign-in behaves differently.
 
 ## Not started
 
-**Paused at Raymond's request, 2026-09-12, before the app registration.**
+**This section is retired, 2026-09-14.** It recorded a mid-exercise pause on 2026-09-12 and was not
+updated when the exercise resumed on 2026-09-13. Two of its three items completed. The section is
+kept on the record rather than deleted, under the standing rule against silent edits.
 
-- Resolving the 403. Two candidates remain: the least-privileged scope is genuinely required, or
-  Graph Explorer returned a stale body.
+~~Paused at Raymond's request, 2026-09-12, before the app registration.~~
 
-- The app registration itself. The build moves to the Entra admin center, at Raymond's direction:
-  "cant we just do this shit clicking around entra then validate in graph after?" He is right, and
-  the repository already prescribes that pattern. A portal action is Recalled; the Graph read after
-  it makes the claim Captured. Graph Explorer's reads worked all session. Only its permissions
-  panel and its address bar failed.
-- The device code request, the token decode, and the positive and negative Graph calls.
+- ~~Resolving the 403.~~ **Still open, and recorded elsewhere.** Two candidates remain: the
+  least-privileged scope is genuinely required, or Graph Explorer returned a stale body. "Not
+  captured, and why" already carries this as the blocked positive control. It is not a Not-started
+  item.
+- ~~The app registration itself.~~ **Completed 2026-09-12.** Built in the Entra admin center at
+  Raymond's direction: "cant we just do this shit clicking around entra then validate in graph
+  after?" The portal action was Recalled, and the Graph reads after it made the claim Captured.
+  `evidence/06-lab-ai-agent-cli-registered-and-verified.md`.
+- ~~The device code request, the token decode, and the positive and negative Graph calls.~~
+  **Completed 2026-09-13, across two runs fifteen minutes apart.**
+  `evidence/07-device-code-token-bounds-the-signed-in-user.md`,
+  `evidence/10-one-variable-changed-and-the-refusal-became-a-success.md`.
