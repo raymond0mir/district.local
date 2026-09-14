@@ -92,6 +92,60 @@ GUEST_EXEC = re.compile(r'"(out-data|exited)"')
 HEADING = re.compile(r"^##\s+(.+?)\s*$", re.MULTILINE)
 TABLE_ROW = re.compile(r"^\|(.+)\|\s*$", re.MULTILINE)
 
+# The rule that a capture block holds machine output, unedited except for
+# redactions named in place, was first written down on this date, in
+# exercises/2026-09-14-device-code-detection/evidence/06. Exercises dated
+# before it are grandfathered, as the evidence-log schema and the capture
+# header already are. Retrofitting them would alter a dated artifact to
+# satisfy a later rule.
+CAPTURE_FIDELITY_DATE = "2026-09-14"
+
+# Acknowledged defects in published captures, one row per file, each citing
+# the record that supersedes it. This is a registry, not a severity rule. It
+# downgrades the listed path and nothing else. A path absent from HEAD is
+# still editable and is never downgraded, so a new defect fails at full
+# severity and cannot be registered away. The registry only shrinks: a row
+# that matches no finding is reported as stale and is meant to be deleted.
+SUPERSEDED_CAPTURES = {
+    "exercises/2026-09-14-device-code-detection/evidence/"
+    "01-device-code-lands-in-the-non-interactive-stream.md":
+        "exercises/2026-09-14-device-code-detection/evidence/"
+        "06-corrected-full-captures-superseding-01-02-03.md",
+    "exercises/2026-09-14-device-code-detection/evidence/"
+    "02-three-audit-events-and-the-one-named-consent-hides-the-widening.md":
+        "exercises/2026-09-14-device-code-detection/evidence/"
+        "06-corrected-full-captures-superseding-01-02-03.md",
+    "exercises/2026-09-14-device-code-detection/evidence/"
+    "03-the-interactive-stream-holds-the-flow-and-cannot-name-it.md":
+        "exercises/2026-09-14-device-code-detection/evidence/"
+        "06-corrected-full-captures-superseding-01-02-03.md",
+}
+
+# A capture block holds machine output. The only alteration the repository
+# permits is a redaction named in place. A shortened rendering leaves one of
+# these three marks. Each matches inside a double-quoted value only, so prose
+# that happens to carry three dots is out of scope.
+TRUNCATED_ID = re.compile(r'"[0-9a-fA-F]{4,}(?:-[0-9a-fA-F]{4,})*-\.\.\."')
+ELLIPSIS_IN_VALUE = re.compile(r'"[^"\n]*\S[ \t]*\.\.\.[ \t]*\S[^"\n]*"')
+BRACKET_NOTE = re.compile(r'"\[([^"\[\]]{4,})\]"')
+
+# A citation written as a backticked path fragment that stops at a dash and
+# three dots. `check_references` cannot see it: its path regex needs the full
+# `exercises/<date-slug>/` prefix, and most of these are relative.
+ABBREVIATED_PATH = re.compile(r"`([^`\n]*/[^`\n]*?)-\.\.\.`")
+
+# `[redacted]`, `[REDACTED-NEW-BREAKGLASS-UPN]` and `[REDACTED: operator source
+# IP]` are the marker the credential-scan procedure asks for, not a shortening.
+REDACTION_NOTE = re.compile(r"^\s*redact", re.IGNORECASE)
+
+# A superseding record reproduces the shortened renderings it itemises, so it
+# matches every pattern above by doing its job. Its filename carries the
+# two-digit prefixes of the files it replaces.
+SUPERSEDING_NAME = re.compile(r"-superseding-[0-9]{2}(?:-[0-9]{2})*\.md$")
+
+CODE_FENCE = re.compile(r"^\s*```")
+CODE_SPAN = re.compile(r"`([^`\n]+)`")
+
 findings = []
 
 
@@ -247,6 +301,184 @@ def check_references():
                 else:
                     add("ERROR", "reference-missing",
                         "references a file that does not exist: %s" % cited, rel)
+
+
+@lru_cache(maxsize=1)
+def published_files():
+    """Paths that exist in HEAD, and are therefore already public."""
+    return frozenset(git("ls-tree", "-r", "HEAD", "--name-only"))
+
+
+@lru_cache(maxsize=1)
+def superseding_records():
+    """Evidence files that replace an earlier file in the same exercise.
+
+    `CONSIDERATIONS.md`, 2026-09-14, records the superseding file as the only
+    remedy for defective frozen evidence. Such a file quotes the renderings it
+    replaces, so it matches every capture-fidelity pattern by doing its job.
+    The convention is a filename ending `-superseding-<NN>-<NN>.md`.
+    """
+    return frozenset(
+        rel for rel in tracked_markdown()
+        if "/evidence/" in rel and SUPERSEDING_NAME.search(rel)
+    )
+
+
+def code_regions(text):
+    """(line number, text) for each fenced block and each inline code span.
+
+    A shortened value is a defect wherever it is presented as machine output.
+    A fenced block is the common case. An inline span that carries a
+    double-quoted value is the same claim written into a sentence. Prose
+    outside both is analysis, and three dots there are ordinary writing.
+    """
+    regions = []
+    inside = False
+    start = 0
+    buffer = []
+    for number, line in enumerate(text.split("\n"), 1):
+        if CODE_FENCE.match(line):
+            if inside:
+                regions.append((start, "\n".join(buffer)))
+                buffer = []
+            else:
+                start = number + 1
+            inside = not inside
+            continue
+        if inside:
+            buffer.append(line)
+            continue
+        for match in CODE_SPAN.finditer(line):
+            if '"' in match.group(1):
+                regions.append((number, match.group(1)))
+    if inside and buffer:
+        regions.append((start, "\n".join(buffer)))
+    return regions
+
+
+def shortened_values(text):
+    """(line number, matched text) for every shortened value in a file.
+
+    The three patterns overlap: a truncated identifier is also an ellipsis
+    inside a quoted value. Report each place once, so the count is a count of
+    defects and not a count of pattern hits.
+    """
+    out = []
+    for number, region in code_regions(text):
+        for line_offset, line in enumerate(region.split("\n")):
+            taken = []
+            for pattern in (TRUNCATED_ID, BRACKET_NOTE, ELLIPSIS_IN_VALUE):
+                for match in pattern.finditer(line):
+                    if pattern is BRACKET_NOTE:
+                        note = match.group(1)
+                        if REDACTION_NOTE.match(note) or " " not in note:
+                            continue
+                    start, end = match.span()
+                    if any(start < b and a < end for a, b in taken):
+                        continue
+                    taken.append((start, end))
+                    out.append((number + line_offset, match.group(0)))
+    out.sort()
+    return out
+
+
+def abbreviated_paths(text):
+    """(line number, matched text) for every backticked path that stops at -..."""
+    out = []
+    for number, line in enumerate(text.split("\n"), 1):
+        for match in ABBREVIATED_PATH.finditer(line):
+            out.append((number, match.group(0)))
+    return out
+
+
+def exercise_date(rel):
+    """The date of the exercise holding a file, or None for a file outside one."""
+    parts = rel.split("/")
+    if len(parts) > 2 and parts[0] == "exercises":
+        return parts[1][:10]
+    return None
+
+
+def check_capture_fidelity():
+    """A capture block holds machine output, unedited except for named redactions.
+
+    Decision 2026-09-14, Raymond. Three evidence files of
+    `2026-09-14-device-code-detection` rendered captured API responses in a
+    shortened form, and the defect reached a public push. Evidence 06 of that
+    exercise itemises all seven shortenings and supersedes the three files.
+
+    Severity is not lowered for frozen files as a class. `reference-missing`
+    took that route earlier the same day, and it lowers severity for every
+    future instance as well as every past one. This check uses the two devices
+    the repository already relies on instead.
+
+    First, a cutoff date. `CAPTURE_FIDELITY_DATE` marks when the rule was
+    written down. Exercises before it are grandfathered at INFO, the same
+    treatment `capture-header-grandfathered` and `evidence-log-grandfathered`
+    already give their own conventions. Work from the cutoff forward is held
+    at ERROR.
+
+    Second, a registry. `SUPERSEDED_CAPTURES` lists acknowledged defects in
+    published captures, one row per file, each citing the record that
+    supersedes it. A listed path drops to INFO. Nothing else does, and a file
+    absent from HEAD is never downgraded, because it can still be repaired by
+    editing it. A row matching no finding is reported as stale, so the
+    registry shrinks and never grows in silence.
+
+    Owner action, by code. `capture-shortened` and `citation-abbreviated`:
+    rewrite the capture before the commit, or write a superseding record and
+    add a row here. `capture-registry-stale`: delete the row. The
+    grandfathered and superseded codes carry no action, which is why they sit
+    at INFO.
+
+    The check reads marks, not meaning. It cannot see a property that was
+    dropped without leaving one, which is four of the seven shortenings
+    evidence 06 lists. It reduces the defect class; it does not close it.
+    """
+    published = published_files()
+    exempt = superseding_records()
+    matched = set()
+
+    def report(rel, code, sentence, hits):
+        line, sample = hits[0]
+        detail = "%s, %d place(s), first at line %d: %s" % (
+            sentence, len(hits), line, sample[:60])
+        date = exercise_date(rel)
+        if date is not None and date < CAPTURE_FIDELITY_DATE:
+            add("INFO", code + "-grandfathered",
+                "%s. The exercise predates the capture-fidelity rule." % detail, rel)
+            return
+        record = SUPERSEDED_CAPTURES.get(rel)
+        if record and rel in published and os.path.exists(repo_path(record)):
+            matched.add(rel)
+            add("INFO", code + "-superseded",
+                "%s. Superseded by %s." % (detail, record), rel)
+            return
+        add("ERROR", code, detail, rel)
+
+    for rel in tracked_markdown():
+        if rel in exempt:
+            continue
+        text = read(repo_path(rel))
+
+        if "/evidence/" in rel and not rel.endswith("evidence-log.md"):
+            hits = shortened_values(text)
+            if hits:
+                report(rel, "capture-shortened",
+                       "capture holds a shortened value", hits)
+
+        hits = abbreviated_paths(text)
+        if hits:
+            report(rel, "citation-abbreviated",
+                   "citation abbreviates a path and cannot resolve", hits)
+
+    for rel, record in sorted(SUPERSEDED_CAPTURES.items()):
+        if not os.path.exists(repo_path(record)):
+            add("ERROR", "capture-registry-broken",
+                "registry row cites a record that does not exist: %s" % record, rel)
+        elif rel not in matched:
+            add("WARN", "capture-registry-stale",
+                "registry row matches no finding, and is ready to delete", rel)
 
 
 def check_reports():
@@ -413,6 +645,7 @@ def check_skill_sync():
 CHECKS = [
     check_ledger,
     check_references,
+    check_capture_fidelity,
     check_reports,
     check_evidence_logs,
     check_evidence_files,

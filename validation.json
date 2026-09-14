@@ -1,9 +1,9 @@
 {
-  "commit": "9a96f9d00a87711a1559545814fb7c7736427015",
+  "commit": "4445fb56c0e022d57c5614428c90a1d427043ba0",
   "counts": {
     "ERROR": 0,
-    "INFO": 24,
-    "WARN": 38
+    "INFO": 34,
+    "WARN": 39
   },
   "findings": [
     {
@@ -11,6 +11,72 @@
       "message": "frozen evidence references a file that does not exist, and cannot be corrected in place: exercises/2026-09-05-b1-breakglass-exclusion-verification/evidence/01-...",
       "path": "exercises/2026-09-14-device-code-detection/evidence/01-device-code-lands-in-the-non-interactive-stream.md",
       "severity": "WARN"
+    },
+    {
+      "check": "reference-missing-frozen",
+      "message": "frozen evidence references a file that does not exist, and cannot be corrected in place: exercises/2026-09-05-b1-breakglass-exclusion-verification/evidence/01-...",
+      "path": "exercises/2026-09-14-device-code-detection/evidence/06-corrected-full-captures-superseding-01-02-03.md",
+      "severity": "WARN"
+    },
+    {
+      "check": "capture-shortened-grandfathered",
+      "message": "capture holds a shortened value, 1 place(s), first at line 34: \"de938dc8-...\". The exercise predates the capture-fidelity rule.",
+      "path": "exercises/2026-09-03-breakglass-rotation/evidence/03-legacy-admin-cleanup.md",
+      "severity": "INFO"
+    },
+    {
+      "check": "citation-abbreviated-grandfathered",
+      "message": "citation abbreviates a path and cannot resolve, 1 place(s), first at line 136: `evidence/04-...`. The exercise predates the capture-fidelity rule.",
+      "path": "exercises/2026-09-12-workload-identity-scope-isolation/evidence/07-device-code-token-bounds-the-signed-in-user.md",
+      "severity": "INFO"
+    },
+    {
+      "check": "capture-shortened-grandfathered",
+      "message": "capture holds a shortened value, 1 place(s), first at line 30: \": \"... Application.Read.All ... Directory.Read.All ... User. The exercise predates the capture-fidelity rule.",
+      "path": "exercises/2026-09-12-workload-identity-scope-isolation/evidence/09-control-attempt-failed-session-never-switched.md",
+      "severity": "INFO"
+    },
+    {
+      "check": "citation-abbreviated-grandfathered",
+      "message": "citation abbreviates a path and cannot resolve, 2 place(s), first at line 65: `evidence/09-...`. The exercise predates the capture-fidelity rule.",
+      "path": "exercises/2026-09-12-workload-identity-scope-isolation/evidence/10-one-variable-changed-and-the-refusal-became-a-success.md",
+      "severity": "INFO"
+    },
+    {
+      "check": "citation-abbreviated-grandfathered",
+      "message": "citation abbreviates a path and cannot resolve, 1 place(s), first at line 64: `evidence/06-...`. The exercise predates the capture-fidelity rule.",
+      "path": "exercises/2026-09-12-workload-identity-scope-isolation/evidence/11-the-grant-grew-and-the-registration-did-not.md",
+      "severity": "INFO"
+    },
+    {
+      "check": "citation-abbreviated-grandfathered",
+      "message": "citation abbreviates a path and cannot resolve, 4 place(s), first at line 134: `evidence/11-...`. The exercise predates the capture-fidelity rule.",
+      "path": "exercises/2026-09-12-workload-identity-scope-isolation/report.md",
+      "severity": "INFO"
+    },
+    {
+      "check": "capture-shortened-superseded",
+      "message": "capture holds a shortened value, 10 place(s), first at line 111: \"365bdd23-...\". Superseded by exercises/2026-09-14-device-code-detection/evidence/06-corrected-full-captures-superseding-01-02-03.md.",
+      "path": "exercises/2026-09-14-device-code-detection/evidence/01-device-code-lands-in-the-non-interactive-stream.md",
+      "severity": "INFO"
+    },
+    {
+      "check": "citation-abbreviated-superseded",
+      "message": "citation abbreviates a path and cannot resolve, 1 place(s), first at line 9: `exercises/2026-09-05-b1-breakglass-exclusion-verification/e. Superseded by exercises/2026-09-14-device-code-detection/evidence/06-corrected-full-captures-superseding-01-02-03.md.",
+      "path": "exercises/2026-09-14-device-code-detection/evidence/01-device-code-lands-in-the-non-interactive-stream.md",
+      "severity": "INFO"
+    },
+    {
+      "check": "capture-shortened-superseded",
+      "message": "capture holds a shortened value, 1 place(s), first at line 201: \"[] => [[... Scope:  User.Read ...]]\". Superseded by exercises/2026-09-14-device-code-detection/evidence/06-corrected-full-captures-superseding-01-02-03.md.",
+      "path": "exercises/2026-09-14-device-code-detection/evidence/02-three-audit-events-and-the-one-named-consent-hides-the-widening.md",
+      "severity": "INFO"
+    },
+    {
+      "check": "capture-shortened-superseded",
+      "message": "capture holds a shortened value, 13 place(s), first at line 39: \"365bdd23-...\". Superseded by exercises/2026-09-14-device-code-detection/evidence/06-corrected-full-captures-superseding-01-02-03.md.",
+      "path": "exercises/2026-09-14-device-code-detection/evidence/03-the-interactive-stream-holds-the-flow-and-cannot-name-it.md",
+      "severity": "INFO"
     },
     {
       "check": "no-report",

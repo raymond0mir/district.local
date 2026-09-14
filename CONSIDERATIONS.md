@@ -329,3 +329,103 @@ a repair to published evidence on its own, before the report that closes the exe
 defect was in the evidence at the moment it was first written, so it would have needed catching
 before the report rather than after. The rule that actually prevents it is narrower: read captured
 output back against the source before writing the report, not after pushing.
+
+## Capture fidelity gets a cutoff date and a registry, not a third blanket downgrade, 2026-09-14
+
+Three evidence files of `2026-09-14-device-code-detection` reached a public commit and push with
+shortened captures. `evidence/06` itemises seven shortenings. Four GUIDs were truncated. The
+`appliedConditionalAccessPolicies` blocks were reduced. A scope list was summarised and a user
+agent was ellipsized. Five records lost `modifiedProperties` entries. Four records became one-line
+summaries. One path citation stops at a dash and three dots. `check_references` caught the last one, and only after the push. No check
+read a capture block at all.
+
+**What changed.** `check_capture_fidelity` is added, and runs after `check_references`. It reads
+two things:
+
+- Shortened values, in files under `exercises/*/evidence/`. It reads fenced code blocks, and
+  inline code spans that carry a double-quoted value. Three marks count. The first is a quoted
+  identifier that stops at a dash and three dots. The second is an ellipsis inside a quoted value.
+  The third is a bracketed editorial note written in place of a value. A redaction marker and a value without a space are both excluded,
+  so `[redacted: private residence]`, `[REDACTED-NEW-BREAKGLASS-UPN]` and `[true]` stay silent.
+- Abbreviated path citations, across all tracked markdown: a backticked path that stops at a dash
+  and three dots. `check_references` cannot see these. Its path regex needs the full
+  `exercises/<date-slug>/` prefix, and six of the eight instances are written relative.
+
+**Why not a third blanket downgrade.** `reference-missing-frozen` landed earlier the same day. It
+lowers severity for any broken reference in any frozen evidence, permanently, including instances
+nobody has written yet. Raymond's decision, 2026-09-14: do not repeat that shape. The cost is
+already measurable. The WARN tier holds 39 findings and 34 are `evidence-header`, spread over eight
+closed exercises from 2026-09-02 to 2026-09-09. No person can act on one of them.
+
+**A correction on the record.** That count was quoted to this session as 38, read from
+`validation.json`. The file records commit `9a96f9d`, one commit behind `HEAD`. Commit `4445fb5`
+added `evidence/06`, which cites the broken path while itemising it, and that raised a second
+`reference-missing-frozen`. The live count before this change was 39, not 38. A bare number from `validation.json` is only
+true for the commit the file names. The 2026-09-09 entry records the same conditional for ERROR
+counts.
+
+**The owner-action test, applied before shipping.** Name what a person does when a finding fires.
+A finding with no action belongs at INFO, not WARN. That test is what diagnoses the 34 above, and
+the answers for this check are:
+
+- `capture-shortened`, `citation-abbreviated`: rewrite the capture before the commit. If the file
+  is already published, write a superseding record and add a registry row.
+- `capture-registry-stale`: delete the row.
+- `capture-registry-broken`: correct the cited record, or delete the row.
+- `capture-shortened-grandfathered`, `citation-abbreviated-grandfathered`: nothing. INFO.
+- `capture-shortened-superseded`, `citation-abbreviated-superseded`: nothing. INFO.
+
+**The cutoff date is 2026-09-14.** `CAPTURE_FIDELITY_DATE` marks when the rule was first written
+down, in `evidence/06` of the device-code exercise. Exercises dated before it report at INFO with
+the reason, which is the treatment `capture-header-grandfathered`, `evidence-log-grandfathered` and
+`evidence-log-nested-historical` already give three earlier conventions. Work from the cutoff
+forward is held at ERROR. Retrofitting an earlier exercise would alter a dated artifact to satisfy
+a later rule.
+
+**The registry is an index of corrections, not a lint baseline.** A lint baseline exists because
+fixing thousands of violations at once is impractical, and the violations remain fixable. These
+captures are not fixable: `check_evidence_frozen` forbids the edit, and `CLAUDE.md` forbids
+correcting a published claim by silent edit. The working analogue is the correcting journal entry,
+the erratum that cites the paper, and the RFC that obsoletes another. The repository already
+operates this way. It had no index of it. `SUPERSEDED_CAPTURES` is that index: one row per
+acknowledged defect, each citing the record that supersedes it. Its first three rows are
+`evidence/01`, `evidence/02` and `evidence/03` of the device-code exercise, all citing
+`evidence/06`.
+
+**The ratchet holds, and four properties were tested.** A row downgrades one named path and no
+other. A path absent from `HEAD` is never downgraded, because it can still be repaired by editing
+it, so a fresh defect cannot be registered away. A row citing a record that does not exist raises
+`capture-registry-broken` at ERROR and applies no downgrade. A row that matches no finding raises
+`capture-registry-stale` at WARN, so the registry shrinks and never grows in silence.
+
+**What did not change.** `check_evidence_frozen`, `check_references` and `reference-missing-frozen`
+are untouched. No evidence file was edited. No report was edited. The three device-code files stay
+as published, and `evidence/06` stays their remedy.
+
+**This changes what `validate.py` promises, and the change is narrow.** Every earlier check reads
+structure: a section list, a path, a word count, a header field. This is the first check that reads
+the content of a capture. It still judges the repository and not the lab, because it compares a
+file against a repository rule. Three limits are real and are not closed:
+
+1. It reads marks, not meaning. A property dropped without a trace is invisible. That is items 2,
+   5 and 6 of the seven, so the check would have caught four of the seven defects, not all seven.
+2. It reads tracked markdown. A new evidence file is invisible until it is staged, and a capture
+   filed as `.txt` is never read.
+3. `evidence/06` is exempt as a superseding record, by the filename convention
+   `-superseding-<NN>-<NN>.md`. A superseding record that shortens its own captures is exempt too.
+
+**Measured effect.** Before: 0 ERROR, 39 WARN, 24 INFO. After: 0 ERROR, 39 WARN, 34 INFO. The ten
+new findings are all INFO. Six are grandfathered. One is a truncated identifier in
+`2026-09-03-breakglass-rotation/evidence/03`. One is a declared `scp` abbreviation in
+`2026-09-12-workload-identity-scope-isolation/evidence/09`. Four cover eight abbreviated path
+citations, across three evidence files and the report of that same 2026-09-12 exercise. Four are superseded
+rows. The 2026-09-12 abbreviation is declared in place by the file that carries it. It is still
+reported. A sentence cannot convert a shortened capture into a capture.
+
+**Two follow-ups for Raymond. Neither is done, and neither is part of this change.**
+
+1. Move `evidence-header` to INFO behind a cutoff date, as this check does. It reclaims 34 of the
+   39 warnings, and no response action exists for any of them.
+2. Replace `reference-missing-frozen` with registry rows, one per instance, each citing its
+   superseding record. That restores full severity to the rule and keeps the known instances
+   silent.
