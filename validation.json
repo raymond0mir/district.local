@@ -1,11 +1,17 @@
 {
-  "commit": "7a16155d271d075651fd2ac9c9b01d809e3badbb",
+  "commit": "9a96f9d00a87711a1559545814fb7c7736427015",
   "counts": {
     "ERROR": 0,
     "INFO": 24,
-    "WARN": 37
+    "WARN": 38
   },
   "findings": [
+    {
+      "check": "reference-missing-frozen",
+      "message": "frozen evidence references a file that does not exist, and cannot be corrected in place: exercises/2026-09-05-b1-breakglass-exclusion-verification/evidence/01-...",
+      "path": "exercises/2026-09-14-device-code-detection/evidence/01-device-code-lands-in-the-non-interactive-stream.md",
+      "severity": "WARN"
+    },
     {
       "check": "no-report",
       "message": "exercise has no report.md",

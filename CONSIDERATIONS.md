@@ -286,3 +286,46 @@ against its upstream in that first read. Carryover was carrying a staler second 
 `validate.py` is unchanged. `check_carryover` enforces the word cap and has never read block
 contents. The template lives only in `CLAUDE.md`; `SKILL.md` refers to it rather than restating it,
 so the two-copy rule does not apply.
+
+## `reference-missing` becomes a WARN inside frozen evidence, 2026-09-14
+
+The `2026-09-14-device-code-detection` exercise's first evidence file cites the
+`2026-09-05-b1-breakglass-exclusion-verification` exercise's first evidence file by an abbreviation
+ending in three dots rather than by filename. Claude wrote it as if it were a path. It does not
+resolve. The exercise was committed and pushed before the
+error was read, so the file is closed evidence and `check_evidence_frozen` forbids editing it.
+
+**This is the same collision recorded on 2026-09-10**, in the entry three above, and it arrives from
+the other side. There the repair was still available: the exercise was open, completing the
+citations cleared both errors, and writing `report.md` in the same session is what raised
+`evidence-modified`. Here the report already existed and the work was already pushed, so no repair
+was available at all.
+
+**The 2026-09-10 entry declined to change `validate.py`, and that reasoning still holds for
+`evidence-modified`.** It also recorded the weakness this case lands on: the check "detects
+uncommitted divergence from the last commit, which is a narrower thing than immutability", and an
+alteration clears the moment it is committed. That remains true. Claude rewrote the three evidence
+files in place on 2026-09-14, `evidence-modified` fired, and committing the rewrite would have
+cleared it. The rewrite was reverted instead. **The freeze is advisory. It stopped the wrong action
+because it was obeyed, not because it is enforced.**
+
+**What changed, and what did not.** `check_evidence_frozen` is untouched. Evidence immutability is
+the stronger guarantee and it keeps its ERROR. `check_references` now reports a broken reference
+inside frozen evidence as `reference-missing-frozen`, a WARN, and leaves every other broken
+reference an ERROR. A file is frozen only when it sits under a closed exercise's `evidence/` **and**
+exists in `HEAD`; a file not yet published is still editable and keeps the ERROR.
+
+**Why a WARN rather than an accepted ERROR.** `CLAUDE.md` makes `validate.py` the binary answer read
+at every session start. A permanent ERROR costs that, for every future session, over one defect that
+has already been superseded on the record. The finding stays visible under its own code and stops
+blocking.
+
+**The remedy is a superseding file, not an edit.** `evidence/06-corrected-full-captures-superseding-01-02-03.md`
+carries the correct path, the complete captures, and an itemised list of what the first three files
+compressed. That is the route `check_evidence_frozen` intends, since it drops additions.
+
+**The sequencing rule from 2026-09-10 would have prevented this, and is still not adopted.** Commit
+a repair to published evidence on its own, before the report that closes the exercise. Today's
+defect was in the evidence at the moment it was first written, so it would have needed catching
+before the report rather than after. The rule that actually prevents it is narrower: read captured
+output back against the source before writing the report, not after pushing.

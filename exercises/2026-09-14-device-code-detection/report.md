@@ -180,6 +180,26 @@ to read the null address as the signal. Six consent events here name `Azure ESTS
 carrying a populated UPN and a populated address. The signal does not fire, and the populated
 address is still not the actor's.
 
+**Claude compressed captured output in three evidence files, and pushed them.** Conditional
+Access policy ids were truncated, `appliedConditionalAccessPolicies` blocks were reduced to a few
+properties, one scope list was replaced with a cross-reference, one `userAgent` was ellipsized, and
+five of seven audit events lost `modifiedProperties` and `additionalDetails` entries. The motive was
+readability. A capture block holds machine output, and a capture that has been tidied is no longer a
+capture. The complete output is recorded in
+`evidence/06-corrected-full-captures-superseding-01-02-03.md`, which itemises all seven compressions.
+No finding changed.
+
+**The first attempt to fix it was also wrong.** Claude rewrote the three closed evidence files in
+place. `validate.py` refused with `evidence-modified`: an exercise holding a `report.md` is closed
+and its evidence is frozen against modification, while added files are permitted. The in-place edits
+were reverted and the correction was added as a new file, which is the route the tooling intends.
+
+**Those two rules can conflict, and this exercise found the case.** `evidence/01` cites a path that
+does not resolve. `CLAUDE.md` requires a wrong published claim to be corrected on the record rather
+than by silent edit. `validate.py` forbids touching closed evidence at all. The broken reference is
+therefore a standing ERROR that cannot be cleared in place. Recorded as a pending decision in
+`CARRYOVER.md`; the correct path is named in `evidence/06`.
+
 **Graph Explorer failed in four recorded ways during this work.** The stale response body fired a
 third time, returning `#users/$entity` against an `applications` request; all three occurrences
 returned that same body shape, which narrows the cause to the tool's own profile request reaching

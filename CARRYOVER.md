@@ -6,8 +6,8 @@
 
 ## Next safe action
 Open the Entra admin center, Monitoring, Audit logs. Widen the date filter. Download the oldest
-surviving event. That fixes the `directoryAudits` retention boundary, now an exposure, without Graph
-Explorer and without a lab state change.
+surviving event. That fixes the `directoryAudits` retention boundary, now an exposure, and changes
+no lab state. It avoids Graph Explorer.
 
 ## Lab state
 No VM touched since 2026-09-11; readings not re-taken. VM 100 (DC01) and VM 107 (CA01)
@@ -30,25 +30,24 @@ Pool Data% at 85 or higher. Issue no certificate from CA01 until the clock is fi
 
 ## Pending decisions
 - Redacting the tenant domain, which embeds a personal email local-part. Asked 2026-09-14.
-  Default: leave as captured; it is already throughout the repo.
+  Default: leave as captured; already in the repo.
 - Okta AD agent exercise. Asked 2026-09-14. Gated on a free-plan check, the DC01 clock fix, and a
-  member server host. Default: none, ask first.
+  member server host. Default: ask first.
 - Second PIM approver for Exchange and Teams Administrator. Asked 2026-09-10. Default: ask first.
 - Which time fix to apply to DC01. Three candidates in `2026-09-10-domain-time-skew/report.md`.
   Default: ask first.
 - Boot reproducibility of the clocksource defect. Default: ask first.
 - Teardown set: `Lab-AI-Agent-CLI` and its grant, two `AllPrincipals` grants, `adm-jsmith`'s direct
   B4 eligibility. Default: remove at teardown. `tmp-cainstall`: leave disabled.
-- Credential scan patterns file and passes 4-5. Default: leave the hook alone, sweep by hand.
+- Credential scan passes 4-5. Default: leave the hook, sweep by hand.
 
 ## Blockers
 Graph Explorer has four recorded defects: stale `#users/$entity` bodies, a sticky address bar, a
-permissions panel that will not load, and a sign-out that does not switch accounts. Prefer the Entra
-admin center for audit work. Entra CBA needs public hosting for `crl.districtsafetyphoto.com`, and
-CA01's clock. `Connect-MgGraph` times out. Owner: Raymond.
+dead permissions panel, and a sign-out that does not switch accounts. Prefer the Entra admin
+center. Entra CBA needs public hosting for `crl.districtsafetyphoto.com`, and CA01's clock.
+`Connect-MgGraph` times out. Owner: Raymond.
 
 ## Uncommitted and staged work
-Not clean. New: `exercises/2026-09-14-device-code-detection/`, with a report, an evidence log and
-evidence 01 to 05. Modified: `verified-claims.md`, six rows; `EXPOSURES.md`, two refined and three
-added; `references/gotchas.md`, one rule narrowed and six added, both copies synced;
-`validation.json`. Nothing staged.
+Not clean. New: the 2026-09-14 exercise's `evidence/06`. Modified: its `evidence-log.md` and
+`report.md`, `validate.py`, `CONSIDERATIONS.md`, `validation.json`, this file. `validate.py` returns
+0 ERROR and 38 WARN; the new warning is the frozen-evidence reference it can no longer clear.

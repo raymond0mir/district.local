@@ -197,13 +197,56 @@ def check_ledger():
                 "verified-claims.md")
 
 
+def frozen_evidence():
+    """Paths that `check_evidence_frozen` forbids editing.
+
+    A file is frozen when it sits under `exercises/<name>/evidence/`, that
+    exercise holds a `report.md`, and the file already exists in HEAD. A file
+    absent from HEAD has never been published and is still editable, so it is
+    not frozen.
+    """
+    closed = {
+        name for name in exercises()
+        if os.path.exists(repo_path("exercises", name, "report.md"))
+    }
+    published = set(git("ls-tree", "-r", "HEAD", "--name-only"))
+    out = set()
+    for rel in published:
+        parts = rel.split("/")
+        if len(parts) > 3 and parts[0] == "exercises" and parts[2] == "evidence":
+            if parts[1] in closed:
+                out.add(rel)
+    return out
+
+
 def check_references():
+    """A broken reference is an ERROR, except inside frozen evidence.
+
+    Decision 2026-09-14. `CLAUDE.md` requires a wrong published claim to be
+    corrected on the record rather than by silent edit. `check_evidence_frozen`
+    forbids touching a closed exercise's evidence at all. A broken path inside
+    such a file therefore cannot be cleared in place, and as an ERROR it made
+    `validate.py` permanently unclean, which costs the binary answer that every
+    session start depends on.
+
+    Evidence immutability is the stronger guarantee and it is kept. The remedy
+    for a broken reference in frozen evidence is a new file that supersedes it,
+    as `exercises/2026-09-14-device-code-detection/evidence/06-...` does. The
+    finding is reported as a WARN under its own code so it stays visible and
+    stops blocking. Everywhere else a broken reference remains an ERROR.
+    """
+    frozen = frozen_evidence()
     for rel in tracked_markdown():
         text = read(repo_path(rel))
         for cited in set(cited_paths(text)):
             if not os.path.exists(repo_path(cited)):
-                add("ERROR", "reference-missing",
-                    "references a file that does not exist: %s" % cited, rel)
+                if rel in frozen:
+                    add("WARN", "reference-missing-frozen",
+                        "frozen evidence references a file that does not exist, "
+                        "and cannot be corrected in place: %s" % cited, rel)
+                else:
+                    add("ERROR", "reference-missing",
+                        "references a file that does not exist: %s" % cited, rel)
 
 
 def check_reports():

@@ -22,7 +22,9 @@ already written and cannot be recaptured after the endpoint closes.
 | `scp` | `User.Read` | `User.Read User.ReadBasic.All` |
 | Consent | `consentType: Principal` | grant amended in place, id unchanged |
 
-Sources: `exercises/2026-09-12-workload-identity-scope-isolation/evidence/07-...`, `10-...`, `11-...`.
+Sources: `exercises/2026-09-12-workload-identity-scope-isolation/evidence/07-device-code-token-bounds-the-signed-in-user.md`,
+`exercises/2026-09-12-workload-identity-scope-isolation/evidence/10-one-variable-changed-and-the-refusal-became-a-success.md`,
+`exercises/2026-09-12-workload-identity-scope-isolation/evidence/11-the-grant-grew-and-the-registration-did-not.md`.
 
 ## Questions this exercise must answer
 
@@ -109,6 +111,21 @@ Sources: `exercises/2026-09-12-workload-identity-scope-isolation/evidence/07-...
 - **A second claim in `evidence/01` was too wide rather than wrong.** It read the token event's
   `"Previously satisfied"` as proof that no MFA prompt occurred. `evidence/03` shows the prompt one
   leg earlier. Narrowed in place.
+- **Claude compressed captured output in evidence 01, 02 and 03, and the files were committed and
+  pushed before it was caught.** Seven kinds of compression, itemised in
+  `evidence/06-corrected-full-captures-superseding-01-02-03.md`: truncated GUIDs, reduced
+  Conditional Access blocks, one summarised scope list, one ellipsized `userAgent`, dropped
+  `modifiedProperties` and `additionalDetails`, compressed record blocks, and one broken path
+  reference. The motive was readability, and it is not a permitted motive. No finding changed.
+- **The first repair attempt broke a second rule.** Claude rewrote the three closed evidence files
+  in place. `validate.py` refused with `evidence-modified`. An exercise with a `report.md` is
+  closed, its evidence is frozen, and added files are the sanctioned route. The edits were reverted
+  and `evidence/06` was added instead.
+- **The two rules conflict for one case, and it is now open.** `evidence/01` holds a path that does
+  not resolve. It cannot be corrected in place, so `validate.py` carries a standing
+  `reference-missing` ERROR. `evidence/06` states the correct path. Raymond's decision, recorded in
+  `CARRYOVER.md`.
+
 - **The stale-response-body defect fired a third time, and the body was `#users/$entity` again.**
   `GET /v1.0/applications(appId='004ad450-5909-445f-969a-d3798ab41880')` returned the signed-in
   user's own object, with `@odata.context` `#users/$entity`. That context cannot be produced by an
