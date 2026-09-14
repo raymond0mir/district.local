@@ -102,9 +102,21 @@ America/Los_Angeles.
 
 Write one file per diagnostic thread. Name the file for what it proves.
 
-Start each capture block with three lines: the command verbatim, the host, and the UTC timestamp
-from `date -u`. Put only machine output below those lines. Put analysis in the report or the
-evidence log.
+Start each capture block with three lines: the command verbatim, the host, and the UTC timestamp.
+Put only machine output below those lines. Put analysis in the report or the evidence log.
+
+**Claude owns the timestamp. Run `python3 stamp.py` rather than asking Raymond for one.** Added
+2026-09-14, after two evidence files of `2026-09-14-device-code-detection` were written with a date
+and a lower bound instead of a time, and the exact readings were unrecoverable.
+
+- `python3 stamp.py --header --command "<command>" --host "<host>"` emits the whole header.
+- Stamp twice around work Raymond runs: once when the request goes out, once when he pastes back.
+  Pass the first reading to `--since` and the header carries a bounded window instead of a
+  fabricated point.
+- An exact reading beats a bound. When Raymond pastes his own `date -u`, use that value and say so.
+- `stamp.py` reads the Mac Mini's clock, which is the only clock Claude can reach. A stamp records
+  when evidence was recorded, never when a command ran on DC01 or CA01. Those clocks are wrong by
+  hours; see `CARRYOVER.md` and the time entries in `references/gotchas.md`.
 
 Screenshot or scrollback output is Recalled. Say so in the report. Recalled output cannot enter the
 ledger.
@@ -124,6 +136,7 @@ CURRICULUM.md         exercise plan
 CONSIDERATIONS.md     design decisions for the repository's own tooling
 validate.py           deterministic repository checks; binary answers only
 validation.json       the last validate.py run, overwritten each run
+stamp.py              emits a capture header from the Mac Mini's clock; see Evidence files
 README.md             repo entry point, written for a public reader
 .gitignore            excludes local editor state
 .githooks/pre-commit  the credential scan; enable with core.hooksPath

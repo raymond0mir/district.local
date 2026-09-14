@@ -1,22 +1,16 @@
 {
-  "commit": "4445fb56c0e022d57c5614428c90a1d427043ba0",
+  "commit": "b4379ceab67a4e109ef22e57adc441613548152f",
   "counts": {
     "ERROR": 0,
-    "INFO": 34,
-    "WARN": 39
+    "INFO": 70,
+    "WARN": 2
   },
   "findings": [
     {
-      "check": "reference-missing-frozen",
-      "message": "frozen evidence references a file that does not exist, and cannot be corrected in place: exercises/2026-09-05-b1-breakglass-exclusion-verification/evidence/01-...",
+      "check": "reference-missing-superseded",
+      "message": "references a file that does not exist: exercises/2026-09-05-b1-breakglass-exclusion-verification/evidence/01-.... Superseded by exercises/2026-09-14-device-code-detection/evidence/06-corrected-full-captures-superseding-01-02-03.md.",
       "path": "exercises/2026-09-14-device-code-detection/evidence/01-device-code-lands-in-the-non-interactive-stream.md",
-      "severity": "WARN"
-    },
-    {
-      "check": "reference-missing-frozen",
-      "message": "frozen evidence references a file that does not exist, and cannot be corrected in place: exercises/2026-09-05-b1-breakglass-exclusion-verification/evidence/01-...",
-      "path": "exercises/2026-09-14-device-code-detection/evidence/06-corrected-full-captures-superseding-01-02-03.md",
-      "severity": "WARN"
+      "severity": "INFO"
     },
     {
       "check": "capture-shortened-grandfathered",
@@ -199,214 +193,214 @@
       "severity": "INFO"
     },
     {
-      "check": "evidence-header",
-      "message": "capture header has no host",
+      "check": "evidence-header-frozen",
+      "message": "capture header has no host. The file is frozen and the reading cannot be recovered.",
       "path": "exercises/2026-09-02-a2-gpo-surface-and-domain-root-link/evidence/admins-group-existence-check-20260902T1701Z.txt",
-      "severity": "WARN"
+      "severity": "INFO"
     },
     {
-      "check": "evidence-header",
-      "message": "capture header has no host",
+      "check": "evidence-header-frozen",
+      "message": "capture header has no host. The file is frozen and the reading cannot be recovered.",
       "path": "exercises/2026-09-02-a2-gpo-surface-and-domain-root-link/evidence/gpo-origin-timestamps-and-full-reports-20260902T1656Z.txt",
-      "severity": "WARN"
+      "severity": "INFO"
     },
     {
-      "check": "evidence-header",
-      "message": "capture header has no host",
+      "check": "evidence-header-frozen",
+      "message": "capture header has no host. The file is frozen and the reading cannot be recovered.",
       "path": "exercises/2026-09-02-a2-gpo-surface-and-domain-root-link/evidence/gpresult-and-secedit-verified-20260902T1700Z.txt",
-      "severity": "WARN"
+      "severity": "INFO"
     },
     {
-      "check": "evidence-no-exitcode",
-      "message": "guest exec capture has no exitcode field",
+      "check": "evidence-no-exitcode-frozen",
+      "message": "guest exec capture has no exitcode field. The file is frozen and the reading cannot be recovered.",
       "path": "exercises/2026-09-02-a2-gpo-surface-and-domain-root-link/evidence/relink-execution-and-recovery-20260902T1711-1714Z.txt",
-      "severity": "WARN"
+      "severity": "INFO"
     },
     {
-      "check": "evidence-header",
-      "message": "capture header has no UTC timestamp",
+      "check": "evidence-header-frozen",
+      "message": "capture header has no UTC timestamp. The file is frozen and the reading cannot be recovered.",
       "path": "exercises/2026-09-03-breakglass-rotation/evidence/02-role-assignment-and-verification.md",
-      "severity": "WARN"
+      "severity": "INFO"
     },
     {
-      "check": "evidence-header",
-      "message": "capture header has no host, UTC timestamp",
+      "check": "evidence-header-frozen",
+      "message": "capture header has no host, UTC timestamp. The file is frozen and the reading cannot be recovered.",
       "path": "exercises/2026-09-03-breakglass-rotation/evidence/03-legacy-admin-cleanup.md",
-      "severity": "WARN"
+      "severity": "INFO"
     },
     {
-      "check": "evidence-header",
-      "message": "capture header has no host, UTC timestamp",
+      "check": "evidence-header-frozen",
+      "message": "capture header has no host, UTC timestamp. The file is frozen and the reading cannot be recovered.",
       "path": "exercises/2026-09-04-b1-security-defaults-and-ca-report-only/evidence/00-lab-state-preflight.txt",
-      "severity": "WARN"
+      "severity": "INFO"
     },
     {
-      "check": "evidence-header",
-      "message": "capture header has no host, UTC timestamp",
+      "check": "evidence-header-frozen",
+      "message": "capture header has no host, UTC timestamp. The file is frozen and the reading cannot be recovered.",
       "path": "exercises/2026-09-05-adcs-issuing-ca-build/evidence/rootca.cnf.20260905",
-      "severity": "WARN"
+      "severity": "INFO"
     },
     {
-      "check": "evidence-header",
-      "message": "capture header has no host, UTC timestamp",
+      "check": "evidence-header-frozen",
+      "message": "capture header has no host, UTC timestamp. The file is frozen and the reading cannot be recovered.",
       "path": "exercises/2026-09-05-adcs-issuing-ca-build/evidence/rootca.cnf.20260908",
-      "severity": "WARN"
+      "severity": "INFO"
     },
     {
-      "check": "evidence-header",
-      "message": "capture header has no UTC timestamp",
+      "check": "evidence-header-frozen",
+      "message": "capture header has no UTC timestamp. The file is frozen and the reading cannot be recovered.",
       "path": "exercises/2026-09-05-b1-security-defaults-transition/evidence/06-signin-log-latency-measurement.md",
-      "severity": "WARN"
+      "severity": "INFO"
     },
     {
-      "check": "evidence-header",
-      "message": "capture header has no UTC timestamp",
+      "check": "evidence-header-frozen",
+      "message": "capture header has no UTC timestamp. The file is frozen and the reading cannot be recovered.",
       "path": "exercises/2026-09-05-b1-security-defaults-transition/evidence/07-signin-log-latency-bounded-and-whfb-entry.md",
-      "severity": "WARN"
+      "severity": "INFO"
     },
     {
-      "check": "evidence-header",
-      "message": "capture header has no UTC timestamp",
+      "check": "evidence-header-frozen",
+      "message": "capture header has no UTC timestamp. The file is frozen and the reading cannot be recovered.",
       "path": "exercises/2026-09-05-b1-security-defaults-transition/evidence/08-enforcement-verified-live.md",
-      "severity": "WARN"
+      "severity": "INFO"
     },
     {
-      "check": "evidence-header",
-      "message": "capture header has no UTC timestamp",
+      "check": "evidence-header-frozen",
+      "message": "capture header has no UTC timestamp. The file is frozen and the reading cannot be recovered.",
       "path": "exercises/2026-09-06-b4-pim-eligible-role/evidence/02-p2-trial-window-captured.md",
-      "severity": "WARN"
+      "severity": "INFO"
     },
     {
-      "check": "evidence-header",
-      "message": "capture header has no UTC timestamp",
+      "check": "evidence-header-frozen",
+      "message": "capture header has no UTC timestamp. The file is frozen and the reading cannot be recovered.",
       "path": "exercises/2026-09-06-b4-pim-eligible-role/evidence/03-active-directory-role-assignments.md",
-      "severity": "WARN"
+      "severity": "INFO"
     },
     {
-      "check": "evidence-header",
-      "message": "capture header has no UTC timestamp",
+      "check": "evidence-header-frozen",
+      "message": "capture header has no UTC timestamp. The file is frozen and the reading cannot be recovered.",
       "path": "exercises/2026-09-06-b4-pim-eligible-role/evidence/04-tenant-user-inventory-and-empty-eligibility.md",
-      "severity": "WARN"
+      "severity": "INFO"
     },
     {
-      "check": "evidence-header",
-      "message": "capture header has no UTC timestamp",
+      "check": "evidence-header-frozen",
+      "message": "capture header has no UTC timestamp. The file is frozen and the reading cannot be recovered.",
       "path": "exercises/2026-09-06-b4-pim-eligible-role/evidence/05-adm-jsmith-created.md",
-      "severity": "WARN"
+      "severity": "INFO"
     },
     {
-      "check": "evidence-header",
-      "message": "capture header has no UTC timestamp",
+      "check": "evidence-header-frozen",
+      "message": "capture header has no UTC timestamp. The file is frozen and the reading cannot be recovered.",
       "path": "exercises/2026-09-06-b4-pim-eligible-role/evidence/06-licence-confirmed-and-group-surface.md",
-      "severity": "WARN"
+      "severity": "INFO"
     },
     {
-      "check": "evidence-header",
-      "message": "capture header has no UTC timestamp",
+      "check": "evidence-header-frozen",
+      "message": "capture header has no UTC timestamp. The file is frozen and the reading cannot be recovered.",
       "path": "exercises/2026-09-06-b4-pim-eligible-role/evidence/07-pim-for-groups-refusal.md",
-      "severity": "WARN"
+      "severity": "INFO"
     },
     {
-      "check": "evidence-header",
-      "message": "capture header has no UTC timestamp",
+      "check": "evidence-header-frozen",
+      "message": "capture header has no UTC timestamp. The file is frozen and the reading cannot be recovered.",
       "path": "exercises/2026-09-06-b4-pim-eligible-role/evidence/08-eligibility-granted.md",
-      "severity": "WARN"
+      "severity": "INFO"
     },
     {
-      "check": "evidence-header",
-      "message": "capture header has no UTC timestamp",
+      "check": "evidence-header-frozen",
+      "message": "capture header has no UTC timestamp. The file is frozen and the reading cannot be recovered.",
       "path": "exercises/2026-09-06-b4-pim-eligible-role/evidence/09-role-names-verified-and-policy-located.md",
-      "severity": "WARN"
+      "severity": "INFO"
     },
     {
-      "check": "evidence-header",
-      "message": "capture header has no UTC timestamp",
+      "check": "evidence-header-frozen",
+      "message": "capture header has no UTC timestamp. The file is frozen and the reading cannot be recovered.",
       "path": "exercises/2026-09-06-b4-pim-eligible-role/evidence/10-activation-policy-defaults.md",
-      "severity": "WARN"
+      "severity": "INFO"
     },
     {
-      "check": "evidence-header",
-      "message": "capture header has no UTC timestamp",
+      "check": "evidence-header-frozen",
+      "message": "capture header has no UTC timestamp. The file is frozen and the reading cannot be recovered.",
       "path": "exercises/2026-09-06-b4-pim-eligible-role/evidence/11-approval-required-and-window-tightened.md",
-      "severity": "WARN"
+      "severity": "INFO"
     },
     {
-      "check": "evidence-header",
-      "message": "capture header has no UTC timestamp",
+      "check": "evidence-header-frozen",
+      "message": "capture header has no UTC timestamp. The file is frozen and the reading cannot be recovered.",
       "path": "exercises/2026-09-06-b4-pim-eligible-role/evidence/12-mfa-registered-and-activation-requested.md",
-      "severity": "WARN"
+      "severity": "INFO"
     },
     {
-      "check": "evidence-header",
-      "message": "capture header has no UTC timestamp",
+      "check": "evidence-header-frozen",
+      "message": "capture header has no UTC timestamp. The file is frozen and the reading cannot be recovered.",
       "path": "exercises/2026-09-06-b4-pim-eligible-role/evidence/13-approval-chain.md",
-      "severity": "WARN"
+      "severity": "INFO"
     },
     {
-      "check": "evidence-header",
-      "message": "capture header has no UTC timestamp",
+      "check": "evidence-header-frozen",
+      "message": "capture header has no UTC timestamp. The file is frozen and the reading cannot be recovered.",
       "path": "exercises/2026-09-06-b4-pim-eligible-role/evidence/14-activation-live.md",
-      "severity": "WARN"
+      "severity": "INFO"
     },
     {
-      "check": "evidence-header",
-      "message": "capture header has no host, UTC timestamp",
+      "check": "evidence-header-frozen",
+      "message": "capture header has no host, UTC timestamp. The file is frozen and the reading cannot be recovered.",
       "path": "exercises/2026-09-06-b4-pim-eligible-role/evidence/15-expiry-unactioned.md",
-      "severity": "WARN"
+      "severity": "INFO"
     },
     {
-      "check": "evidence-header",
-      "message": "capture header has no UTC timestamp",
+      "check": "evidence-header-frozen",
+      "message": "capture header has no UTC timestamp. The file is frozen and the reading cannot be recovered.",
       "path": "exercises/2026-09-07-plaintext-credential-remediation/evidence/01-account-is-soft-deleted-not-live.md",
-      "severity": "WARN"
+      "severity": "INFO"
     },
     {
-      "check": "evidence-header",
-      "message": "capture header has no UTC timestamp",
+      "check": "evidence-header-frozen",
+      "message": "capture header has no UTC timestamp. The file is frozen and the reading cannot be recovered.",
       "path": "exercises/2026-09-07-plaintext-credential-remediation/evidence/02-purge-and-redaction.md",
-      "severity": "WARN"
+      "severity": "INFO"
     },
     {
-      "check": "evidence-header",
-      "message": "capture header has no UTC timestamp",
+      "check": "evidence-header-frozen",
+      "message": "capture header has no UTC timestamp. The file is frozen and the reading cannot be recovered.",
       "path": "exercises/2026-09-07-plaintext-credential-remediation/evidence/03-audit-proves-no-use-and-names-the-actor.md",
-      "severity": "WARN"
+      "severity": "INFO"
     },
     {
-      "check": "evidence-header",
-      "message": "capture header has no UTC timestamp",
+      "check": "evidence-header-frozen",
+      "message": "capture header has no UTC timestamp. The file is frozen and the reading cannot be recovered.",
       "path": "exercises/2026-09-09-pim-for-groups/evidence/01-role-assignable-group-created.md",
-      "severity": "WARN"
+      "severity": "INFO"
     },
     {
-      "check": "evidence-header",
-      "message": "capture header has no UTC timestamp",
+      "check": "evidence-header-frozen",
+      "message": "capture header has no UTC timestamp. The file is frozen and the reading cannot be recovered.",
       "path": "exercises/2026-09-09-pim-for-groups/evidence/02-user-administrator-assigned-to-group.md",
-      "severity": "WARN"
+      "severity": "INFO"
     },
     {
-      "check": "evidence-header",
-      "message": "capture header has no UTC timestamp",
+      "check": "evidence-header-frozen",
+      "message": "capture header has no UTC timestamp. The file is frozen and the reading cannot be recovered.",
       "path": "exercises/2026-09-09-pim-for-groups/evidence/03-adm-jsmith-eligible-member-granted.md",
-      "severity": "WARN"
+      "severity": "INFO"
     },
     {
-      "check": "evidence-header",
-      "message": "capture header has no host, UTC timestamp",
+      "check": "evidence-header-frozen",
+      "message": "capture header has no host, UTC timestamp. The file is frozen and the reading cannot be recovered.",
       "path": "exercises/2026-09-09-pim-for-groups/evidence/04-default-member-activation-policy.md",
-      "severity": "WARN"
+      "severity": "INFO"
     },
     {
-      "check": "evidence-header",
-      "message": "capture header has no host",
+      "check": "evidence-header-frozen",
+      "message": "capture header has no host. The file is frozen and the reading cannot be recovered.",
       "path": "exercises/2026-09-09-pim-for-groups/evidence/05-member-policy-hardened.md",
-      "severity": "WARN"
+      "severity": "INFO"
     },
     {
-      "check": "evidence-header",
-      "message": "capture header has no host",
+      "check": "evidence-header-frozen",
+      "message": "capture header has no host. The file is frozen and the reading cannot be recovered.",
       "path": "exercises/2026-09-09-pim-for-groups/evidence/06-activation-transaction-partial.md",
-      "severity": "WARN"
+      "severity": "INFO"
     },
     {
       "check": "evidence-log-nested-historical",

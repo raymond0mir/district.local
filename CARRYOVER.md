@@ -5,8 +5,9 @@
 `exercises/2026-09-14-device-code-detection/evidence/03-the-interactive-stream-holds-the-flow-and-cannot-name-it.md`.
 
 ## Next safe action
-Open the Entra admin center, Monitoring, Audit logs. Widen the date filter. Download the oldest
-surviving event. That fixes the `directoryAudits` retention boundary, now an exposure, and changes
+Stamp every capture with `python3 stamp.py`; Claude owns the timestamp now, not Raymond. Then open
+the Entra admin center, Monitoring, Audit logs. Widen the date filter. Download the oldest surviving
+event. That fixes the `directoryAudits` retention boundary, now an exposure, and changes
 no lab state. It avoids Graph Explorer.
 
 ## Lab state
@@ -48,6 +49,5 @@ center. Entra CBA needs public hosting for `crl.districtsafetyphoto.com`, and CA
 `Connect-MgGraph` times out. Owner: Raymond.
 
 ## Uncommitted and staged work
-Not clean. New: the 2026-09-14 exercise's `evidence/06`. Modified: its `evidence-log.md` and
-`report.md`, `validate.py`, `CONSIDERATIONS.md`, `validation.json`, this file. `validate.py` returns
-0 ERROR and 38 WARN; the new warning is the frozen-evidence reference it can no longer clear.
+Clean, apart from this file's own edit. `validate.py` returns 0 ERROR, 2 WARN, 70 INFO. Both
+warnings are `no-report`, and they are the only findings naming work anyone can do.

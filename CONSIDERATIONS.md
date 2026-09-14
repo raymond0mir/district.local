@@ -429,3 +429,74 @@ reported. A sentence cannot convert a shortened capture into a capture.
 2. Replace `reference-missing-frozen` with registry rows, one per instance, each citing its
    superseding record. That restores full severity to the rule and keeps the known instances
    silent.
+
+## Severity follows whether a defect can be repaired, 2026-09-14
+
+Raymond approved two changes on the same day `check_capture_fidelity` landed. Both concern findings
+inside frozen evidence, and they resolve in opposite directions. The reason they differ is the point
+of the entry.
+
+**`evidence-header` and `evidence-no-exitcode` move to INFO when the file is frozen.** Thirty-four
+`evidence-header` findings and one `evidence-no-exitcode` sat at WARN across eight closed exercises
+from 2026-09-02 to 2026-09-09. They were 89% of a 39-warning tier, and none of them could ever be
+acted on. A missing UTC timestamp in a past capture cannot be reconstructed. Nobody took the
+reading. No superseding record can supply it, because the information does not exist anywhere.
+
+That is the test: **a finding with no possible owner action belongs at INFO.** It is the rule
+detection engineering applies to alerts, and it is why the WARN tier had stopped being read.
+
+`CAPTURE_HEADER_DATE` is unchanged at 2026-09-02. The cutoff was not moved. Moving a constant until
+findings disappear fits the rule to the data, and these thirty-five postdate the convention: they
+are genuine non-conformance, not pre-convention work. They are reported honestly at INFO with the
+reason, not grandfathered as though the rule had not existed.
+
+**`reference-missing-frozen` is deleted, and `SUPERSEDED_REFERENCES` replaces it.** The blanket
+downgrade written earlier the same day lowered severity for every broken reference in frozen
+evidence, past and future alike. That is the pattern `check_capture_fidelity` was built to avoid,
+and it should not have shipped.
+
+A dead reference is a defect in **content**, not missing metadata. The correct path still exists and
+a superseding record can state it. The remedy is available, so the finding keeps its ERROR and the
+registry names the cases already remedied. One row today: evidence 01 of
+`2026-09-14-device-code-detection`, citing evidence 06. An unregistered break inside frozen evidence
+is still an ERROR, because the owner action exists — write the superseding record, add the row.
+
+**The distinction, stated once.** Missing metadata is irremediable and drops to INFO. Wrong content
+is remediable and keeps its ERROR until a superseding record is written and registered. Severity
+tracks whether anyone can do anything, not whether the file is editable.
+
+**Result.** 0 ERROR, 2 WARN, 70 INFO. Both warnings are `no-report`, on
+`2026-09-10-pim-policy-authoring` and `2026-09-10-thin-pool-headroom-reclaim`. For the first time
+the warning tier contains only findings that name work somebody can do.
+
+**What this costs.** The INFO tier now holds 70 findings and nobody reads it closely. That is the
+correct place for them, and it is still a place where a real defect could hide. The registries are
+the guard: `capture-registry-stale` and `reference-registry-stale` report a row that no longer
+matches, so neither list can grow quietly or outlive its finding.
+
+## Claude owns the capture timestamp, 2026-09-14
+
+Raymond's request, after the same session produced two evidence files carrying a date and a lower
+bound where a time belonged. `evidence/04` and `evidence/05` of `2026-09-14-device-code-detection`
+read "2026-09-14, after 15:05:51Z. Exact per-call times not captured." Nobody can recover those
+readings now, and the exercise's own report lists the gap under what it would do differently.
+
+The cause was a division of labour that made no sense. Claude asked Raymond to run `date -u` and
+paste it back, then sometimes wrote the header without waiting. Claude has Bash on the Mac Mini. It
+could have read the clock itself the whole time.
+
+`stamp.py` takes that over. `python3 stamp.py --header --command "..." --host "..."` emits all three
+header lines. It refuses a header missing the command or the host, because a guessed host is a false
+capture.
+
+**The honest part is what it will not claim.** The Mac Mini is the only clock Claude can reach. A
+stamp says when evidence was recorded there, never when a command ran on DC01 or CA01, and
+`CARRYOVER.md` has those two running about +5h 06m and +7h against real time. Where Raymond runs
+something between two moments, `--since` produces a bounded window rather than a single invented
+point. A bound is weaker than a reading and stronger than a fabrication.
+
+An exact reading still wins. When Raymond pastes his own `date -u`, that value is the capture and
+the script's output is not used.
+
+The rule lives in `SKILL.md` under Evidence files, and `stamp.py` is added to its Layout block. Both
+skill copies are synced.

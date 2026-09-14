@@ -125,6 +125,17 @@ SUPERSEDED_CAPTURES = {
 # permits is a redaction named in place. A shortened rendering leaves one of
 # these three marks. Each matches inside a double-quoted value only, so prose
 # that happens to carry three dots is out of scope.
+# Broken references in published captures, each citing the record that carries
+# the correct path. Decision 2026-09-14, Raymond. A dead reference is a defect
+# in content and a superseding record can state the right path, so it is
+# registered rather than downgraded as a class. See CONSIDERATIONS.md.
+SUPERSEDED_REFERENCES = {
+    "exercises/2026-09-14-device-code-detection/evidence/"
+    "01-device-code-lands-in-the-non-interactive-stream.md":
+        "exercises/2026-09-14-device-code-detection/evidence/"
+        "06-corrected-full-captures-superseding-01-02-03.md",
+}
+
 TRUNCATED_ID = re.compile(r'"[0-9a-fA-F]{4,}(?:-[0-9a-fA-F]{4,})*-\.\.\."')
 ELLIPSIS_IN_VALUE = re.compile(r'"[^"\n]*\S[ \t]*\.\.\.[ \t]*\S[^"\n]*"')
 BRACKET_NOTE = re.compile(r'"\[([^"\[\]]{4,})\]"')
@@ -274,33 +285,55 @@ def frozen_evidence():
 
 
 def check_references():
-    """A broken reference is an ERROR, except inside frozen evidence.
+    """A broken reference is an ERROR. A registered one drops to INFO.
 
-    Decision 2026-09-14. `CLAUDE.md` requires a wrong published claim to be
-    corrected on the record rather than by silent edit. `check_evidence_frozen`
-    forbids touching a closed exercise's evidence at all. A broken path inside
-    such a file therefore cannot be cleared in place, and as an ERROR it made
-    `validate.py` permanently unclean, which costs the binary answer that every
-    session start depends on.
+    Decision 2026-09-14, Raymond, replacing the blanket downgrade written
+    earlier the same day. That version lowered severity for every broken
+    reference inside frozen evidence, past and future alike, which is the
+    pattern `check_capture_fidelity` was built to avoid.
 
-    Evidence immutability is the stronger guarantee and it is kept. The remedy
-    for a broken reference in frozen evidence is a new file that supersedes it,
-    as `exercises/2026-09-14-device-code-detection/evidence/06-...` does. The
-    finding is reported as a WARN under its own code so it stays visible and
-    stops blocking. Everywhere else a broken reference remains an ERROR.
+    A dead reference is a defect in content, not missing metadata, so a
+    superseding record can state the correct path and the defect has a remedy.
+    `SUPERSEDED_REFERENCES` names each acknowledged case and the record that
+    carries the correction. A listed path drops to INFO. Everything else stays
+    an ERROR, including an unregistered break inside frozen evidence, because
+    the action exists: write the superseding record and add the row.
+
+    A superseding record quotes the wrong path while itemising it, so it would
+    report its own subject. Those files are skipped, the same exemption
+    `check_capture_fidelity` applies.
+
+    Owner action. `reference-missing`: fix the path, or supersede and register.
+    `reference-registry-stale`: delete the row. `reference-registry-broken`:
+    the cited record is gone, so no downgrade applies and the row is wrong.
     """
-    frozen = frozen_evidence()
+    exempt = superseding_records()
+    published = published_files()
+    matched = set()
     for rel in tracked_markdown():
+        if rel in exempt:
+            continue
         text = read(repo_path(rel))
-        for cited in set(cited_paths(text)):
-            if not os.path.exists(repo_path(cited)):
-                if rel in frozen:
-                    add("WARN", "reference-missing-frozen",
-                        "frozen evidence references a file that does not exist, "
-                        "and cannot be corrected in place: %s" % cited, rel)
-                else:
-                    add("ERROR", "reference-missing",
-                        "references a file that does not exist: %s" % cited, rel)
+        for cited in sorted(set(cited_paths(text))):
+            if os.path.exists(repo_path(cited)):
+                continue
+            record = SUPERSEDED_REFERENCES.get(rel)
+            if record and rel in published and os.path.exists(repo_path(record)):
+                matched.add(rel)
+                add("INFO", "reference-missing-superseded",
+                    "references a file that does not exist: %s. Superseded by %s."
+                    % (cited, record), rel)
+                continue
+            add("ERROR", "reference-missing",
+                "references a file that does not exist: %s" % cited, rel)
+
+    for rel, record in sorted(SUPERSEDED_REFERENCES.items()):
+        if not os.path.exists(repo_path(record)):
+            add("ERROR", "reference-registry-broken",
+                "registry row cites a record that does not exist: %s" % record, rel)
+        elif rel not in matched:
+            add("WARN", "reference-registry-stale",
+                "registry row matches no finding, and is ready to delete", rel)
 
 
 @lru_cache(maxsize=1)
@@ -528,7 +561,29 @@ def check_evidence_files():
 
     A guest exec capture must carry an exit code. Every other capture must
     name its command, its host, and a UTC timestamp.
+
+    Severity depends on whether the file can still be repaired. Decision
+    2026-09-14, Raymond. A header defect inside frozen evidence has no owner
+    action and never will: a missing UTC timestamp cannot be reconstructed,
+    and no superseding record can supply a reading nobody took. That is what
+    separates it from a broken reference, which a superseding record can state
+    correctly and which `SUPERSEDED_REFERENCES` therefore registers instead.
+
+    Irremediable and frozen means INFO. Everywhere else the rule keeps its
+    WARN, because the file is still editable before the commit that freezes it.
+    `CAPTURE_HEADER_DATE` is unchanged; the cutoff was not moved to make
+    findings disappear.
     """
+    frozen = frozen_evidence()
+
+    def header_finding(code, message, rel):
+        if rel in frozen:
+            add("INFO", code + "-frozen",
+                "%s. The file is frozen and the reading cannot be recovered."
+                % message, rel)
+        else:
+            add("WARN", code, message, rel)
+
     for name in exercises():
         folder = repo_path("exercises", name, "evidence")
         date = name[:10]
@@ -555,8 +610,8 @@ def check_evidence_files():
 
             if GUEST_EXEC.search(head):
                 if "exitcode" not in head:
-                    add("WARN", "evidence-no-exitcode",
-                        "guest exec capture has no exitcode field", rel)
+                    header_finding("evidence-no-exitcode",
+                                   "guest exec capture has no exitcode field", rel)
                 continue
 
             if date < CAPTURE_HEADER_DATE or entry.endswith(ARTIFACT_SUFFIXES):
@@ -569,8 +624,8 @@ def check_evidence_files():
             if not UTC_MARKER.search(head):
                 missing.append("UTC timestamp")
             if missing:
-                add("WARN", "evidence-header",
-                    "capture header has no %s" % ", ".join(missing), rel)
+                header_finding("evidence-header",
+                               "capture header has no %s" % ", ".join(missing), rel)
 
 
 def check_layout():
