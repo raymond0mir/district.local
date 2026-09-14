@@ -58,7 +58,7 @@ Write the condition that makes each line true. A behavior that depends on a lice
 - Entra logs a password write as `Update PasswordProfile` with `oldValue` and `newValue` both `null`. The audit trail never holds the literal. A password found in a repository was never leaked by the directory. Source: `exercises/2026-09-07-plaintext-credential-remediation`.
 - Prove a credential was unused with three reads, not one. Read interactive sign-ins, read non-interactive sign-ins, then read `directoryAudits` for the object. An empty interactive collection alone proves nothing, because the endpoint excludes non-interactive events by default. Source: `exercises/2026-09-07-plaintext-credential-remediation`.
 - A directory role has two identifiers. `Role.ObjectID` is the directory role object; `Role.TemplateId` is the role definition used by `roleDefinitions` and PIM. They differ and are not interchangeable. Source: `exercises/2026-09-06-b4-pim-eligible-role`.
-- A platform-initiated audit entry names a non-human actor: `initiatedBy.app.displayName` `MS-PIM`, or `initiatedBy.user.displayName` "Azure AD PIM" with a null `userPrincipalName` and a null `ipAddress`. Read the null `ipAddress` as the signal. Source: `exercises/2026-09-06-b4-pim-eligible-role`.
+- ~~A platform-initiated audit entry names a non-human actor: `initiatedBy.app.displayName` `MS-PIM`, or `initiatedBy.user.displayName` "Azure AD PIM" with a null `userPrincipalName` and a null `ipAddress`. Read the null `ipAddress` as the signal.~~ **Narrowed 2026-09-14. The null-`ipAddress` signal does not generalise.** A consent event writes `initiatedBy.user.displayName` `Azure ESTS Service` while carrying the human's `id`, a populated `userPrincipalName`, and a populated `ipAddress` that is a Microsoft address rather than the actor's. Six such events on 2026-09-13. Read `id` and `userPrincipalName` as the actor, never `displayName`, and never trust `ipAddress` on an audit event. The operator's address lives in the sign-in log. Sources: `exercises/2026-09-06-b4-pim-eligible-role`, `exercises/2026-09-14-device-code-detection`.
 
 - Including `signInActivity` in `$select` forces Graph to resolve the user key as a GUID. A lookup by UPN then fails at the key parser: `400`, "Get By Key only supports UserId and the key has to be a valid Guid". The error describes the query, not the account. Drop the property and re-run before drawing any conclusion. Source: `exercises/2026-09-07-plaintext-credential-remediation`.
 - Entra prefixes the object id onto the UPN when a user is soft-deleted, for example `84360e8b...breakglassrotationverify@...`. `GET /users/{original UPN}` then returns `Request_ResourceNotFound`, which reads as "no such account" and means "not in this collection under that name". Read `/directory/deletedItems/microsoft.graph.user` before concluding an account is gone. Source: `exercises/2026-09-07-plaintext-credential-remediation`.
@@ -70,7 +70,9 @@ Write the condition that makes each line true. A behavior that depends on a lice
 - **A group cannot be explicitly onboarded to PIM for Groups, and cannot be offboarded once it is.** The first eligibility, assignment, or policy call against the group onboards it automatically. The portal's "Discover groups" flow is a convenience, not a required step. Source: `exercises/2026-09-09-pim-for-groups`, Microsoft Graph API reference.
 - **PIM's approval queues are separate per resource type and look nearly identical.** `Approve requests | Microsoft Entra roles` will not show a pending group-membership request, and approving in the wrong queue grants a different privilege than the one under test. Check the blade title and the row's `Resource type` before approving. Cost one contaminated test on 2026-09-09. Source: `exercises/2026-09-09-pim-for-groups`.
 - **"On activation, require Azure MFA" is a claim check, not a prompt.** If the session already satisfied MFA at sign-in, activation proceeds silently and no step-up occurs. To force authentication at the moment of elevation, use `On activation, require Microsoft Entra Conditional Access authentication context` with Authentication Strengths instead. Source: `exercises/2026-09-09-pim-for-groups`, Microsoft Learn.
-- **Graph Explorer returned a stale response body against a freshly edited URL, three times, once with a green `200`.** The address bar held the correct `roleManagementPolicyAssignments` query and the response pane returned `#users/$entity`. Cause not established. If a response does not match the URL that produced it, stop trusting the tool rather than re-running the query. **Recurred 2026-09-10**, again a `#users/$entity` body in place of a `roleManagementPolicies` read. A re-run fixed it both times. Source: `exercises/2026-09-09-pim-for-groups`, `exercises/2026-09-10-pim-policy-authoring`, unresolved.
+- **Graph Explorer returned a stale response body against a freshly edited URL, three times, once with a green `200`.** **Fourth occurrence 2026-09-14, and the body shape is always the same.** All four returned `@odata.context` `#users/$entity`, the signed-in user's own object, which is the shape the tool fetches to render its account chip. That narrows the cause from unknown to a hypothesis: the tool's own profile request reaches the response pane. Untested. Check `@odata.context` against the collection you queried before reading any body; it is the fastest detection. A re-run cleared it every time. Original entry follows.
+
+**Graph Explorer returned a stale response body against a freshly edited URL, three times, once with a green `200`.** The address bar held the correct `roleManagementPolicyAssignments` query and the response pane returned `#users/$entity`. Cause not established. If a response does not match the URL that produced it, stop trusting the tool rather than re-running the query. **Recurred 2026-09-10**, again a `#users/$entity` body in place of a `roleManagementPolicies` read. A re-run fixed it both times. Source: `exercises/2026-09-09-pim-for-groups`, `exercises/2026-09-10-pim-policy-authoring`, unresolved.
 
 ## Proxmox host
 
@@ -149,6 +151,42 @@ Write the condition that makes each line true. A behavior that depends on a lice
 - **`urllib.request.urlopen` can block forever in `sock.connect` on this host, where `curl` reaches the same endpoint in under a second.** Observed 2026-09-13 against `login.microsoftonline.com`; the traceback named the blocking call and the interrupt was the only way out. The standard library sets no default connect timeout. Route HTTP through `curl` in lab scripts, or pass an explicit timeout. Passing secrets to `curl` with `-K -` on stdin keeps them out of the process list. Source: `exercises/2026-09-12-workload-identity-scope-isolation`.
 - **`Connect-MgGraph` times out after 120 seconds of inactivity, on both the browser and `-UseDeviceAuthentication` flows.** Account-picking and admin consent do not fit in that window from a cold browser. Sign the intended account into `https://microsoft.com/devicelogin` first, then run the command and paste the code. Source: `exercises/2026-09-09-pim-for-groups`, unresolved — no successful connection was made. **The pre-auth workaround was tried 2026-09-10 and also timed out.** Use Graph Explorer for this tenant until the cause is found. Source: `exercises/2026-09-10-pim-policy-authoring`.
 - **`Microsoft.Graph.Authentication` alone is enough to call any Graph endpoint.** `Invoke-MgGraphRequest -Method GET -Uri '<uri>' -OutputType Json` replaces Graph Explorer without the large command modules, and keeps evidence files consistent with the raw URIs they already record. Single-quote the URI so PowerShell leaves `$filter` and `$expand` alone. Source: `exercises/2026-09-09-pim-for-groups`.
+
+## Device code flow, sign-in logs and consent events
+
+**A device code flow writes four records across three surfaces, and only one names the flow.** The
+order is: interactive sign-in `errorCode` 65001, three `directoryAudits` consent events, interactive
+sign-in `errorCode` 0, then the non-interactive token redemption. The `correlationId` joins the
+streams. Read both streams before concluding anything about either; one stream is half an
+authentication. Source: `exercises/2026-09-14-device-code-detection`.
+
+**`originalTransferMethod` names the device code flow. `authenticationProtocol` does not.** On the
+token event, `authenticationProtocol` and `incomingTokenType` both read `none`, and
+`originalTransferMethod` reads `deviceCodeFlow`. The property exists on `beta` only; `v1.0` returns
+no such field, so the interactive records cannot identify the flow at all. A detection written
+against `authenticationProtocol` finds nothing. Source: `exercises/2026-09-14-device-code-detection`.
+
+**`errorCode` 65001 is the first leg of a consent-requiring flow, not a failure.** It reads "the user
+or administrator has not consented", about four seconds before the consent is written. Counting it as
+an incident produces a false positive on every first-time consent. Source: `exercises/2026-09-14-device-code-detection`.
+
+**`userAgent` differs between the two streams for one device code run.** The browser that
+authenticates the human appears on the interactive records; the client that redeems the token appears
+on the non-interactive one. One authentication, two clients. Do not pivot a detection on `userAgent`
+alone. Source: `exercises/2026-09-14-device-code-detection`.
+
+**An amended consent writes three `directoryAudits` events, and the one named `Consent to
+application` does not show the change.** Its `ConsentAction.Permissions` reads the same scope on both
+sides of its `=>`. The change appears in `Add delegated permission grant` and `Remove delegated
+permission grant`, both recording the `DelegatedPermissionGrant.Scope` growth. `Remove` carries
+`operationType` `Unassign` while recording an addition. The same event type reports a **first**
+consent correctly. Read `DelegatedPermissionGrant.Scope`, never `ConsentAction.Permissions`, to see
+what a consent actually granted. Source: `exercises/2026-09-14-device-code-detection`.
+
+**An empty `directoryAudits` window is a claim about retention before it is a claim about the
+event.** Test it by reading a whole day known to carry activity. If that day is also empty, retention
+is the answer. Microsoft documents 7-day audit retention on Entra ID Free and 30 days on paid tiers;
+this tenant's boundary is not captured, and its P2 trial start date is Recalled. Source: `exercises/2026-09-14-device-code-detection`.
 
 ## Graph Explorer, sign-in and consent
 

@@ -3,7 +3,7 @@
 A standing list of what's actually still wrong or open in `district.local`, built only from
 captured facts in `verified-claims.md` and the exercises' own evidence files — nothing here is
 inferred or remembered without a citation. Doubles as the queue for what the next exercise
-should be. Updated as of 2026-09-11; check `verified-claims.md` for anything more recent before
+should be. Updated as of 2026-09-14; check `verified-claims.md` for anything more recent before
 trusting a line here.
 
 ## Identity and access
@@ -471,6 +471,19 @@ the ones an administrator creates, and nothing in the tenant gates their creatio
 directory read refusal must be interpreted, not because it is itself unusual. *Evidence:*
 `exercises/2026-09-12-workload-identity-scope-isolation/evidence/01-tenant-authorization-policy-and-application-baseline.md`.
 
+**~~One application registration in the tenant has no provenance in this repository.~~ Answered in
+part 2026-09-14, and the audit record is gone.** `P2P Server` is a tenant-local registration, not a
+Microsoft first-party object: `appOwnerOrganizationId` is this tenant, `publisherDomain` is this
+tenant's own default domain, `signInAudience` is `AzureADMyOrg`. Its application object was created
+2026-09-04T00:35:35Z and its service principal at 00:35:36Z, three and two seconds after VM 101's
+Entra join at 00:35:33Z. That time relationship is Captured. The causal claim is not, and it cannot
+now be captured from this event: three `directoryAudits` filters returned empty, including the whole
+of 2026-09-04, on a day that carried a device join, a WHfB registration, a password change and a
+directory sync. A second device join, watched live, would settle both the cause and the retention
+question. *Evidence:* `exercises/2026-09-14-device-code-detection/evidence/04-p2p-server-is-a-tenant-local-registration.md`,
+`exercises/2026-09-14-device-code-detection/evidence/05-no-audit-record-of-p2p-server-survives-today.md`.
+Original entry follows.
+
 **One application registration in the tenant has no provenance in this repository.** `P2P Server`,
 appId `004ad450-5909-445f-969a-d3798ab41880`, created 2026-09-04T00:35:35Z. No exercise records
 creating it, and a first-party explanation for it is Recalled, not established. One
@@ -500,6 +513,16 @@ workload layer, where the object an administrator inspects and the object the di
 different objects. *Evidence:*
 `exercises/2026-09-12-workload-identity-scope-isolation/evidence/11-the-grant-grew-and-the-registration-did-not.md`,
 full account in that exercise's `report.md`.
+**Narrowed 2026-09-14, and the audit surface is worse than the blade.** The widening is not invisible
+everywhere. The sign-in log's `Oauth Scope Info` key distinguishes the two runs, and two of the three
+`directoryAudits` events record the scope moving from `" User.Read"` to
+`" User.Read User.ReadBasic.All"`. The event named `Consent to application` does not: it reads
+`Scope:  User.Read` on both sides of its `=>`. The same event type reports a **first** consent
+correctly. An administrator who reads the event whose name matches the action sees no change, while
+two events with less obvious names carry it, and one of those is named `Remove delegated permission
+grant` and carries `operationType` `Unassign` while recording an addition. *Evidence:*
+`exercises/2026-09-14-device-code-detection/evidence/02-three-audit-events-and-the-one-named-consent-hides-the-widening.md`,
+`exercises/2026-09-14-device-code-detection/evidence/01-device-code-lands-in-the-non-interactive-stream.md`.
 
 **`Lab-AI-Agent-CLI` is a live workload identity in the tenant, and it is not torn down.**
 Application object `e15012f9-b153-46df-afc9-ce63df4f29ee`, appId
@@ -508,6 +531,33 @@ public client with device code flow enabled, carrying a standing user consent fo
 `User.ReadBasic.All` granted by `adm-jsmith`. Deleting the application removes the grant with it.
 Raymond's decision at teardown; the recorded default is to remove it. *Evidence:*
 `exercises/2026-09-12-workload-identity-scope-isolation/evidence/06-lab-ai-agent-cli-registered-and-verified.md`.
+
+**A device code sign-in is fully recorded and the record does not say it was a device code sign-in.**
+Each run writes four records across three surfaces. The interactive sign-in log shows a successful
+authentication to a named application with `clientAppUsed` `"Mobile Apps and Desktop clients"` and a
+browser `userAgent`, which describes any desktop client. The field that names the flow,
+`originalTransferMethod`, exists only on the non-interactive token event and only on `beta`;
+`authenticationProtocol` and `incomingTokenType` both read `none`, and `v1.0` returns no such
+property. Device code phishing is a live technique against tenants, and a defender reading this
+tenant's default log would not distinguish it from any desktop client sign-in. Nothing in this tenant
+alerts on it, and no Conditional Access policy here carries an `authenticationFlows` condition.
+*Evidence:* `exercises/2026-09-14-device-code-detection/evidence/03-the-interactive-stream-holds-the-flow-and-cannot-name-it.md`,
+`exercises/2026-09-14-device-code-detection/evidence/01-device-code-lands-in-the-non-interactive-stream.md`.
+
+**The tenant's `directoryAudits` retention boundary is unknown, and it has already destroyed one
+answer.** No audit record for 2026-09-04 survives as of 2026-09-14, ten days later. Microsoft
+documents 7-day audit retention on Entra ID Free and 30 days on paid tiers; that is documentation,
+not a lab capture, and the P2 trial's start date is Recalled rather than Captured, so which applied
+to 2026-09-04 is untested. The practical effect is recorded: a directory object created on
+2026-09-04 was first noticed on 2026-09-12 and became unattributable by 2026-09-14. One read of the
+oldest surviving event fixes the boundary. **The trial ends about 2026-10-04, and retention drops
+with it.** *Evidence:* `exercises/2026-09-14-device-code-detection/evidence/05-no-audit-record-of-p2p-server-survives-today.md`.
+
+**`errorCode` 65001 opens every consent-requiring sign-in and is not an incident.** It reads "the
+user or administrator has not consented to use the application", four seconds before the consent is
+written, on both C3 runs. A rule that counts 65001 as a failure produces a false positive on every
+first-time consent in this tenant. *Evidence:*
+`exercises/2026-09-14-device-code-detection/evidence/03-the-interactive-stream-holds-the-flow-and-cannot-name-it.md`.
 
 ## Infrastructure
 
