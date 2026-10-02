@@ -1,0 +1,651 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Seagate to iCloud Photos Migration</title>
+<meta name="description" content="Moving a 1.74 TB photo drive into iCloud Photos with the district.local capture discipline. Four independent checks per batch, three silent data-loss modes caught, and every correction kept on the record.">
+<meta property="og:type" content="article">
+<meta property="og:site_name" content="district.local">
+<meta property="og:title" content="Seagate to iCloud Photos Migration">
+<meta property="og:description" content="Moving a 1.74 TB photo drive into iCloud Photos with the district.local capture discipline. Four independent checks per batch, three silent data-loss modes caught, and every correction kept on the record.">
+<meta property="og:url" content="https://raymond0mir.github.io/district.local/photo-migration.html">
+<meta name="twitter:card" content="summary">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Serif:wght@400;500;600;700&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500;600&display=swap">
+<style>
+  :root{
+    --ground:#F2F4F7;
+    --ground-tint:#E9EDF2;
+    --surface:#FFFFFF;
+    --ink:#111821;
+    --ink-soft:#4C596B;
+    --ink-faint:#78849A;
+    --rule:#D9DFE7;
+    --rule-soft:#E6EAF0;
+    --rule-strong:#C2C9D6;
+    --accent:#186D77;
+    --accent-tint:#E2EFF0;
+    --brass:#9A6B1F;
+    --closed:#2F7D4F;      --closed-bg:#E7F3EB;
+    --partial:#A5701F;     --partial-bg:#FBEEDD;
+    --resolved:#5B6B8C;    --resolved-bg:#EAEDF4;
+    --font-display:'IBM Plex Serif', Georgia, 'Times New Roman', serif;
+    --font-body:'IBM Plex Sans', -apple-system, BlinkMacSystemFont, sans-serif;
+    --font-mono:'IBM Plex Mono', ui-monospace, 'SF Mono', Menlo, Consolas, monospace;
+    --measure:34rem;
+  }
+  @media (prefers-color-scheme: dark){
+    :root:not([data-theme="light"]){
+      --ground:#0B0F15; --ground-tint:#121820; --surface:#141A22;
+      --ink:#E3E8EF; --ink-soft:#9BA7B8; --ink-faint:#6C788B;
+      --rule:#28303C; --rule-soft:#1D242E; --rule-strong:#3A4457;
+      --accent:#57C5CE; --accent-tint:#10272A; --brass:#D0A24E;
+      --closed:#5FCB86;   --closed-bg:#12251A;
+      --partial:#E0AC4F;  --partial-bg:#2B2110;
+      --resolved:#8FA0C9; --resolved-bg:#1A2131;
+    }
+  }
+  :root[data-theme="dark"]{
+    --ground:#0B0F15; --ground-tint:#121820; --surface:#141A22;
+    --ink:#E3E8EF; --ink-soft:#9BA7B8; --ink-faint:#6C788B;
+    --rule:#28303C; --rule-soft:#1D242E; --rule-strong:#3A4457;
+    --accent:#57C5CE; --accent-tint:#10272A; --brass:#D0A24E;
+    --closed:#5FCB86;   --closed-bg:#12251A;
+    --partial:#E0AC4F;  --partial-bg:#2B2110;
+    --resolved:#8FA0C9; --resolved-bg:#1A2131;
+  }
+
+  *{box-sizing:border-box;}
+  body{
+    background:var(--ground); color:var(--ink);
+    font-family:var(--font-body); margin:0; line-height:1.62;
+    -webkit-font-smoothing:antialiased;
+  }
+  a{color:var(--accent); text-underline-offset:2px;}
+  a:focus-visible{outline:2px solid var(--accent); outline-offset:3px; border-radius:2px;}
+  code{
+    font-family:var(--font-mono); font-size:0.87em;
+    background:var(--accent-tint); color:var(--accent);
+    padding:0.06em 0.34em; border-radius:3px;
+  }
+
+  .shell{max-width:60rem; margin:0 auto; padding:0 1.75rem;}
+  .col{max-width:var(--measure);}
+
+  /* ---------- series bar ---------- */
+  .series{border-bottom:1px solid var(--rule); background:var(--ground);}
+  .series-inner{
+    max-width:60rem; margin:0 auto; padding:0.85rem 1.75rem;
+    display:flex; gap:0.9rem; align-items:baseline; flex-wrap:wrap;
+    font-family:var(--font-mono); font-size:0.74rem;
+    letter-spacing:0.06em; text-transform:uppercase;
+  }
+  .series-inner a{color:var(--accent); text-decoration:none;}
+  .series-inner a:hover{text-decoration:underline;}
+  .series-inner .here{color:var(--ink-faint);}
+  .series-inner .sep{color:var(--rule);}
+
+  .eyebrow{
+    font-family:var(--font-mono); font-size:0.74rem; letter-spacing:0.1em;
+    text-transform:uppercase; color:var(--accent); margin:0 0 1.1rem;
+  }
+  .sec-label{
+    font-family:var(--font-mono); font-size:0.74rem; letter-spacing:0.1em;
+    text-transform:uppercase; color:var(--ink-faint);
+    padding-bottom:0.7rem; margin-bottom:2rem;
+    border-bottom:1px solid var(--rule);
+  }
+  h2{
+    font-family:var(--font-display); font-weight:600; font-size:clamp(1.5rem,2.6vw,1.9rem);
+    line-height:1.22; margin:0 0 1rem; text-wrap:balance; letter-spacing:-0.005em;
+  }
+
+  /* ---------- hero ---------- */
+  header.hero{padding:4rem 0 2.6rem;}
+  header.hero h1{
+    font-family:var(--font-display); font-weight:700;
+    font-size:clamp(2rem,4.6vw,3.15rem); line-height:1.1;
+    margin:0 0 1.5rem; max-width:22ch; text-wrap:balance; letter-spacing:-0.015em;
+  }
+  header.hero .lede{
+    font-size:1.1rem; color:var(--ink-soft); max-width:var(--measure); margin:0 0 1.3rem;
+  }
+  .thesis{
+    font-family:var(--font-display); font-style:italic; font-size:1.22rem;
+    color:var(--ink); border-left:3px solid var(--accent);
+    padding:0.15rem 0 0.15rem 1.1rem; margin:2rem 0 2.6rem; max-width:30rem;
+  }
+  .stats{
+    display:grid; grid-template-columns:repeat(auto-fit,minmax(8.5rem,1fr));
+    border-top:1px solid var(--rule); border-bottom:1px solid var(--rule);
+  }
+  .stat{padding:1.1rem 1.2rem 1.1rem 0; border-right:1px solid var(--rule-soft);}
+  .stat:last-child{border-right:none;}
+  .stat .n{
+    font-family:var(--font-mono); font-size:1.85rem; font-weight:600;
+    font-variant-numeric:tabular-nums; line-height:1.1;
+  }
+  .stat .l{font-size:0.8rem; color:var(--ink-faint); margin-top:0.15rem;}
+  .asof{font-family:var(--font-mono); font-size:0.76rem; color:var(--ink-faint); margin:0.9rem 0 0;}
+
+  /* ---------- sticky nav ---------- */
+  nav.toc{
+    position:sticky; top:0; z-index:20; background:var(--ground);
+    border-top:1px solid var(--rule); border-bottom:1px solid var(--rule);
+  }
+  .toc-inner{
+    max-width:60rem; margin:0 auto; padding:0.6rem 1.75rem;
+    display:flex; gap:0.4rem; overflow-x:auto; scrollbar-width:none;
+  }
+  .toc-inner::-webkit-scrollbar{display:none;}
+  nav.toc a{
+    font-family:var(--font-mono); font-size:0.74rem; white-space:nowrap;
+    text-decoration:none; color:var(--ink-soft);
+    padding:0.32rem 0.68rem; border-radius:999px; border:1px solid var(--rule);
+    transition:border-color .15s, color .15s;
+  }
+  nav.toc a:hover{color:var(--accent); border-color:var(--accent);}
+
+  section{padding:3.6rem 0; scroll-margin-top:3.5rem;}
+
+  /* ---------- pipeline diagram ---------- */
+  figure.dia{margin:2rem 0 0; padding:0;}
+  figure.dia svg{width:100%; min-width:620px; height:auto; display:block; color:var(--ink);}
+  .dia-scroll{overflow-x:auto;}
+  .dia-box{fill:var(--surface); stroke:currentColor; stroke-width:1.2;}
+  .dia-box-accent{fill:var(--accent-tint); stroke:var(--accent); stroke-width:1.8;}
+  .dia-line{stroke:currentColor; stroke-width:1.2; fill:none;}
+  .dia-tie{stroke:currentColor; stroke-width:1.2; fill:none; stroke-dasharray:4 4; opacity:0.5;}
+  .dia-accent{stroke:var(--accent); stroke-width:1.8; fill:none;}
+  .dia-accent-fill{fill:var(--accent);}
+  .dia-t{fill:currentColor; font-family:'IBM Plex Sans',sans-serif;}
+  .dia-body{fill:currentColor; opacity:0.82; font-family:'IBM Plex Sans',sans-serif;}
+  .dia-edge{fill:currentColor; opacity:0.68; font-family:'IBM Plex Mono',monospace;}
+  .dia-accent-text{fill:var(--accent); font-family:'IBM Plex Mono',monospace;}
+  .dia-note{fill:var(--ground-tint); stroke:var(--rule-strong); stroke-width:1;}
+  figcaption{font-size:0.9rem; color:var(--ink-soft); margin-top:1.2rem; max-width:44rem;}
+
+  /* ---------- status table ---------- */
+  .table-scroll{overflow-x:auto; margin-top:1.6rem;}
+  table.status{width:100%; min-width:44rem; border-collapse:collapse; font-size:0.93rem;}
+  table.status th{
+    text-align:left; font-family:var(--font-mono); font-size:0.7rem; font-weight:500;
+    letter-spacing:0.08em; text-transform:uppercase; color:var(--ink-faint);
+    padding:0 1rem 0.6rem 0; border-bottom:1px solid var(--rule);
+  }
+  table.status td{
+    padding:0.9rem 1rem 0.9rem 0; border-bottom:1px solid var(--rule-soft);
+    vertical-align:top; color:var(--ink-soft);
+  }
+  table.status td.folder{font-family:var(--font-mono); font-size:0.85rem; color:var(--ink); white-space:nowrap;}
+  table.status td.size{font-family:var(--font-mono); font-size:0.85rem; color:var(--brass); white-space:nowrap; font-variant-numeric:tabular-nums;}
+  .badge{
+    font-family:var(--font-mono); font-size:0.68rem; letter-spacing:0.05em; text-transform:uppercase;
+    padding:0.18rem 0.5rem; border-radius:4px; font-weight:600; white-space:nowrap;
+  }
+  .badge.closed{color:var(--closed); background:var(--closed-bg);}
+  .badge.partial{color:var(--partial); background:var(--partial-bg);}
+  .badge.resolved{color:var(--resolved); background:var(--resolved-bg);}
+
+  /* ---------- the tech ---------- */
+  .tech-group{margin:0 0 2.2rem;}
+  .tech-group h3{
+    font-family:var(--font-mono); font-size:0.74rem; font-weight:500; letter-spacing:0.08em;
+    text-transform:uppercase; color:var(--ink-faint); margin:0 0 0.4rem;
+  }
+  .labels{margin:0; border-top:1px solid var(--rule);}
+  .label-row{
+    display:grid; grid-template-columns:12rem 1fr; gap:1rem;
+    padding:0.85rem 0; border-bottom:1px solid var(--rule-soft);
+  }
+  .label-row dt{font-family:var(--font-mono); font-size:0.82rem; font-weight:500; color:var(--accent);}
+  .label-row dd{margin:0; font-size:0.93rem; color:var(--ink-soft); max-width:52ch;}
+
+  /* ---------- steps and rules ---------- */
+  ol.steps{margin:1.6rem 0 0; padding:0; list-style:none; counter-reset:step; max-width:40rem;}
+  ol.steps li{
+    counter-increment:step; display:grid; grid-template-columns:2.6rem 1fr; gap:0.6rem;
+    padding:0.85rem 0; border-bottom:1px solid var(--rule-soft); font-size:0.96rem;
+  }
+  ol.steps li::before{
+    content:counter(step, decimal-leading-zero); font-family:var(--font-mono);
+    color:var(--brass); font-weight:500; font-variant-numeric:tabular-nums;
+  }
+  ol.steps li b{font-weight:600;}
+  .rules{margin:1.6rem 0 0; padding:0; list-style:none; max-width:var(--measure);}
+  .rules li{
+    padding:0.7rem 0 0.7rem 1.6rem; position:relative;
+    font-size:0.96rem; border-bottom:1px solid var(--rule-soft);
+  }
+  .rules li::before{
+    content:'—'; position:absolute; left:0; color:var(--accent); font-family:var(--font-mono);
+  }
+
+  /* ---------- the four checks ---------- */
+  .finding{
+    display:grid; grid-template-columns:4.75rem 1fr; gap:0 1.5rem;
+    padding:2.1rem 0; border-top:1px solid var(--rule);
+  }
+  .finding:last-of-type{border-bottom:1px solid var(--rule);}
+  .f-num{
+    font-family:var(--font-mono); font-size:1.65rem; font-weight:500;
+    color:var(--brass); line-height:1; padding-top:0.5rem;
+    font-variant-numeric:tabular-nums;
+  }
+  .f-chip{
+    display:inline-block; font-family:var(--font-mono); font-size:0.68rem;
+    letter-spacing:0.08em; text-transform:uppercase; color:var(--accent);
+    background:var(--accent-tint); padding:0.2rem 0.5rem; border-radius:3px;
+    margin-bottom:0.75rem;
+  }
+  .finding h3{
+    font-family:var(--font-display); font-weight:600;
+    font-size:clamp(1.15rem,2vw,1.42rem); line-height:1.28;
+    margin:0 0 0.85rem; max-width:32ch; text-wrap:balance;
+  }
+  .f-detail{margin:0 0 0.9rem; max-width:var(--measure); font-size:0.96rem;}
+  .f-matters{
+    margin:0; max-width:var(--measure); font-size:0.96rem;
+    color:var(--ink-soft); border-left:2px solid var(--rule); padding-left:0.9rem;
+  }
+  .f-matters b{
+    display:block; font-family:var(--font-mono); font-size:0.68rem;
+    letter-spacing:0.08em; text-transform:uppercase; color:var(--ink-faint);
+    font-weight:500; margin-bottom:0.25rem;
+  }
+
+  /* ---------- what the checks caught ---------- */
+  .corrections{list-style:none; margin:1.6rem 0 0; padding:0; border-top:1px solid var(--rule);}
+  .corrections li{
+    display:grid; grid-template-columns:7rem 1fr; gap:1.25rem;
+    padding:1rem 0; border-bottom:1px solid var(--rule-soft); align-items:start;
+  }
+  .c-ref{font-family:var(--font-mono); font-size:0.78rem; color:var(--accent); padding-top:0.2rem;}
+  .c-text{font-size:0.96rem; color:var(--ink-soft); max-width:60ch;}
+  .c-text b{color:var(--ink); font-weight:600;}
+  .c-text .silent{
+    font-family:var(--font-mono); font-size:0.66rem; letter-spacing:0.06em; text-transform:uppercase;
+    color:var(--partial); background:var(--partial-bg); padding:0.1rem 0.4rem; border-radius:3px;
+    margin-left:0.35rem; white-space:nowrap;
+  }
+
+  /* ---------- evidence ---------- */
+  .learned-panel{background:var(--ground-tint); border-radius:12px; padding:2.4rem 2.2rem;}
+  .learned-panel p{margin:0 0 1rem; max-width:var(--measure); font-size:1rem;}
+  .repo-cta{
+    display:flex; flex-wrap:wrap; gap:0.6rem; align-items:center;
+    margin-top:1.6rem; font-family:var(--font-mono); font-size:0.85rem;
+  }
+  .repo-cta a{border:1px solid var(--accent); border-radius:5px; padding:0.5rem 0.9rem; text-decoration:none;}
+  .repo-cta a:hover{background:var(--accent-tint);}
+
+  footer.page{
+    padding:2.4rem 0 4rem; border-top:1px solid var(--rule); margin-top:2rem;
+    font-family:var(--font-mono); font-size:0.78rem; color:var(--ink-faint); line-height:1.7;
+  }
+
+  @media (max-width:640px){
+    .shell,.series-inner,.toc-inner{padding-left:1rem; padding-right:1rem;}
+    .finding{grid-template-columns:1fr; gap:0;}
+    .f-num{padding-top:0; margin-bottom:0.4rem; font-size:1.3rem;}
+    .corrections li,.label-row{grid-template-columns:1fr; gap:0.3rem;}
+    .learned-panel{padding:1.6rem 1.3rem;}
+    .stat{padding-right:0.8rem;}
+    table.status{min-width:0;}
+    table.status thead{display:none;}
+    table.status tr{display:block; padding:0.9rem 0; border-bottom:1px solid var(--rule-soft);}
+    table.status td{display:block; border:none; padding:0.15rem 0;}
+    table.status td.folder,table.status td.size,table.status td:nth-child(3){display:inline-block; margin-right:0.8rem;}
+    table.status td:empty{display:none;}
+    table.status td:nth-child(5)::before{
+      content:'Proof: '; font-family:var(--font-mono); font-size:0.7rem;
+      letter-spacing:0.06em; text-transform:uppercase; color:var(--ink-faint);
+    }
+  }
+</style>
+</head>
+<body>
+
+<div class="series">
+  <div class="series-inner">
+    <a href="index.html">&larr; 01 &middot; Home Away From Home</a>
+    <span class="sep">/</span>
+    <a href="field-report.html">02 &middot; the field report</a>
+    <span class="sep">/</span>
+    <span class="here">03 &middot; the photo migration</span>
+  </div>
+</div>
+
+<div class="shell">
+
+<header class="hero">
+  <p class="eyebrow">Outside the lab &middot; data migration &middot; 2026</p>
+  <h1>I am moving a 1.74&nbsp;TB photo drive into iCloud. No batch counts until four checks pass.</h1>
+  <p class="lede">The drive is a 2012 Seagate that holds my 2014&ndash;2017 photos and video: 945 GiB in four old iPhoto libraries and loose folders. The work uses the capture discipline from <code>district.local</code>. Claude writes each script, I run it, and every claim points at a captured output file.</p>
+  <p class="thesis">Never verify against a tool's own count.</p>
+  <div class="stats">
+    <div class="stat"><div class="n">945</div><div class="l">GiB of photos and video on the drive</div></div>
+    <div class="stat"><div class="n">~21,600</div><div class="l">assets imported so far</div></div>
+    <div class="stat"><div class="n">125</div><div class="l">originals back from iCloud, all SHA-256-identical</div></div>
+    <div class="stat"><div class="n">3</div><div class="l">silent data-loss modes caught</div></div>
+    <div class="stat"><div class="n">130</div><div class="l">corrections on the record</div></div>
+  </div>
+  <p class="asof">Figures as of 2026-10-01 13:10 UTC, before the 2015 iPhoto library import began.</p>
+</header>
+</div>
+
+<nav class="toc">
+  <div class="toc-inner">
+    <a href="#pipeline">The pipeline</a>
+    <a href="#status">Where it stands</a>
+    <a href="#tech">The tech</a>
+    <a href="#batch">How a batch runs</a>
+    <a href="#proof">The four checks</a>
+    <a href="#caught">What the checks caught</a>
+    <a href="#remains">What remains</a>
+    <a href="#evidence">About the evidence</a>
+  </div>
+</nav>
+
+<div class="shell">
+
+<section id="pipeline">
+  <p class="sec-label">The pipeline</p>
+  <h2>Four independent checks cover the path from drive to iCloud</h2>
+  <p class="col">Files leave the drive over USB, pass through the Mac mini's internal disk, and upload to iCloud Photos. Photos removes a local original after it reaches iCloud, so the internal disk is a buffer. Each check must pass before a batch counts as done.</p>
+
+  <figure class="dia">
+    <div class="dia-scroll">
+      <svg viewBox="0 0 760 632" role="img" aria-label="Migration pipeline. Files move from the Seagate drive through an osxphotos import in Terminal.app, into the Photos library on the Mac mini, through the cloudphotod upload, to iCloud Photos. A reconcile checks the import, a library check checks the Photos library, a drain checks the upload, and an iCloud round trip downloads a sample back and compares it with the source file on the drive by SHA-256.">
+        <defs>
+          <marker id="mArrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+            <polygon points="0,1 10,5 0,9" fill="currentColor"></polygon>
+          </marker>
+          <marker id="mArrowA" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+            <polygon points="0,1 10,5 0,9" class="dia-accent-fill"></polygon>
+          </marker>
+        </defs>
+
+        <!-- the path of the files -->
+        <line x1="184" y1="96" x2="184" y2="132" class="dia-line" marker-end="url(#mArrow)"></line>
+        <line x1="184" y1="204" x2="184" y2="240" class="dia-line" marker-end="url(#mArrow)"></line>
+        <line x1="184" y1="312" x2="184" y2="348" class="dia-line" marker-end="url(#mArrow)"></line>
+        <line x1="184" y1="420" x2="184" y2="456" class="dia-line" marker-end="url(#mArrow)"></line>
+        <text x="196" y="118" class="dia-edge" font-size="11">read over USB</text>
+        <text x="196" y="226" class="dia-edge" font-size="11">imported through AppleScript</text>
+        <text x="196" y="334" class="dia-edge" font-size="11">queued for upload</text>
+        <text x="196" y="442" class="dia-edge" font-size="11">uploaded</text>
+
+        <!-- the check on each stage -->
+        <line x1="344" y1="168" x2="424" y2="168" class="dia-tie"></line>
+        <line x1="344" y1="276" x2="424" y2="276" class="dia-tie"></line>
+        <line x1="344" y1="384" x2="424" y2="384" class="dia-tie"></line>
+        <line x1="344" y1="492" x2="424" y2="492" class="dia-tie"></line>
+
+        <!-- the round trip back to the source -->
+        <path d="M736 492 H748 V60 H344" class="dia-accent" marker-end="url(#mArrowA)"></path>
+        <text x="584" y="52" text-anchor="middle" class="dia-accent-text" font-size="11">compared by SHA-256 with the source file</text>
+
+        <!-- stages -->
+        <rect x="24" y="24" width="320" height="72" rx="6" class="dia-box"></rect>
+        <text x="40" y="48" class="dia-t" font-size="13" font-weight="600">Seagate drive</text>
+        <text x="40" y="66" class="dia-body" font-size="11.5">2 TB, USB, HFS+, from 2012</text>
+        <text x="40" y="82" class="dia-body" font-size="11.5">Read in place; SMART cannot be read</text>
+
+        <rect x="24" y="132" width="320" height="72" rx="6" class="dia-box"></rect>
+        <text x="40" y="156" class="dia-t" font-size="13" font-weight="600">osxphotos import, in Terminal.app</text>
+        <text x="40" y="174" class="dia-body" font-size="11.5">500-group chunks, each with its own dry run</text>
+        <text x="40" y="190" class="dia-body" font-size="11.5">Paced to the upload, 30 GiB free floor</text>
+
+        <rect x="24" y="240" width="320" height="72" rx="6" class="dia-box"></rect>
+        <text x="40" y="264" class="dia-t" font-size="13" font-weight="600">Photos library on the Mac mini</text>
+        <text x="40" y="282" class="dia-body" font-size="11.5">Originals land on the internal disk</text>
+        <text x="40" y="298" class="dia-body" font-size="11.5">Removed locally once they are in iCloud</text>
+
+        <rect x="24" y="348" width="320" height="72" rx="6" class="dia-box"></rect>
+        <text x="40" y="372" class="dia-t" font-size="13" font-weight="600">Upload by cloudphotod</text>
+        <text x="40" y="390" class="dia-body" font-size="11.5">Import ~20 GiB/h, upload ~3.95 GB/h</text>
+        <text x="40" y="406" class="dia-body" font-size="11.5">The upload sets the pace of the whole run</text>
+
+        <rect x="24" y="456" width="320" height="72" rx="6" class="dia-box"></rect>
+        <text x="40" y="480" class="dia-t" font-size="13" font-weight="600">iCloud Photos</text>
+        <text x="40" y="498" class="dia-body" font-size="11.5">The destination for every batch</text>
+        <text x="40" y="514" class="dia-body" font-size="11.5">Optimize Mac Storage is on</text>
+
+        <!-- checks -->
+        <rect x="424" y="132" width="312" height="72" rx="6" class="dia-box"></rect>
+        <text x="440" y="156" class="dia-t" font-size="13" font-weight="600">Reconcile</text>
+        <text x="440" y="174" class="dia-body" font-size="11.5">Imported + skipped equals the chunk dry run</text>
+        <text x="440" y="190" class="dia-body" font-size="11.5">and errors are 0, or the run stops</text>
+
+        <rect x="424" y="240" width="312" height="72" rx="6" class="dia-box"></rect>
+        <text x="440" y="264" class="dia-t" font-size="13" font-weight="600">Library check</text>
+        <text x="440" y="282" class="dia-body" font-size="11.5">Every source file fingerprint matches a</text>
+        <text x="440" y="298" class="dia-body" font-size="11.5">live asset: 0 unmatched, 0 in trash</text>
+
+        <rect x="424" y="348" width="312" height="72" rx="6" class="dia-box"></rect>
+        <text x="440" y="372" class="dia-t" font-size="13" font-weight="600">Drain</text>
+        <text x="440" y="390" class="dia-body" font-size="11.5">Album count not yet in iCloud reaches 0</text>
+        <text x="440" y="406" class="dia-body" font-size="11.5">before the batch closes</text>
+
+        <rect x="424" y="456" width="312" height="72" rx="6" class="dia-box-accent"></rect>
+        <text x="440" y="480" class="dia-t" font-size="13" font-weight="600">iCloud round trip</text>
+        <text x="440" y="498" class="dia-body" font-size="11.5">A seeded sample of evicted originals</text>
+        <text x="440" y="514" class="dia-body" font-size="11.5">is downloaded back from iCloud</text>
+
+        <!-- who runs what -->
+        <rect x="24" y="552" width="712" height="56" rx="6" class="dia-note"></rect>
+        <text x="40" y="575" class="dia-body" font-size="11.5">macOS privacy controls block Claude's shell from the drive and the Photos library.</text>
+        <text x="40" y="593" class="dia-body" font-size="11.5">Terminal.app runs every step that touches them. Claude writes the scripts and reads the evidence.</text>
+      </svg>
+    </div>
+    <figcaption>Solid arrows show the path of the files. Dashed lines show the check on each stage. The round trip is the strongest check, because it compares bytes that came back from iCloud with the source file.</figcaption>
+  </figure>
+</section>
+
+<section id="status">
+  <p class="sec-label">Where it stands</p>
+  <h2>2015 is in, except one iPhoto library. 2016 has not started.</h2>
+  <p class="col">About 30% of the photo bytes on the drive are duplicate copies. The bytes left therefore overstate the work left.</p>
+  <div class="table-scroll">
+    <table class="status">
+      <thead>
+        <tr><th>Folder</th><th>Size</th><th>Status</th><th>Done so far</th><th>How it is proven</th></tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td class="folder">2014</td><td class="size">149 GiB</td><td><span class="badge partial">In progress</span></td>
+          <td>4 date folders, 1,419 assets. The other date folders and the iPhoto library (14,107 masters) are left.</td>
+          <td>Library check PASS on all 4</td>
+        </tr>
+        <tr>
+          <td class="folder">2015</td><td class="size">260 GiB</td><td><span class="badge partial">In progress</span></td>
+          <td>Every media file, 12,451 assets, except the iPhoto library's <code>Masters/</code> (1,235 files). That import began on <span style="white-space:nowrap">2026-10-01</span>.</td>
+          <td><code>CRS</code>: library check and round trip. The rest: library check PASS; the round trip waits until Photos removes the local originals</td>
+        </tr>
+        <tr>
+          <td class="folder">2016</td><td class="size">404 GiB</td><td><span class="badge resolved">Not started</span></td>
+          <td>Nothing yet</td>
+          <td></td>
+        </tr>
+        <tr>
+          <td class="folder">2017</td><td class="size">124 GiB</td><td><span class="badge partial">In progress</span></td>
+          <td>4 folders, 7,742 assets, including <code>ip2017</code>. The other date folders and <code>Need to Sort 2017</code> are left.</td>
+          <td>Library check PASS. <code>ip2017</code> round trip: 63 of 63 non-Live originals identical</td>
+        </tr>
+        <tr>
+          <td class="folder">3 other folders</td><td class="size">26.2 GiB</td><td><span class="badge resolved">Not started</span></td>
+          <td>Contents not examined yet</td>
+          <td></td>
+        </tr>
+        <tr>
+          <td class="folder">Time Machine</td><td class="size">~657 GiB</td><td><span class="badge resolved">Undecided</span></td>
+          <td>Not photo content. Keep or discard is still open.</td>
+          <td>The drive is not wiped until this is decided</td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+</section>
+
+<section id="tech">
+  <p class="sec-label">The tech</p>
+  <h2>osxphotos and Photos.app import the files. My own scripts check their work.</h2>
+  <p class="col" style="margin-bottom:2rem;">The importer's own counts proved unreliable in the first week, so every number it reports is checked by a second tool.</p>
+
+  <div class="tech-group">
+    <h3>Hardware and services</h3>
+    <dl class="labels">
+      <div class="label-row"><dt>Seagate drive</dt><dd>Backup Plus Desk, 2 TB, USB, HFS+, from 2012. The USB bridge blocks SMART, so the drive's health is unknown. It is read in place and was never imaged: the Mac has one free port.</dd></div>
+      <div class="label-row"><dt>Mac mini</dt><dd>macOS 26, about 460 GiB of internal disk. Every original passes through this disk before upload. Free space limits the whole run.</dd></div>
+      <div class="label-row"><dt>iCloud Photos</dt><dd>The destination, through Photos.app with Optimize Mac Storage on. Photos removes a local original after it is in iCloud.</dd></div>
+      <div class="label-row"><dt>cloudphotod</dt><dd>The macOS upload service. Its log shows low-disk refusals and download events.</dd></div>
+      <div class="label-row"><dt>External SSD</dt><dd>Took 25 GB of Lightroom renders and an iMovie backup image to free local space. It is not on the photo path.</dd></div>
+    </dl>
+  </div>
+
+  <div class="tech-group">
+    <h3>Import</h3>
+    <dl class="labels">
+      <div class="label-row"><dt>osxphotos 0.76.1</dt><dd><code>import</code> drives Photos over AppleScript. <code>query</code> reads the state of each asset. <code>export --download-missing</code> pulls originals back from iCloud.</dd></div>
+      <div class="label-row"><dt>chunked-import.sh</dt><dd>Imports a folder in 500-group chunks. Each chunk is checked against its own dry run, and the run is paced to the upload.</dd></div>
+      <div class="label-row"><dt>import-files.sh</dt><dd>Re-imports named files without duplicate skipping. Keeps Live Photo pairs together.</dd></div>
+      <div class="label-row"><dt>burst-map.py</dt><dd>Keeps each burst inside one chunk. Drops byte-identical copies inside a burst.</dd></div>
+      <div class="label-row"><dt>mov-atoms.py</dt><dd>Walks the QuickTime atoms of each clip. Finds clips with no media data before they stop an import.</dd></div>
+    </dl>
+  </div>
+
+  <div class="tech-group">
+    <h3>Checks and record</h3>
+    <dl class="labels">
+      <div class="label-row"><dt>library-check.py</dt><dd>With two helper scripts, fingerprints every source file and matches it to a live Photos asset.</dd></div>
+      <div class="label-row"><dt>q37-round-trip.sh</dt><dd>With two helper scripts, downloads a sample of evicted originals and compares them with the drive by SHA-256.</dd></div>
+      <div class="label-row"><dt>pair-compare.py</dt><dd>SHA-256 check of both halves of a Live Photo.</dd></div>
+      <div class="label-row"><dt>dup-census.sh</dt><dd>Measured duplicate content across the whole drive.</dd></div>
+      <div class="label-row"><dt>capture.sh + git</dt><dd>Every capture stores the command, the raw output, the exit code and the UTC time.</dd></div>
+      <div class="label-row"><dt>macOS tools</dt><dd><code>diskutil</code>, <code>smartctl</code>, <code>find</code>, <code>stat</code>, <code>df</code>, <code>shasum</code>, <code>log show</code>, <code>netstat</code>, <code>caffeinate</code>.</dd></div>
+    </dl>
+  </div>
+
+  <p class="col">The import, damaged-video, library-check, Live Photo and round-trip scripts each have a fixture suite with deliberate mutants. A broken check fails its own test before it runs on real data.</p>
+</section>
+
+<section id="batch">
+  <p class="sec-label">How a batch runs</p>
+  <h2>One folder, cut into chunks that check themselves and wait for the upload</h2>
+  <ol class="steps">
+    <li><span><b>Probe the videos.</b> <code>mov-atoms-batch.sh</code> reads every clip in the folder, with four known control files. Clips with no media data go on a known-bad list.</span></li>
+    <li><span><b>Map the folder.</b> One dry run of the whole folder records how osxphotos groups files. Files that share a name stem stay together, so a Live Photo stays one asset.</span></li>
+    <li><span><b>Write the expected results down.</b> They are committed to git before anything runs.</span></li>
+    <li><span><b>Import in chunks.</b> Each chunk gets its own dry run, then the import, then a reconcile. Any error stops the run, and it resumes where it stopped.</span></li>
+    <li><span><b>Pace to the upload.</b> Before each chunk, the album's not-in-iCloud count must be at or below what the last chunk imported. Below 30 GiB free, the run switches to small serial steps.</span></li>
+    <li><span><b>Drain.</b> After the last chunk, the run waits until nothing in the album is still waiting to upload.</span></li>
+    <li><span><b>Watch.</b> <code>caffeinate</code> keeps the Mac awake. Claude watches the evidence files and reports progress during long runs.</span></li>
+  </ol>
+  <p class="col" style="margin-top:1.6rem;">The pacing exists because import runs at about 20 GiB/h and upload at about 3.95 GB/h. When the import outran the upload, the disk filled with originals Photos could not remove, and the upload stopped.</p>
+</section>
+
+<section id="proof">
+  <p class="sec-label">The four checks</p>
+  <h2>A batch is done when four independent checks pass. The importer's own count is not one of them.</h2>
+
+  <article class="finding">
+    <div class="f-num">01</div>
+    <div>
+      <span class="f-chip">Count</span>
+      <h3>Imported plus skipped must equal the chunk's own dry run, with 0 errors.</h3>
+      <p class="f-detail">The first version compared the library's growth with the importer's claim. That comparison agrees with the importer by construction, and it cannot see a lost file.</p>
+      <p class="f-matters"><b>Why it exists</b>On 2026-09-21 the old comparison reported a clean batch. That batch had lost 5,874 groups, and osxphotos had exited 0.</p>
+    </div>
+  </article>
+
+  <article class="finding">
+    <div class="f-num">02</div>
+    <div>
+      <span class="f-chip">Upload</span>
+      <h3>The album's count of assets not yet in iCloud must reach 0.</h3>
+      <p class="f-detail">osxphotos reads the upload flag for each asset. The run waits for the drain, so "done" means uploaded.</p>
+    </div>
+  </article>
+
+  <article class="finding">
+    <div class="f-num">03</div>
+    <div>
+      <span class="f-chip">Fingerprint</span>
+      <h3>Every source file must match a live Photos asset by Photos' own fingerprint.</h3>
+      <p class="f-detail">Each file lands in one class: LIVE, NOT-MEDIA, KNOWN-BAD, TRASH-ONLY or UNMATCHED. TRASH-ONLY and UNMATCHED must be 0. A reverse pass looks for album assets with no source file. For <code>2015/CRS</code>: 10,844 media files LIVE, 0 unmatched, 0 strays.</p>
+      <p class="f-matters"><b>Why it exists</b>This check found both duplicate-skipping losses listed below. The importer reported 0 errors in both runs.</p>
+    </div>
+  </article>
+
+  <article class="finding">
+    <div class="f-num">04</div>
+    <div>
+      <span class="f-chip">Bytes</span>
+      <h3>A seeded sample of evicted originals is downloaded back and compared with the drive by SHA-256.</h3>
+      <p class="f-detail">The sample and its seed are committed before any download. <code>2015/CRS</code>: 62 of 62 identical, across CR2, NEF, JPG, MOV and PNG. <code>2017/ip2017</code>: 63 of 63 non-Live originals identical.</p>
+      <p class="f-matters"><b>Why it exists</b>Photos marked steps "in iCloud" after about 12&ndash;17% of their bytes had left the Mac. The cause is not established, so the flag is not proof.</p>
+    </div>
+  </article>
+
+  <ul class="rules">
+    <li>The expected results are written down before a check runs.</li>
+    <li>Every probe includes known control files. A control that misses stops the run.</li>
+    <li>A check is never relaxed after its result is seen.</li>
+  </ul>
+</section>
+
+<section id="caught">
+  <p class="sec-label">What the checks caught</p>
+  <h2>Ten problems. Three of them lose files without an error.</h2>
+  <p class="col">All three silent losses were caught, and every affected file was recovered. Newest first.</p>
+  <ul class="corrections">
+    <li><span class="c-ref">2026-09-30</span><span class="c-text"><b>Duplicate skipping dropped 14 Live Photo pairs.</b><span class="silent">silent loss</span> Each still matched an older still-only asset, so the whole pair was skipped. Found by the library check. The pairs were re-imported as Live Photos, and 28 of 28 files are SHA-256-identical to the drive.</span></li>
+    <li><span class="c-ref">2026-09-30</span><span class="c-text"><b>Duplicate skipping dropped a different file.</b><span class="silent">silent loss</span> <code>r1.jpg</code> had the same name and size as another file, but different content. Found by the library check as UNMATCHED. Fixed by a targeted re-import without duplicate skipping.</span></li>
+    <li><span class="c-ref">2026-09-30</span><span class="c-text"><b>36 recovered video files hold an index but no media data.</b> They stop an import, and osxphotos' <code>--stop-on-error</code> restarted Photos instead of stopping. Found by a stopped run, then by the atom walk with control files. Every batch's videos are now probed first.</span></li>
+    <li><span class="c-ref">2026-09-29</span><span class="c-text"><b>Duplicate skipping does not work inside a burst.</b> 87 byte-identical copies went in as extra burst frames. Found by a burst duplicate census. <code>burst-map.py</code> now drops those copies when the map is built.</span></li>
+    <li><span class="c-ref">2026-09-29</span><span class="c-text"><b>A new chunk raced Photos' startup.</b> The first import call failed with "User canceled (-128)". The script now confirms Photos is ready before each chunk.</span></li>
+    <li><span class="c-ref">2026-09-27</span><span class="c-text"><b>Photos marked steps "in iCloud" after about 12&ndash;17% of their bytes had left the Mac.</b> Found by logging the network byte counter each minute. Answered by the round trip.</span></li>
+    <li><span class="c-ref">2026-09-24</span><span class="c-text"><b>Upload deadlock.</b> The disk filled with originals not yet uploaded, Photos set low-disk, and the upload stopped. Free space reached 1.49 GiB. About 80 GiB was freed on the Mac, and the import was paced to the upload.</span></li>
+    <li><span class="c-ref">2026-09-21</span><span class="c-text"><b>osxphotos exited 0 after 5,900 failed imports.</b><span class="silent">silent loss</span> The library count still matched the importer's claim. Found by comparison with the dry run's group count. Fixed by the chunked importer, and all 5,874 lost groups were imported.</span></li>
+    <li><span class="c-ref">2026-09-19</span><span class="c-text"><b>The iPhoto catalogs are incomplete.</b> The 2014 catalog lists 4,970 of its 14,107 masters, and macOS 26 cannot open these libraries. The <code>Masters/</code> folders are imported directly. A library import would have missed about 9,000 files.</span></li>
+    <li><span class="c-ref">2026-09-19</span><span class="c-text"><b>The working figure was 945 GB.</b> The drive held 1.74 TB, and iCloud had 832 items from those years: the migration had not started. Every figure is now captured again before it is used.</span></li>
+  </ul>
+</section>
+
+<section id="remains">
+  <p class="sec-label">What remains</p>
+  <h2>The drive is wiped after every folder passes and the backup decision is made</h2>
+  <ul class="rules">
+    <li>Close the 2015 iPhoto library's <code>Masters/</code> import (1,235 files), which began on 2026-10-01.</li>
+    <li>Import the rest of 2014, including its iPhoto library (14,107 masters).</li>
+    <li>Import 2016 (404 GiB).</li>
+    <li>Import the rest of 2017.</li>
+    <li>Examine the three other folders.</li>
+    <li>Run the round trip for Live Photos, and for batches whose originals are still local.</li>
+    <li>Decide whether XMP sidecars and PDFs are in scope. They do not reach Photos.</li>
+    <li>Decide what happens to the Time Machine backup.</li>
+    <li>Wipe and retire the drive.</li>
+  </ul>
+</section>
+
+<section id="evidence">
+  <p class="sec-label">About the evidence</p>
+  <h2>The evidence repository is private</h2>
+  <div class="learned-panel">
+    <p>It indexes a personal photo archive, so it is not on GitHub. At the cutoff above it held 227 commits, one evidence file per capture, and a corrections log of 130 entries. Claude's own errors are in that log.</p>
+    <p>You cannot check these figures from this page. The <code>district.local</code> field report uses the same method, and its evidence is public.</p>
+    <div class="repo-cta">
+      <a href="field-report.html">Read the field report &rarr;</a>
+    </div>
+  </div>
+</section>
+
+<footer class="page">
+  Archive migration &middot; macOS 26 &middot; Photos.app &middot; osxphotos 0.76.1 &middot; iCloud Photos &middot; documented under the district.local capture discipline<br>
+  Figures as of 2026-10-01 13:10 UTC &middot; <a href="index.html">Start at the beginning &rarr;</a>
+</footer>
+
+</div>
+</body>
+</html>
