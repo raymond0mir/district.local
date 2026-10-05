@@ -4,11 +4,11 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Seagate to iCloud Photos Migration</title>
-<meta name="description" content="Moving a 1.74 TB photo drive into iCloud Photos with the district.local capture discipline. Four independent checks per batch, three silent data-loss modes caught, and every correction kept on the record.">
+<meta name="description" content="Moving a 1.74 TB photo drive into iCloud Photos with the district.local capture discipline. Four independent checks per batch, four silent data-loss modes caught, and every correction kept on the record.">
 <meta property="og:type" content="article">
 <meta property="og:site_name" content="district.local">
 <meta property="og:title" content="Seagate to iCloud Photos Migration">
-<meta property="og:description" content="Moving a 1.74 TB photo drive into iCloud Photos with the district.local capture discipline. Four independent checks per batch, three silent data-loss modes caught, and every correction kept on the record.">
+<meta property="og:description" content="Moving a 1.74 TB photo drive into iCloud Photos with the district.local capture discipline. Four independent checks per batch, four silent data-loss modes caught, and every correction kept on the record.">
 <meta property="og:url" content="https://raymond0mir.github.io/district.local/photo-migration.html">
 <meta name="twitter:card" content="summary">
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Serif:wght@400;500;600;700&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500;600&display=swap">
@@ -325,12 +325,12 @@
   <p class="thesis">Never verify against a tool's own count.</p>
   <div class="stats">
     <div class="stat"><div class="n">945</div><div class="l">GiB of photos and video on the drive</div></div>
-    <div class="stat"><div class="n">~21,600</div><div class="l">assets imported so far</div></div>
+    <div class="stat"><div class="n">~32,600</div><div class="l">assets imported so far</div></div>
     <div class="stat"><div class="n">125</div><div class="l">originals back from iCloud, all SHA-256-identical</div></div>
-    <div class="stat"><div class="n">3</div><div class="l">silent data-loss modes caught</div></div>
-    <div class="stat"><div class="n">130</div><div class="l">corrections on the record</div></div>
+    <div class="stat"><div class="n">4</div><div class="l">silent data-loss modes caught</div></div>
+    <div class="stat"><div class="n">226</div><div class="l">corrections on the record</div></div>
   </div>
-  <p class="asof">Figures as of 2026-10-01 13:10 UTC, before the 2015 iPhoto library import began.</p>
+  <p class="asof">Figures as of 2026-10-05 13:21 UTC. First published with figures as of 2026-10-01.</p>
 </header>
 </div>
 
@@ -445,7 +445,7 @@
 
 <section id="status">
   <p class="sec-label">Where it stands</p>
-  <h2>2015 is in, except one iPhoto library. 2016 has not started.</h2>
+  <h2>2015 is done. 2016 has 6 of its 8 parts closed.</h2>
   <p class="col">About 30% of the photo bytes on the drive are duplicate copies. The bytes left therefore overstate the work left.</p>
   <div class="table-scroll">
     <table class="status">
@@ -459,14 +459,14 @@
           <td>Library check PASS on all 4</td>
         </tr>
         <tr>
-          <td class="folder">2015</td><td class="size">260 GiB</td><td><span class="badge partial">In progress</span></td>
-          <td>Every media file, 12,451 assets, except the iPhoto library's <code>Masters/</code> (1,235 files). That import began on <span style="white-space:nowrap">2026-10-01</span>.</td>
+          <td class="folder">2015</td><td class="size">260 GiB</td><td><span class="badge closed">Done</span></td>
+          <td>Every media file, 13,496 assets, including all 1,235 files of the iPhoto library's <code>Masters/</code>.</td>
           <td><code>CRS</code>: library check and round trip. The rest: library check PASS; the round trip waits until Photos removes the local originals</td>
         </tr>
         <tr>
-          <td class="folder">2016</td><td class="size">404 GiB</td><td><span class="badge resolved">Not started</span></td>
-          <td>Nothing yet</td>
-          <td></td>
+          <td class="folder">2016</td><td class="size">404 GiB</td><td><span class="badge partial">In progress</span></td>
+          <td>6 of 8 parts closed: a group of 4 folders, <code>Print</code>, and the camera folders. 9,923 assets, 3,277 of them Live Photos. Left: the <code>2016 iPhone</code> library and folders, and <code>CRS</code> (about 141.5 GiB new).</td>
+          <td>Library check PASS on every closed part. One iCloud drain check is still to run</td>
         </tr>
         <tr>
           <td class="folder">2017</td><td class="size">124 GiB</td><td><span class="badge partial">In progress</span></td>
@@ -508,10 +508,12 @@
     <h3>Import</h3>
     <dl class="labels">
       <div class="label-row"><dt>osxphotos 0.76.1</dt><dd><code>import</code> drives Photos over AppleScript. <code>query</code> reads the state of each asset. <code>export --download-missing</code> pulls originals back from iCloud.</dd></div>
-      <div class="label-row"><dt>chunked-import.sh</dt><dd>Imports a folder in 500-group chunks. Each chunk is checked against its own dry run, and the run is paced to the upload.</dd></div>
+      <div class="label-row"><dt>chunked-import.sh</dt><dd>Imports a folder in 500-group chunks. Each chunk is checked against its own dry run, and the run is paced to the upload. A full-path skip list holds files that are refused or decided out.</dd></div>
       <div class="label-row"><dt>import-files.sh</dt><dd>Re-imports named files without duplicate skipping. Keeps Live Photo pairs together.</dd></div>
       <div class="label-row"><dt>burst-map.py</dt><dd>Keeps each burst inside one chunk. Drops byte-identical copies inside a burst.</dd></div>
       <div class="label-row"><dt>mov-atoms.py</dt><dd>Walks the QuickTime atoms of each clip. Finds clips with no media data before they stop an import.</dd></div>
+      <div class="label-row"><dt>live-ids-batch.sh</dt><dd>Reads the Live Photo content ID of every still and video. Live pairs are planned by that ID, not by file name.</dd></div>
+      <div class="label-row"><dt>import-live-videos.sh</dt><dd>Attaches held-back Live Photo videos to their imported stills in a second pass. An inventory before and after proves each attach.</dd></div>
     </dl>
   </div>
 
@@ -520,9 +522,11 @@
     <dl class="labels">
       <div class="label-row"><dt>library-check.py</dt><dd>With two helper scripts, fingerprints every source file and matches it to a live Photos asset.</dd></div>
       <div class="label-row"><dt>q37-round-trip.sh</dt><dd>With two helper scripts, downloads a sample of evicted originals and compares them with the drive by SHA-256.</dd></div>
+      <div class="label-row"><dt>live-mov-check.py</dt><dd>Matches attached Live Photo videos to their assets by content ID, where the file fingerprint cannot match.</dd></div>
       <div class="label-row"><dt>pair-compare.py</dt><dd>SHA-256 check of both halves of a Live Photo.</dd></div>
       <div class="label-row"><dt>dup-census.sh</dt><dd>Measured duplicate content across the whole drive.</dd></div>
-      <div class="label-row"><dt>capture.sh + git</dt><dd>Every capture stores the command, the raw output, the exit code and the UTC time.</dd></div>
+      <div class="label-row"><dt>capture.sh + git</dt><dd>Every capture stores the command, the raw output, the exit code and the UTC time. Every script refuses to overwrite an existing evidence file.</dd></div>
+      <div class="label-row"><dt>watch-import.sh</dt><dd>Claude's monitor script. It follows a running import by process ID and reports each new capture.</dd></div>
       <div class="label-row"><dt>macOS tools</dt><dd><code>diskutil</code>, <code>smartctl</code>, <code>find</code>, <code>stat</code>, <code>df</code>, <code>shasum</code>, <code>log show</code>, <code>netstat</code>, <code>caffeinate</code>.</dd></div>
     </dl>
   </div>
@@ -534,11 +538,12 @@
   <p class="sec-label">How a batch runs</p>
   <h2>One folder, cut into chunks that check themselves and wait for the upload</h2>
   <ol class="steps">
-    <li><span><b>Probe the videos.</b> <code>mov-atoms-batch.sh</code> reads every clip in the folder, with four known control files. Clips with no media data go on a known-bad list.</span></li>
-    <li><span><b>Map the folder.</b> One dry run of the whole folder records how osxphotos groups files. Files that share a name stem stay together, so a Live Photo stays one asset.</span></li>
+    <li><span><b>Probe the videos.</b> <code>mov-atoms-batch.sh</code> reads every clip in the folder, with four known control files. Clips with no media data go on a known-bad list. A second scan reads every Live Photo content ID.</span></li>
+    <li><span><b>Map the folder.</b> One dry run of the whole folder records how osxphotos groups files. Live Photo videos are held back by full path, to be attached after their stills.</span></li>
     <li><span><b>Write the expected results down.</b> They are committed to git before anything runs.</span></li>
     <li><span><b>Import in chunks.</b> Each chunk gets its own dry run, then the import, then a reconcile. Any error stops the run, and it resumes where it stopped.</span></li>
     <li><span><b>Pace to the upload.</b> Before each chunk, the album's not-in-iCloud count must be at or below what the last chunk imported. Below 30 GiB free, the run switches to small serial steps.</span></li>
+    <li><span><b>Attach the Live Photo videos.</b> A second pass joins each held-back video to its still. The inventories before and after must show every attach and no new asset.</span></li>
     <li><span><b>Drain.</b> After the last chunk, the run waits until nothing in the album is still waiting to upload.</span></li>
     <li><span><b>Watch.</b> <code>caffeinate</code> keeps the Mac awake. Claude watches the evidence files and reports progress during long runs.</span></li>
   </ol>
@@ -573,8 +578,8 @@
     <div>
       <span class="f-chip">Fingerprint</span>
       <h3>Every source file must match a live Photos asset by Photos' own fingerprint.</h3>
-      <p class="f-detail">Each file lands in one class: LIVE, NOT-MEDIA, KNOWN-BAD, TRASH-ONLY or UNMATCHED. TRASH-ONLY and UNMATCHED must be 0. A reverse pass looks for album assets with no source file. For <code>2015/CRS</code>: 10,844 media files LIVE, 0 unmatched, 0 strays.</p>
-      <p class="f-matters"><b>Why it exists</b>This check found both duplicate-skipping losses listed below. The importer reported 0 errors in both runs.</p>
+      <p class="f-detail">Each file lands in one class: LIVE, NOT-MEDIA, KNOWN-BAD, TRASH-ONLY or UNMATCHED. TRASH-ONLY and UNMATCHED must be 0. A Live Photo video stored inside its still's asset matches by content ID instead (LIVE-BY-ID). A reverse pass looks for album assets with no source file. For <code>2015/CRS</code>: 10,844 media files LIVE, 0 unmatched, 0 strays.</p>
+      <p class="f-matters"><b>Why it exists</b>This check found all three duplicate-skipping losses listed below. The importer reported 0 errors in each run.</p>
     </div>
   </article>
 
@@ -597,11 +602,16 @@
 
 <section id="caught">
   <p class="sec-label">What the checks caught</p>
-  <h2>Ten problems. Three of them lose files without an error.</h2>
-  <p class="col">All three silent losses were caught, and every affected file was recovered. Newest first.</p>
+  <h2>Fifteen problems. Four of them lose files without an error.</h2>
+  <p class="col">All four silent losses were caught, and every affected file was recovered. Newest first.</p>
   <ul class="corrections">
+    <li><span class="c-ref">2026-10-05</span><span class="c-text"><b>Photos imported 2 Live Photo videos as separate clips.</b> They were meant to join their stills. Found by the attach check, which expected 1,679 attaches and saw 1,677. The cause is not established, and the clips stay as they are.</span></li>
+    <li><span class="c-ref">2026-10-03</span><span class="c-text"><b>osxphotos reports a Live Photo attach as an error.</b> A run stopped on 10 "failed" videos, and Photos hung after the restarts. All 10 were in the library as Live Photos. Live videos now go in a second pass, matched by content ID and proven by inventory.</span></li>
+    <li><span class="c-ref">2026-10-02</span><span class="c-text"><b>Photos refused the two locked files on the drive.</b> Both are valid JPEGs with the Finder Locked flag. A scan of the whole drive found exactly 2 locked files, and Photos refused exactly those two. Both are held out by full path.</span></li>
+    <li><span class="c-ref">2026-10-01</span><span class="c-text"><b>Duplicate skipping matched 23 files to shared-album items.</b><span class="silent">silent loss</span> Shared-album items are not in my own library, so those files were missing. Found by a round-trip pilot and a trace of every fingerprint-less match. Fixed by a targeted import; all 1,235 <code>Masters/</code> files are now LIVE.</span></li>
+    <li><span class="c-ref">2026-10-01</span><span class="c-text"><b>osxphotos misreported two imports.</b> It called one file an error after Photos imported it, and it called another clean but left it out of the album. Found by a one-file fingerprint check and a per-UUID album check. A refused import is now checked before any resume.</span></li>
     <li><span class="c-ref">2026-09-30</span><span class="c-text"><b>Duplicate skipping dropped 14 Live Photo pairs.</b><span class="silent">silent loss</span> Each still matched an older still-only asset, so the whole pair was skipped. Found by the library check. The pairs were re-imported as Live Photos, and 28 of 28 files are SHA-256-identical to the drive.</span></li>
-    <li><span class="c-ref">2026-09-30</span><span class="c-text"><b>Duplicate skipping dropped a different file.</b><span class="silent">silent loss</span> <code>r1.jpg</code> had the same name and size as another file, but different content. Found by the library check as UNMATCHED. Fixed by a targeted re-import without duplicate skipping.</span></li>
+    <li><span class="c-ref">2026-09-30</span><span class="c-text"><b>Duplicate skipping dropped a different file.</b><span class="silent">silent loss</span> <code>r1.jpg</code> had the same name and size as another file, but different content. Found by the library check as UNMATCHED. Fixed by a targeted re-import without duplicate skipping. It happened again on 2026-10-02 with <code>44.jpeg</code>, and osxphotos' source shows the cause: a filename-and-size fallback.</span></li>
     <li><span class="c-ref">2026-09-30</span><span class="c-text"><b>36 recovered video files hold an index but no media data.</b> They stop an import, and osxphotos' <code>--stop-on-error</code> restarted Photos instead of stopping. Found by a stopped run, then by the atom walk with control files. Every batch's videos are now probed first.</span></li>
     <li><span class="c-ref">2026-09-29</span><span class="c-text"><b>Duplicate skipping does not work inside a burst.</b> 87 byte-identical copies went in as extra burst frames. Found by a burst duplicate census. <code>burst-map.py</code> now drops those copies when the map is built.</span></li>
     <li><span class="c-ref">2026-09-29</span><span class="c-text"><b>A new chunk raced Photos' startup.</b> The first import call failed with "User canceled (-128)". The script now confirms Photos is ready before each chunk.</span></li>
@@ -617,13 +627,14 @@
   <p class="sec-label">What remains</p>
   <h2>The drive is wiped after every folder passes and the backup decision is made</h2>
   <ul class="rules">
-    <li>Close the 2015 iPhoto library's <code>Masters/</code> import (1,235 files), which began on 2026-10-01.</li>
+    <li>Finish 2016: the <code>2016 iPhone</code> library and folders, then <code>CRS</code> in low-space mode.</li>
+    <li>Run the last iCloud drain check for 2016's <code>📷/Digital</code>.</li>
     <li>Import the rest of 2014, including its iPhoto library (14,107 masters).</li>
-    <li>Import 2016 (404 GiB).</li>
     <li>Import the rest of 2017.</li>
     <li>Examine the three other folders.</li>
     <li>Run the round trip for Live Photos, and for batches whose originals are still local.</li>
-    <li>Decide whether XMP sidecars and PDFs are in scope. They do not reach Photos.</li>
+    <li>Decide whether XMP sidecars, PDFs and other documents are in scope. They do not reach Photos.</li>
+    <li>Decide whether to import the 2 locked JPEGs from unlocked copies.</li>
     <li>Decide what happens to the Time Machine backup.</li>
     <li>Wipe and retire the drive.</li>
   </ul>
@@ -633,7 +644,7 @@
   <p class="sec-label">About the evidence</p>
   <h2>The evidence repository is private</h2>
   <div class="learned-panel">
-    <p>It indexes a personal photo archive, so it is not on GitHub. At the cutoff above it held 227 commits, one evidence file per capture, and a corrections log of 130 entries. Claude's own errors are in that log.</p>
+    <p>It indexes a personal photo archive, so it is not on GitHub. At the cutoff above it held 369 commits, one evidence file per capture, and a corrections log of 226 entries. Claude's own errors are in that log.</p>
     <p>You cannot check these figures from this page. The <code>district.local</code> field report uses the same method, and its evidence is public.</p>
     <div class="repo-cta">
       <a href="field-report.html">Read the field report &rarr;</a>
@@ -643,7 +654,7 @@
 
 <footer class="page">
   Archive migration &middot; macOS 26 &middot; Photos.app &middot; osxphotos 0.76.1 &middot; iCloud Photos &middot; documented under the district.local capture discipline<br>
-  Figures as of 2026-10-01 13:10 UTC &middot; <a href="index.html">Start at the beginning &rarr;</a>
+  Figures as of 2026-10-05 13:21 UTC &middot; <a href="index.html">Start at the beginning &rarr;</a>
 </footer>
 
 </div>
