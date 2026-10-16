@@ -4,11 +4,11 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Seagate to iCloud Photos Migration</title>
-<meta name="description" content="Moving a 1.74 TB photo drive into iCloud Photos with the district.local capture discipline. Four independent checks per batch, four silent data-loss modes caught, and every correction kept on the record.">
+<meta name="description" content="Moving a 1.74 TB photo drive into iCloud Photos with the district.local capture discipline. Every batch closed, a Time Machine backup that held 8,000 photos nowhere else, four silent data-loss modes caught, and every correction kept on the record.">
 <meta property="og:type" content="article">
 <meta property="og:site_name" content="district.local">
 <meta property="og:title" content="Seagate to iCloud Photos Migration">
-<meta property="og:description" content="Moving a 1.74 TB photo drive into iCloud Photos with the district.local capture discipline. Four independent checks per batch, four silent data-loss modes caught, and every correction kept on the record.">
+<meta property="og:description" content="Moving a 1.74 TB photo drive into iCloud Photos with the district.local capture discipline. Every batch closed, a Time Machine backup that held 8,000 photos nowhere else, four silent data-loss modes caught, and every correction kept on the record.">
 <meta property="og:url" content="https://raymond0mir.github.io/district.local/photo-migration.html">
 <meta name="twitter:card" content="summary">
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Serif:wght@400;500;600;700&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500;600&display=swap">
@@ -320,17 +320,17 @@
 
 <header class="hero">
   <p class="eyebrow">Outside the lab &middot; data migration &middot; 2026</p>
-  <h1>I am moving a 1.74&nbsp;TB photo drive into iCloud. No batch counts until four checks pass.</h1>
-  <p class="lede">The drive is a 2012 Seagate that holds my 2014&ndash;2017 photos and video: 945 GiB in four old iPhoto libraries and loose folders. The work uses the capture discipline from <code>district.local</code>. Claude writes each script, I run it, and every claim points at a captured output file.</p>
+  <h1>I moved a 1.74&nbsp;TB photo drive into iCloud. No batch counted until its checks passed.</h1>
+  <p class="lede">The drive is a 2012 Seagate that holds my 2014&ndash;2017 photos and video: 945 GiB in four old iPhoto libraries and loose folders, plus a Time Machine backup that turned out to hold photos found nowhere else. The work uses the capture discipline from <code>district.local</code>. Claude writes each script, and every claim points at a captured output file. I ran the scripts from Terminal.app until 2026-10-14; Claude's shell now runs them with Full Disk Access.</p>
   <p class="thesis">Never verify against a tool's own count.</p>
   <div class="stats">
     <div class="stat"><div class="n">945</div><div class="l">GiB of photos and video on the drive</div></div>
-    <div class="stat"><div class="n">~32,600</div><div class="l">assets imported so far</div></div>
+    <div class="stat"><div class="n">~74,900</div><div class="l">assets imported so far</div></div>
     <div class="stat"><div class="n">125</div><div class="l">originals back from iCloud, all SHA-256-identical</div></div>
     <div class="stat"><div class="n">4</div><div class="l">silent data-loss modes caught</div></div>
-    <div class="stat"><div class="n">226</div><div class="l">corrections on the record</div></div>
+    <div class="stat"><div class="n">373</div><div class="l">corrections on the record</div></div>
   </div>
-  <p class="asof">Figures as of 2026-10-05 13:21 UTC. First published with figures as of 2026-10-01.</p>
+  <p class="asof">Figures as of 2026-10-16 01:51 UTC. First published with figures as of 2026-10-01.</p>
 </header>
 </div>
 
@@ -356,7 +356,7 @@
 
   <figure class="dia">
     <div class="dia-scroll">
-      <svg viewBox="0 0 760 632" role="img" aria-label="Migration pipeline. Files move from the Seagate drive through an osxphotos import in Terminal.app, into the Photos library on the Mac mini, through the cloudphotod upload, to iCloud Photos. A reconcile checks the import, a library check checks the Photos library, a drain checks the upload, and an iCloud round trip downloads a sample back and compares it with the source file on the drive by SHA-256.">
+      <svg viewBox="0 0 760 632" role="img" aria-label="Migration pipeline. Files move from the Seagate drive through an osxphotos import, into the Photos library on the Mac mini, through the cloudphotod upload, to iCloud Photos. A reconcile checks the import, a library check checks the Photos library, a drain checks the upload, and an iCloud round trip downloads a sample back and compares it with the source file on the drive by SHA-256.">
         <defs>
           <marker id="mArrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
             <polygon points="0,1 10,5 0,9" fill="currentColor"></polygon>
@@ -393,7 +393,7 @@
         <text x="40" y="82" class="dia-body" font-size="11.5">Read in place; SMART cannot be read</text>
 
         <rect x="24" y="132" width="320" height="72" rx="6" class="dia-box"></rect>
-        <text x="40" y="156" class="dia-t" font-size="13" font-weight="600">osxphotos import, in Terminal.app</text>
+        <text x="40" y="156" class="dia-t" font-size="13" font-weight="600">osxphotos import</text>
         <text x="40" y="174" class="dia-body" font-size="11.5">500-group chunks, each with its own dry run</text>
         <text x="40" y="190" class="dia-body" font-size="11.5">Paced to the upload, 30 GiB free floor</text>
 
@@ -435,8 +435,8 @@
 
         <!-- who runs what -->
         <rect x="24" y="552" width="712" height="56" rx="6" class="dia-note"></rect>
-        <text x="40" y="575" class="dia-body" font-size="11.5">macOS privacy controls block Claude's shell from the drive and the Photos library.</text>
-        <text x="40" y="593" class="dia-body" font-size="11.5">Terminal.app runs every step that touches them. Claude writes the scripts and reads the evidence.</text>
+        <text x="40" y="575" class="dia-body" font-size="11.5">Until 2026-10-14, macOS privacy controls kept Claude's shell off the drive and the Photos library.</text>
+        <text x="40" y="593" class="dia-body" font-size="11.5">Terminal.app ran those steps. Claude's shell now has Full Disk Access and runs the same scripts.</text>
       </svg>
     </div>
     <figcaption>Solid arrows show the path of the files. Dashed lines show the check on each stage. The round trip is the strongest check, because it compares bytes that came back from iCloud with the source file.</figcaption>
@@ -445,8 +445,8 @@
 
 <section id="status">
   <p class="sec-label">Where it stands</p>
-  <h2>2015 is done. 2016 has 6 of its 8 parts closed.</h2>
-  <p class="col">About 30% of the photo bytes on the drive are duplicate copies. The bytes left therefore overstate the work left.</p>
+  <h2>Every batch is closed, the Time Machine backup included. Open decisions remain.</h2>
+  <p class="col">Done means every media file is in Photos or explained: a byte copy of an asset already in, a file out of scope, or a recorded decision. Asset counts are each album's count at its latest capture; they exclude non-key burst frames.</p>
   <div class="table-scroll">
     <table class="status">
       <thead>
@@ -454,34 +454,49 @@
       </thead>
       <tbody>
         <tr>
-          <td class="folder">2014</td><td class="size">149 GiB</td><td><span class="badge partial">In progress</span></td>
-          <td>4 date folders, 1,419 assets. The other date folders and the iPhoto library (14,107 masters) are left.</td>
-          <td>Library check PASS on all 4</td>
+          <td class="folder">2014</td><td class="size">149 GiB</td><td><span class="badge closed">Done</span></td>
+          <td>Every media file in Photos or explained, including the iPhoto library's 14,107 masters. 19,210 assets.</td>
+          <td>Close PASS: reverse pass 0, all in iCloud</td>
         </tr>
         <tr>
           <td class="folder">2015</td><td class="size">260 GiB</td><td><span class="badge closed">Done</span></td>
-          <td>Every media file, 13,496 assets, including all 1,235 files of the iPhoto library's <code>Masters/</code>.</td>
+          <td>Every media file in Photos, including all 1,235 files of the iPhoto library's <code>Masters/</code>. 13,604 assets. This page said 13,496 from 2026-10-05 to 2026-10-15; see the retired claim below.</td>
           <td><code>CRS</code>: library check and round trip. The rest: library check PASS; the round trip waits until Photos removes the local originals</td>
         </tr>
         <tr>
-          <td class="folder">2016</td><td class="size">404 GiB</td><td><span class="badge partial">In progress</span></td>
-          <td>6 of 8 parts closed: a group of 4 folders, <code>Print</code>, and the camera folders. 9,923 assets, 3,277 of them Live Photos. Left: the <code>2016 iPhone</code> library and folders, and <code>CRS</code> (about 141.5 GiB new).</td>
-          <td>Library check PASS on every closed part. One iCloud drain check is still to run</td>
+          <td class="folder">2016</td><td class="size">404 GiB</td><td><span class="badge closed">Done</span></td>
+          <td>Every media file in Photos or explained. 18,366 assets, 4,261 of them Live Photos.</td>
+          <td>Close PASS: reverse pass 0 over all 65,481 files, all in iCloud</td>
         </tr>
         <tr>
-          <td class="folder">2017</td><td class="size">124 GiB</td><td><span class="badge partial">In progress</span></td>
-          <td>4 folders, 7,742 assets, including <code>ip2017</code>. The other date folders and <code>Need to Sort 2017</code> are left.</td>
-          <td>Library check PASS. <code>ip2017</code> round trip: 63 of 63 non-Live originals identical</td>
+          <td class="folder">2017</td><td class="size">124 GiB</td><td><span class="badge closed">Done</span></td>
+          <td>Every media file in Photos or explained. 9,982 assets.</td>
+          <td>Close PASS: reverse pass 0, all in iCloud. <code>ip2017</code> round trip: 63 of 63 non-Live originals identical</td>
         </tr>
         <tr>
-          <td class="folder">3 other folders</td><td class="size">26.2 GiB</td><td><span class="badge resolved">Not started</span></td>
-          <td>Contents not examined yet</td>
-          <td></td>
+          <td class="folder">August 2017 to</td><td class="size">8.2 GiB</td><td><span class="badge closed">Done</span></td>
+          <td>Every media file in Photos or explained. 2,557 assets. Three of its five standalone clips became Live Photos when Time Machine supplied their stills.</td>
+          <td>Close PASS: reverse pass 0, all in iCloud</td>
         </tr>
         <tr>
-          <td class="folder">Time Machine</td><td class="size">~657 GiB</td><td><span class="badge resolved">Undecided</span></td>
-          <td>Not photo content. Keep or discard is still open.</td>
-          <td>The drive is not wiped until this is decided</td>
+          <td class="folder">Drive-root photos folder</td><td class="size">8.6 GiB</td><td><span class="badge closed">Done</span></td>
+          <td>3,026 assets, 314 of them Live Photos. Two photo-plus-edit pairs that Photos rejects twice are left by decision.</td>
+          <td>Close PASS: reverse pass 0, all in iCloud</td>
+        </tr>
+        <tr>
+          <td class="folder">Random</td><td class="size">9.4 GiB</td><td><span class="badge closed">Done</span></td>
+          <td>483 new assets. One subfolder was already in Photos as 2016's copy. A Windows folder of 10,940 web and app images is left out by decision.</td>
+          <td>Close PASS: reverse pass 0, all in iCloud</td>
+        </tr>
+        <tr>
+          <td class="folder">Time Machine</td><td class="size">~657 GiB</td><td><span class="badge closed">Done</span></td>
+          <td>Held about 8,056 media files found nowhere else. Its camera folders, two photo libraries' originals and Canon clips are in: 2,117 assets. Message attachments, desktop and download copies are left by decision.</td>
+          <td>Close PASS: reverse pass 0, all in iCloud</td>
+        </tr>
+        <tr>
+          <td class="folder">iPhone backups</td><td class="size">45.0 GiB</td><td><span class="badge closed">Done</span></td>
+          <td>Eleven iOS device backups inside Time Machine held 5,796 camera-roll originals found nowhere else. 5,549 assets, 736 of them Live Photos. One backup is encrypted for 2016&ndash;17: at most 32 files stay unreadable without its password.</td>
+          <td>Close PASS: reverse pass 0, all in iCloud</td>
         </tr>
       </tbody>
     </table>
@@ -497,7 +512,7 @@
     <h3>Hardware and services</h3>
     <dl class="labels">
       <div class="label-row"><dt>Seagate drive</dt><dd>Backup Plus Desk, 2 TB, USB, HFS+, from 2012. The USB bridge blocks SMART, so the drive's health is unknown. It is read in place and was never imaged: the Mac has one free port.</dd></div>
-      <div class="label-row"><dt>Mac mini</dt><dd>macOS 26, about 460 GiB of internal disk. Every original passes through this disk before upload. Free space limits the whole run.</dd></div>
+      <div class="label-row"><dt>Mac mini</dt><dd>macOS 26, then 27.0.1 from 2026-10-14. About 460 GiB of internal disk. Every original passes through this disk before upload. Free space limits the whole run.</dd></div>
       <div class="label-row"><dt>iCloud Photos</dt><dd>The destination, through Photos.app with Optimize Mac Storage on. Photos removes a local original after it is in iCloud.</dd></div>
       <div class="label-row"><dt>cloudphotod</dt><dd>The macOS upload service. Its log shows low-disk refusals and download events.</dd></div>
       <div class="label-row"><dt>External SSD</dt><dd>Took 25 GB of Lightroom renders and an iMovie backup image to free local space. It is not on the photo path.</dd></div>
@@ -509,6 +524,11 @@
     <dl class="labels">
       <div class="label-row"><dt>osxphotos 0.76.1</dt><dd><code>import</code> drives Photos over AppleScript. <code>query</code> reads the state of each asset. <code>export --download-missing</code> pulls originals back from iCloud.</dd></div>
       <div class="label-row"><dt>chunked-import.sh</dt><dd>Imports a folder in 500-group chunks. Each chunk is checked against its own dry run, and the run is paced to the upload. A full-path skip list holds files that are refused or decided out.</dd></div>
+      <div class="label-row"><dt>tm-compare.py</dt><dd>Compares every file in the Time Machine backup, by fingerprint, with the library and with every Seagate close. It found the 8,056.</dd></div>
+      <div class="label-row"><dt>ios-stage.py</dt><dd>Stages one copy per fingerprint out of the iOS device backups, with each file's real name and the device's own file time.</dd></div>
+      <div class="label-row"><dt>plan-own-fp.py</dt><dd>Plans each batch from its own fingerprints. <code>chunk-predict.py</code> then writes every chunk's imported and skipped counts before the run.</dd></div>
+      <div class="label-row"><dt>import-joiners.sh</dt><dd>Imports new frames of bursts that are already in the library before the main run, so they cannot stop it.</dd></div>
+      <div class="label-row"><dt>recover-stop.sh</dt><dd>Recovers a run stopped by an AppleScript timeout: saves the attempt, checks the library, and resumes.</dd></div>
       <div class="label-row"><dt>import-files.sh</dt><dd>Re-imports named files without duplicate skipping. Keeps Live Photo pairs together.</dd></div>
       <div class="label-row"><dt>burst-map.py</dt><dd>Keeps each burst inside one chunk. Drops byte-identical copies inside a burst.</dd></div>
       <div class="label-row"><dt>mov-atoms.py</dt><dd>Walks the QuickTime atoms of each clip. Finds clips with no media data before they stop an import.</dd></div>
@@ -527,6 +547,10 @@
       <div class="label-row"><dt>dup-census.sh</dt><dd>Measured duplicate content across the whole drive.</dd></div>
       <div class="label-row"><dt>capture.sh + git</dt><dd>Every capture stores the command, the raw output, the exit code and the UTC time. Every script refuses to overwrite an existing evidence file.</dd></div>
       <div class="label-row"><dt>watch-import.sh</dt><dd>Claude's monitor script. It follows a running import by process ID and reports each new capture.</dd></div>
+      <div class="label-row"><dt>chunk-watch.sh</dt><dd>Compares each finished chunk with its predicted row, and reports the first chunk that differs.</dd></div>
+      <div class="label-row"><dt>sync-kick-watch.sh</dt><dd>Watches the upload backlog. When it sits flat, the script makes Photos render the stuck assets so they upload.</dd></div>
+      <div class="label-row"><dt>Verification scripts</dt><dd>Five read-only checks, run once over the whole result: cross-hash, reconciliation, ledger, provenance, and drive health.</dd></div>
+      <div class="label-row"><dt>Review agents</dt><dd>Before the larger runs, separate agents tried to break each new script. A skeptic agent checked every finding against the code.</dd></div>
       <div class="label-row"><dt>macOS tools</dt><dd><code>diskutil</code>, <code>smartctl</code>, <code>find</code>, <code>stat</code>, <code>df</code>, <code>shasum</code>, <code>log show</code>, <code>netstat</code>, <code>caffeinate</code>.</dd></div>
     </dl>
   </div>
@@ -540,12 +564,13 @@
   <ol class="steps">
     <li><span><b>Probe the videos.</b> <code>mov-atoms-batch.sh</code> reads every clip in the folder, with four known control files. Clips with no media data go on a known-bad list. A second scan reads every Live Photo content ID.</span></li>
     <li><span><b>Map the folder.</b> One dry run of the whole folder records how osxphotos groups files. Live Photo videos are held back by full path, to be attached after their stills.</span></li>
-    <li><span><b>Write the expected results down.</b> They are committed to git before anything runs.</span></li>
+    <li><span><b>Predict every chunk.</b> The plan comes from the batch's own fingerprints. Each chunk's imported and skipped counts are committed to git before anything runs.</span></li>
     <li><span><b>Import in chunks.</b> Each chunk gets its own dry run, then the import, then a reconcile. Any error stops the run, and it resumes where it stopped.</span></li>
     <li><span><b>Pace to the upload.</b> Before each chunk, the album's not-in-iCloud count must be at or below what the last chunk imported. Below 30 GiB free, the run switches to small serial steps.</span></li>
     <li><span><b>Attach the Live Photo videos.</b> A second pass joins each held-back video to its still. The inventories before and after must show every attach and no new asset.</span></li>
     <li><span><b>Drain.</b> After the last chunk, the run waits until nothing in the album is still waiting to upload.</span></li>
-    <li><span><b>Watch.</b> <code>caffeinate</code> keeps the Mac awake. Claude watches the evidence files and reports progress during long runs.</span></li>
+    <li><span><b>Watch.</b> <code>chunk-watch.sh</code> compares each finished chunk with its predicted row. <code>sync-kick-watch.sh</code> restarts a stalled upload. <code>caffeinate</code> keeps the Mac awake.</span></li>
+    <li><span><b>Close the folder.</b> A close script fingerprints every file again, takes a fresh library inventory, and runs the library check, the reverse pass and the cloud state.</span></li>
   </ol>
   <p class="col" style="margin-top:1.6rem;">The pacing exists because import runs at about 20 GiB/h and upload at about 3.95 GB/h. When the import outran the upload, the disk filled with originals Photos could not remove, and the upload stopped.</p>
 </section>
@@ -598,13 +623,36 @@
     <li>Every probe includes known control files. A control that misses stops the run.</li>
     <li>A check is never relaxed after its result is seen.</li>
   </ul>
+  <p class="col" style="margin-top:2.4rem;"><b>A separate read-only pass on 2026-10-15</b> re-checked the whole result after every batch closed. Two review agents audited its scripts first and found 3 blockers and 7 major defects, all fixed before anything ran.</p>
+  <ul class="rules">
+    <li><b>Cross-hash:</b> 200 Seagate files drawn at random with a committed seed. 74 byte-identical in Photos, 0 mismatches. 124 skipped because their originals are not on this Mac; 2014&ndash;2017 had 0 checkable files. 2 missing by recorded decision.</li>
+    <li><b>Reconciliation:</b> 0 listed source files unaccounted for in all 8 strata. The first run's 156 all traced to recorded decisions.</li>
+    <li><b>Ledger:</b> FAIL. 361 corrections and 38 questions all defined; 4 cited files do not exist. One of the four is a path Claude wrote wrong.</li>
+    <li><b>Provenance:</b> the rescued company archive and the migration material on the SSD overlap in 0 files.</li>
+    <li><b>Health:</b> BLOCKED. SMART is still unreadable through the USB bridge.</li>
+  </ul>
 </section>
 
 <section id="caught">
   <p class="sec-label">What the checks caught</p>
-  <h2>Fifteen problems. Four of them lose files without an error.</h2>
-  <p class="col">All four silent losses were caught, and every affected file was recovered. Newest first.</p>
+  <h2>Thirty problems. Four lose files without an error, and two were this page's own claims.</h2>
+  <p class="col">All four silent losses were caught, and every affected file was recovered. A wrong published claim is retired here, not edited away. Newest first.</p>
   <ul class="corrections">
+    <li><span class="c-ref">2026-10-15</span><span class="c-text"><b>This page gave 2015 as 13,496 assets.</b><span class="silent">retired claim</span> The figure was a sum of a prediction, written on 2026-10-05 before the import ran. The captured album count is 13,604. Found while re-counting every figure for this update.</span></li>
+    <li><span class="c-ref">2026-10-15</span><span class="c-text"><b>This page called the Time Machine backup "not photo content".</b><span class="silent">retired claim</span> A fingerprint census of all 55,312 media files in its snapshots found 8,056 that are in neither Photos nor anywhere else on the drive, among them camera folders from the weeks after the Seagate's 2017 folders end. The drive was not wiped. 2,117 assets imported.</span></li>
+    <li><span class="c-ref">2026-10-15</span><span class="c-text"><b>Eleven iOS device backups sat inside Time Machine.</b> Their camera rolls held 5,796 originals found nowhere else, going back to a 2013 iPhone 4. A first read said none was encrypted; reading every manifest found one that was, for 2016&ndash;17. At most 32 files stay unreadable without its password.</span></li>
+    <li><span class="c-ref">2026-10-15</span><span class="c-text"><b>Copies out of a Time Machine snapshot carry its ACL.</b> Photos could not open them (POSIX error 13). Found by the first pilot import, which answered nothing. Fixed with ACL-free copies.</span></li>
+    <li><span class="c-ref">2026-10-15</span><span class="c-text"><b>A still and its motion imported together make a new Live Photo.</b> They do not attach to a copy already in the library. Found by a pilot. 735 Time Machine stills were deferred and imported as pairs with their backup videos.</span></li>
+    <li><span class="c-ref">2026-10-15</span><span class="c-text"><b>Importing a still attached three existing standalone clips by content ID.</b> Three of August's clips became Live Photos on their own, and their clip assets ceased to exist. Nothing lost: the clip is the Live video. Found at the Time Machine close.</span></li>
+    <li><span class="c-ref">2026-10-15</span><span class="c-text"><b>A review agent's runaway search consumed 65 GiB of disk in 16 minutes.</b> The running import stopped at its own floor and resumed when the space came back. Found by the run's free-space series.</span></li>
+    <li><span class="c-ref">2026-10-14</span><span class="c-text"><b>Album adds timed out at AppleScript's 2-minute default.</b> Two stops in one run, each recovered with nothing lost. The library had grown past 148,000 assets. The timeout was patched to 10 minutes, and a recovery script handles any such stop.</span></li>
+    <li><span class="c-ref">2026-10-14</span><span class="c-text"><b>Photos refuses a JPEG whose file mode is executable.</b> The same file had failed twice. A byte-identical copy with normal permissions imported. Found by a copy-import test.</span></li>
+    <li><span class="c-ref">2026-10-14</span><span class="c-text"><b>A Finder <code>Icon\r</code> file broke the chunk map.</b> The run stopped before any import. The map now leaves such files out.</span></li>
+    <li><span class="c-ref">2026-10-14</span><span class="c-text"><b>Photos imported 5 Live Photo videos as separate clips.</b> Each video's content ID was on an older <code>.jpeg</code> that was not downloaded to the Mac. Found by the attach check, which expected 166 attaches and saw 161. The clips stay as they are.</span></li>
+    <li><span class="c-ref">2026-10-12</span><span class="c-text"><b>Empty steps waited in the upload gate.</b> 300 steps with nothing to import each spent about 2.3 minutes in a library query: about 8 hours for nothing. Found from the run's step times. Empty steps now skip the gate.</span></li>
+    <li><span class="c-ref">2026-10-11</span><span class="c-text"><b>New frames of a burst already in the library stop an import.</b> Photos joins the frame to the existing stack, and osxphotos reports an error. Found by a stopped step. A library burst listing now predicts these frames, and they are imported before the run.</span></li>
+    <li><span class="c-ref">2026-10-10</span><span class="c-text"><b>A planning script read 2 of osxphotos' 4 group headers.</b> Chunk 007 imported 391, not the predicted 390. Found by <code>chunk-watch.sh</code> against the predicted rows. The parser now reads every header and stops on an unknown one.</span></li>
+    <li><span class="c-ref">2026-10-08</span><span class="c-text"><b>Uploads stalled for hours with assets stuck at "Syncing to iCloud".</b> Photos' own log showed the cause: a new asset uploads only after its preview renders, and that background job runs only while something imports or syncs. Imports now start with up to 25 assets still uploading, and a watcher clears a stall.</span></li>
     <li><span class="c-ref">2026-10-05</span><span class="c-text"><b>Photos imported 2 Live Photo videos as separate clips.</b> They were meant to join their stills. Found by the attach check, which expected 1,679 attaches and saw 1,677. The cause is not established, and the clips stay as they are.</span></li>
     <li><span class="c-ref">2026-10-03</span><span class="c-text"><b>osxphotos reports a Live Photo attach as an error.</b> A run stopped on 10 "failed" videos, and Photos hung after the restarts. All 10 were in the library as Live Photos. Live videos now go in a second pass, matched by content ID and proven by inventory.</span></li>
     <li><span class="c-ref">2026-10-02</span><span class="c-text"><b>Photos refused the two locked files on the drive.</b> Both are valid JPEGs with the Finder Locked flag. A scan of the whole drive found exactly 2 locked files, and Photos refused exactly those two. Both are held out by full path.</span></li>
@@ -627,16 +675,12 @@
   <p class="sec-label">What remains</p>
   <h2>The drive is wiped after every folder passes and the backup decision is made</h2>
   <ul class="rules">
-    <li>Finish 2016: the <code>2016 iPhone</code> library and folders, then <code>CRS</code> in low-space mode.</li>
-    <li>Run the last iCloud drain check for 2016's <code>📷/Digital</code>.</li>
-    <li>Import the rest of 2014, including its iPhoto library (14,107 masters).</li>
-    <li>Import the rest of 2017.</li>
-    <li>Examine the three other folders.</li>
+    <li>Decide on the 32 encrypted backup files. They need that backup's password.</li>
     <li>Run the round trip for Live Photos, and for batches whose originals are still local.</li>
     <li>Decide whether XMP sidecars, PDFs and other documents are in scope. They do not reach Photos.</li>
     <li>Decide whether to import the 2 locked JPEGs from unlocked copies.</li>
-    <li>Decide what happens to the Time Machine backup.</li>
-    <li>Wipe and retire the drive.</li>
+    <li>Back up the evidence repository. It has no remote.</li>
+    <li>Wipe and retire the drive. Every batch is closed; the decision is mine to make.</li>
   </ul>
 </section>
 
@@ -644,7 +688,7 @@
   <p class="sec-label">About the evidence</p>
   <h2>The evidence repository is private</h2>
   <div class="learned-panel">
-    <p>It indexes a personal photo archive, so it is not on GitHub. At the cutoff above it held 369 commits, one evidence file per capture, and a corrections log of 226 entries. Claude's own errors are in that log.</p>
+    <p>It indexes a personal photo archive, so it is not on GitHub. At the cutoff above it held 583 commits, one evidence file per capture, a corrections log of 373 entries, and the verification report. Claude's own errors are in that log.</p>
     <p>You cannot check these figures from this page. The <code>district.local</code> field report uses the same method, and its evidence is public.</p>
     <div class="repo-cta">
       <a href="field-report.html">Read the field report &rarr;</a>
@@ -653,8 +697,8 @@
 </section>
 
 <footer class="page">
-  Archive migration &middot; macOS 26 &middot; Photos.app &middot; osxphotos 0.76.1 &middot; iCloud Photos &middot; documented under the district.local capture discipline<br>
-  Figures as of 2026-10-05 13:21 UTC &middot; <a href="index.html">Start at the beginning &rarr;</a>
+  Archive migration &middot; macOS 27 &middot; Photos.app &middot; osxphotos 0.76.1 &middot; iCloud Photos &middot; documented under the district.local capture discipline<br>
+  Figures as of 2026-10-16 01:51 UTC &middot; <a href="index.html">Start at the beginning &rarr;</a>
 </footer>
 
 </div>
